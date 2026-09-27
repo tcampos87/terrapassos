@@ -23,6 +23,15 @@
   --pink-600:#BD4E82; --pink-100:#F8E3EE;
   --teal-600:#2C8C82; --teal-100:#DCEFEC;
   --shadow: 0 1px 2px rgba(27,32,24,.06), 0 8px 24px -12px rgba(27,32,24,.18);
+  /* ---- Sistema visual (Fluent/iOS-like): raios, elevação, vidro, movimento ---- */
+  --r-xs:8px; --r-sm:10px; --r-md:14px; --r-lg:18px; --r-xl:24px; --r-pill:999px;
+  --ease: cubic-bezier(.2,.7,.2,1); --ease-out: cubic-bezier(.16,1,.3,1);
+  --dur-1:120ms; --dur-2:220ms;
+  --elev-1: 0 1px 2px rgba(27,32,24,.04), 0 1px 1px rgba(27,32,24,.05);
+  --elev-2: 0 6px 16px -6px rgba(27,32,24,.14), 0 2px 6px -2px rgba(27,32,24,.08);
+  --elev-3: 0 16px 40px -12px rgba(27,32,24,.24), 0 4px 12px -4px rgba(27,32,24,.1);
+  --glass-bg: rgba(255,255,255,.66); --glass-border: rgba(255,255,255,.6); --glass-blur: 18px;
+  --acrylic: rgba(245,247,238,.78);
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
@@ -36,6 +45,10 @@
     --pink-600:#E293BC; --pink-100:#3A2130;
     --teal-600:#5FC2B7; --teal-100:#1B3733;
     --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px -12px rgba(0,0,0,.5);
+    --elev-1: 0 1px 2px rgba(0,0,0,.25), 0 1px 1px rgba(0,0,0,.2);
+    --elev-2: 0 6px 16px -6px rgba(0,0,0,.4), 0 2px 6px -2px rgba(0,0,0,.3);
+    --elev-3: 0 16px 40px -12px rgba(0,0,0,.55), 0 4px 12px -4px rgba(0,0,0,.35);
+    --glass-bg: rgba(28,33,22,.66); --glass-border: rgba(255,255,255,.08); --acrylic: rgba(20,24,15,.78);
   }
 }
 :root[data-theme="dark"]{
@@ -49,6 +62,10 @@
   --pink-600:#E293BC; --pink-100:#3A2130;
   --teal-600:#5FC2B7; --teal-100:#1B3733;
   --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px -12px rgba(0,0,0,.5);
+  --elev-1: 0 1px 2px rgba(0,0,0,.25), 0 1px 1px rgba(0,0,0,.2);
+  --elev-2: 0 6px 16px -6px rgba(0,0,0,.4), 0 2px 6px -2px rgba(0,0,0,.3);
+  --elev-3: 0 16px 40px -12px rgba(0,0,0,.55), 0 4px 12px -4px rgba(0,0,0,.35);
+  --glass-bg: rgba(28,33,22,.66); --glass-border: rgba(255,255,255,.08); --acrylic: rgba(20,24,15,.78);
 }
 :root[data-theme="azul"]{
   --bg:#F5F8FB; --surface:#FFFFFF; --surface-2:#EAF0F7; --border:#D8E3F0;
@@ -84,24 +101,33 @@ button{font-family:inherit;cursor:pointer}
 input,select,textarea{font-family:inherit;color:var(--ink);background:var(--surface)}
 ::-webkit-scrollbar{width:10px;height:10px}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:8px}
+@media(prefers-reduced-motion:reduce){*{transition-duration:.001ms!important;animation-duration:.001ms!important}}
 
-.card{background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow)}
-.field{width:100%;border:1px solid var(--border);background:var(--surface);border-radius:10px;padding:8px 12px;font-size:14px;outline:none;transition:border-color .15s}
-.field:focus{border-color:var(--green-500)}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--elev-1);transition:box-shadow var(--dur-2) var(--ease),transform var(--dur-2) var(--ease),border-color var(--dur-2) var(--ease)}
+button.card{text-align:left}
+@media(hover:hover){ button.card:hover, a.card:hover, .card.hoverable:hover{box-shadow:var(--elev-2);border-color:color-mix(in srgb, var(--green-500) 30%, var(--border));transform:translateY(-2px)} }
+button.card:active, a.card:active{transform:translateY(0) scale(.99)}
+.card-flat{background:var(--surface-2);border-radius:var(--r-md);border:1px solid transparent}
+.glass{background:var(--glass-bg);border:1px solid var(--glass-border);backdrop-filter:blur(var(--glass-blur)) saturate(1.4);-webkit-backdrop-filter:blur(var(--glass-blur)) saturate(1.4)}
+.field{width:100%;border:1px solid var(--border);background:var(--surface);border-radius:var(--r-sm);padding:9px 13px;font-size:14px;outline:none;transition:border-color var(--dur-1) var(--ease),box-shadow var(--dur-1) var(--ease)}
+.field:focus{border-color:var(--green-500);box-shadow:0 0 0 3.5px color-mix(in srgb, var(--green-500) 20%, transparent)}
 .label{font-size:12px;font-weight:600;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;display:block}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:10px;font-weight:600;font-size:14px;border:1px solid transparent;transition:filter .15s, transform .1s}
-.btn:active{transform:scale(.97)}
-.btn-primary{background:var(--green-600);color:#fff}
-.btn-primary:hover{filter:brightness(1.08)}
-.btn-accent{background:var(--orange-500);color:#fff}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 15px;border-radius:var(--r-sm);font-weight:600;font-size:14px;border:1px solid transparent;transition:filter var(--dur-1) var(--ease), transform var(--dur-1) var(--ease), box-shadow var(--dur-1) var(--ease), background var(--dur-1) var(--ease)}
+.btn:active{transform:scale(.96)}
+.btn-primary{background:var(--green-600);color:#fff;box-shadow:0 1px 2px rgba(27,32,24,.08), 0 4px 10px -4px color-mix(in srgb, var(--green-600) 55%, transparent)}
+.btn-primary:hover{filter:brightness(1.08);box-shadow:0 2px 4px rgba(27,32,24,.1), 0 6px 16px -4px color-mix(in srgb, var(--green-600) 65%, transparent)}
+.btn-accent{background:var(--orange-500);color:#fff;box-shadow:0 1px 2px rgba(27,32,24,.08), 0 4px 10px -4px color-mix(in srgb, var(--orange-500) 55%, transparent)}
 .btn-accent:hover{filter:brightness(1.08)}
 .btn-ghost{background:var(--surface-2);color:var(--ink)}
 .btn-ghost:hover{filter:brightness(0.97)}
 .btn-outline{background:transparent;border-color:var(--border);color:var(--ink)}
+.btn-outline:hover{background:var(--surface-2)}
 .btn-danger{background:var(--red-100);color:var(--red-600)}
-.btn-sm{padding:5px 10px;font-size:12.5px;border-radius:8px}
+.btn-sm{padding:6px 11px;font-size:12.5px;border-radius:var(--r-xs)}
+.btn-icon{padding:9px;border-radius:var(--r-pill)}
+.btn-icon.btn-sm{padding:6px}
 
-.pill{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700;letter-spacing:.01em}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:4px 11px;border-radius:var(--r-pill);font-size:12px;font-weight:700;letter-spacing:.01em}
 .dot{width:7px;height:7px;border-radius:50%;flex:none}
 .pill-green{background:var(--green-100);color:var(--green-700)}
 .pill-orange{background:var(--orange-100);color:var(--orange-600)}
@@ -113,11 +139,36 @@ input,select,textarea{font-family:inherit;color:var(--ink);background:var(--surf
 .pill-teal{background:var(--teal-100);color:var(--teal-600)}
 .pill-neutral{background:var(--surface-2);color:var(--ink-soft)}
 
-.navlink{display:flex;align-items:center;gap:11px;padding:10px 14px;border-radius:12px;color:var(--ink-soft);font-weight:600;font-size:14.5px;transition:background .15s,color .15s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* ---- Barra lateral e cabeçalho: chips de navegação estilo Fluent, indicador ativo ---- */
+.navlink{position:relative;display:flex;align-items:center;gap:11px;padding:9px 14px;border-radius:var(--r-md);color:var(--ink-soft);font-weight:600;font-size:14.5px;transition:background var(--dur-1) var(--ease),color var(--dur-1) var(--ease),padding var(--dur-2) var(--ease);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .navlink span{overflow:hidden;text-overflow:ellipsis}
 .navlink:hover{background:var(--surface-2);color:var(--ink)}
-.navlink.active{background:var(--green-600);color:#fff}
+.navlink.active{background:linear-gradient(135deg, var(--green-600), var(--green-700));color:#fff;box-shadow:0 3px 10px -3px color-mix(in srgb, var(--green-600) 55%, transparent)}
+.navlink.active::before{content:'';position:absolute;left:-14px;top:50%;transform:translateY(-50%);width:4px;height:18px;border-radius:0 4px 4px 0;background:var(--green-500)}
 .navlink svg{flex:none}
+.app-header{background:var(--acrylic);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--border)}
+.app-sidebar{background:var(--bg)}
+.stat-chip{display:flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:var(--r-sm);flex:none}
+.stat-chip svg{width:19px;height:19px}
+.seg{display:inline-flex;gap:2px;padding:3px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border)}
+.seg-btn{padding:6px 13px;border-radius:var(--r-sm);font-size:12.5px;font-weight:600;color:var(--ink-soft);transition:background var(--dur-1) var(--ease),color var(--dur-1) var(--ease),box-shadow var(--dur-1) var(--ease)}
+.seg-btn.on{background:var(--surface);color:var(--ink);box-shadow:var(--elev-1)}
+.tile-img{position:relative;overflow:hidden;background:var(--surface-2)}
+.tile-img img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .4s ease}
+.tile-img img.in{opacity:1}
+.tile-shade{position:absolute;inset:0;background:linear-gradient(0deg,rgba(10,14,8,.82) 0%,rgba(10,14,8,.15) 55%,rgba(10,14,8,0) 75%)}
+.tile-badge{position:absolute;left:10px;top:10px;font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:var(--r-pill);background:rgba(15,18,11,.5);color:#fff;backdrop-filter:blur(4px)}
+/* ---- Peças de bento do piloto (Visão Geral / Culturas) ---- */
+.stat-tile{display:flex;align-items:center;gap:11px;padding:12px 13px;border-radius:var(--r-md);background:var(--surface-2);transition:background var(--dur-1) var(--ease)}
+.list-tile{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:var(--r-md);background:var(--surface-2);transition:transform var(--dur-1) var(--ease),box-shadow var(--dur-1) var(--ease)}
+@media(hover:hover){.list-tile.clickable:hover{transform:translateX(2px)}}
+.urg-bar{width:100%;height:5px;border-radius:99px;background:var(--border);overflow:hidden;margin-top:6px}
+.urg-bar i{display:block;height:100%;border-radius:99px}
+.grid-crop-tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
+.crop-tile{position:relative;border-radius:var(--r-lg);overflow:hidden;aspect-ratio:4/3;cursor:pointer;box-shadow:var(--elev-1);transition:box-shadow var(--dur-2) var(--ease),transform var(--dur-2) var(--ease)}
+@media(hover:hover){.crop-tile:hover{box-shadow:var(--elev-2);transform:translateY(-2px)}}
+.crop-tile-cap{position:absolute;left:0;right:0;bottom:0;z-index:1;padding:10px 12px;color:#fff}
+.crop-tile-cap b{display:block;font-family:'Fredoka',sans-serif;font-size:14.5px;font-weight:600;text-shadow:0 1px 4px rgba(0,0,0,.4)}
 
 .tab-panel{display:none}
 .tab-panel.active{display:block}
@@ -338,7 +389,7 @@ input,select,textarea{font-family:inherit;color:var(--ink);background:var(--surf
 <div class="min-h-screen flex" style="background:var(--bg)">
 
   <!-- SIDEBAR -->
-  <aside class="w-[236px] flex-none hidden md:flex flex-col gap-1 p-4" style="border-right:1px solid var(--border)">
+  <aside class="app-sidebar w-[236px] flex-none hidden md:flex flex-col gap-1 p-4" style="border-right:1px solid var(--border);position:sticky;top:0;height:100vh;overflow-y:auto">
     <div class="flex items-center gap-2 px-2 pb-4 mb-2" style="border-bottom:1px solid var(--border)" id="brandBlock"></div>
     <nav class="flex flex-col gap-1" id="sidebarNav"></nav>
     <div class="mt-auto pt-3 text-[11px] px-2" style="color:var(--ink-faint);border-top:1px solid var(--border)">
@@ -349,7 +400,7 @@ input,select,textarea{font-family:inherit;color:var(--ink);background:var(--surf
   <!-- MAIN -->
   <div class="flex-1 min-w-0 flex flex-col">
     <!-- TOPBAR -->
-    <header class="flex items-center gap-3 px-4 md:px-7 py-3" style="border-bottom:1px solid var(--border);background:var(--surface)">
+    <header class="app-header flex items-center gap-3 px-4 md:px-7 py-3" style="position:sticky;top:0;z-index:40">
       <button class="md:hidden btn btn-ghost btn-sm" onclick="toggleMobileNav()">☰</button>
       <div class="flex-1 min-w-0">
         <h1 class="display font-semibold m-0" id="pageTitle" style="font-size:19px">Visão Geral</h1>
@@ -357,7 +408,7 @@ input,select,textarea{font-family:inherit;color:var(--ink);background:var(--surf
       </div>
       <div class="hidden lg:flex items-center gap-2 pill pill-neutral mono" id="dateBadge" style="font-size:12.5px"></div>
       <div class="relative">
-        <button class="btn btn-ghost btn-sm" onclick="toggleThemeMenu()" title="Alterar Tema" aria-label="Alterar Tema">
+        <button class="btn btn-ghost btn-sm btn-icon" onclick="toggleThemeMenu()" title="Alterar Tema" aria-label="Alterar Tema">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 100 20 2 2 0 001.6-3.2 1.5 1.5 0 011.2-2.4H16.5a3 3 0 003-3A8 8 0 0012 2Z"/><circle cx="7.5" cy="10.5" r="1.3" fill="currentColor" stroke="none"/><circle cx="10.5" cy="6.8" r="1.3" fill="currentColor" stroke="none"/><circle cx="15" cy="7.3" r="1.3" fill="currentColor" stroke="none"/><circle cx="17" cy="11.5" r="1.3" fill="currentColor" stroke="none"/></svg>
         </button>
         <div id="themeMenu" hidden class="absolute right-0 mt-2 w-64 card p-2 z-30"></div>
@@ -470,11 +521,8 @@ function renderLunarCard(){
   const next7 = Array.from({length:7}, (_,i)=>moonPhaseInfo(addDays(todayISO(), i)));
   return `
     <div class="card p-5 mb-4">
-      <div class="flex items-center justify-between mb-3 gap-2 flex-wrap">
-        <h3 class="display font-semibold m-0" style="font-size:15px">🌙 Calendário Lunar</h3>
-        <button class="btn btn-ghost btn-sm" onclick="openLunarMonthModal()">Ver mês completo</button>
-      </div>
-      <div class="flex items-center gap-3 mb-3">
+      ${secHead('purple','moon', 'Calendário Lunar', `<button class="btn btn-ghost btn-sm" onclick="openLunarMonthModal()">Ver mês completo</button>`)}
+      <div class="flex items-center gap-3 mb-3 p-3" style="background:var(--surface-2);border-radius:var(--r-md)">
         <span style="font-size:36px">${today.icon}</span>
         <div>
           <div class="text-sm font-semibold">${today.name} · ${today.illumination}% iluminada</div>
@@ -483,7 +531,7 @@ function renderLunarCard(){
       </div>
       <div class="flex gap-2 overflow-x-auto pb-1">
         ${next7.map(d=>`
-          <div class="flex flex-col items-center gap-1 px-2 py-2 rounded-xl flex-none" style="background:${d.date===todayISO()?'var(--green-100)':'var(--surface-2)'}; min-width:54px">
+          <div class="flex flex-col items-center gap-1 px-2 py-2.5 flex-none" style="background:${d.date===todayISO()?'var(--green-100)':'var(--surface-2)'};border-radius:var(--r-sm);min-width:56px">
             <div class="text-[10px]" style="color:var(--ink-faint)">${MONTHS[+d.date.slice(5,7)-1]} ${+d.date.slice(8,10)}</div>
             <div style="font-size:18px">${d.icon}</div>
             <div class="text-[9px] text-center" style="color:var(--ink-faint)">${d.cat}</div>
@@ -2441,6 +2489,35 @@ function firstAccessibleTab(){ const t = TABS.find(t=>hasModuleAccess(t.id)); re
 
 const SETTINGS_ICON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15a3 3 0 100-6 3 3 0 000 6Z"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1.08-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09a1.65 1.65 0 001.51-1.08 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1Z"/></svg>';
 const USERS_ICON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H7a4 4 0 00-4 4v2"/><circle cx="10" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>';
+/* ---- Ícones de linha (piloto de design: Visão Geral e Culturas) — mesmo traço da barra lateral, substituem emoji de cabeçalho ---- */
+function dicon(name, sz){
+  const p = {
+    sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+    sprout:'<path d="M7 20h10M12 20v-8"/><path d="M12 12C12 7 8 5 4 5c0 4 2 8 8 8Z"/><path d="M12 9c0-3 2.5-5 6-5 0 3.5-2 6-6 6"/>',
+    grid:'<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
+    alert:'<path d="M12 3 2 20h20L12 3Z"/><path d="M12 10v4"/><circle cx="12" cy="17.2" r=".4" fill="currentColor" stroke="none"/>',
+    box:'<path d="M21 8 12 3 3 8v8l9 5 9-5V8Z"/><path d="M3 8l9 5 9-5M12 13v8"/>',
+    target:'<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r=".6" fill="currentColor" stroke="none"/>',
+    calplus:'<rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M3 10h18M8 3v4M16 3v4M12 14v5M9.5 16.5h5"/>',
+    filter:'<path d="M4 5h16l-6 8v6l-4-2v-4L4 5Z"/>',
+    plus:'<circle cx="12" cy="12" r="9.2"/><path d="M12 8v8M8 12h8"/>',
+    leaf:'<path d="M4 20C4 10 12 4 21 4c0 9-6 17-16 17-1.5 0-3.5-.3-5-1Z"/><path d="M4 20c3-3 6-6.5 8-10"/>',
+    moon:'<path d="M20 14.5A8.5 8.5 0 119.5 4a7 7 0 0010.5 10.5Z"/>',
+    egg:'<path d="M12 21c4 0 7-3.2 7-8 0-6-4-11-7-11S5 7 5 13c0 4.8 3 8 7 8Z"/>',
+    seed:'<path d="M9 3c6 0 12 5 12 12-6 0-12-5-12-12Z"/><path d="M9 3C6 4 4 7 4 10.5 4 15 7 18 11 18"/>',
+  };
+  return `<svg width="${sz||16}" height="${sz||16}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p[name]||''}</svg>`;
+}
+/* Cabeçalho de secção consistente: chip com ícone (cor "tint") + título + ação opcional à direita */
+function secHead(tint, iconName, title, right, sub){
+  return `<div class="flex items-center justify-between mb-3 gap-2 flex-wrap">
+    <div class="flex items-center gap-2.5 min-w-0">
+      <span class="stat-chip" style="background:var(--${tint}-100);color:var(--${tint}-600)">${dicon(iconName,18)}</span>
+      <div class="min-w-0"><h3 class="display font-semibold m-0" style="font-size:15.5px">${title}</h3>${sub?`<div class="text-xs" style="color:var(--ink-faint)">${sub}</div>`:''}</div>
+    </div>
+    ${right||''}
+  </div>`;
+}
 function renderNav(){
   const html = TABS.filter(t=>hasModuleAccess(t.id)).map(t=>`<button class="navlink ${t.id===currentTab?'active':''}" onclick="switchTab('${t.id}')">${ICONS[t.id]}<span>${t.navLabel||t.label}</span></button>`).join('')
     + (isAdmin()? `<button class="navlink ${currentTab==='usuarios'?'active':''}" onclick="switchTab('usuarios')">${USERS_ICON}<span>Gestão de Utilizadores</span></button>` : '')
@@ -2728,34 +2805,28 @@ function renderForecastCard(){
   } else if(!c){
     body = `<div class="text-sm py-4 text-center" style="color:var(--ink-faint)">Sem dados ainda.</div>`;
   } else {
-    body = `<div class="flex gap-2 overflow-x-auto pb-1">
+    body = `<div class="flex gap-2.5 overflow-x-auto pb-1">
       ${c.days.map((d,i)=>{
         const info = weatherCodeInfo(d.code);
         const dt = new Date(d.date+'T00:00:00');
         const weekday = i===0? 'Hoje' : dt.toLocaleDateString('pt-PT',{weekday:'short'}).replace('.','');
-        return `<div class="flex-none flex flex-col items-center gap-1.5 px-3 py-3 rounded-xl" style="background:var(--surface-2);min-width:96px">
-          <span class="text-xs font-semibold capitalize">${weekday}</span>
+        return `<div class="flex-none flex flex-col items-center gap-1.5 px-3 py-3.5" style="background:${i===0?'linear-gradient(160deg, var(--green-100), var(--surface-2))':'var(--surface-2)'};min-width:98px;border-radius:var(--r-md);${i===0?'box-shadow:inset 0 0 0 1.5px var(--green-500)':''}">
+          <span class="text-xs font-semibold capitalize" style="${i===0?'color:var(--green-700)':''}">${weekday}</span>
           <span class="text-[10px] mono" style="color:var(--ink-faint)">${dt.getDate()}/${dt.getMonth()+1}</span>
-          <span style="font-size:22px;line-height:1" title="${info.label}">${info.icon}</span>
+          <span style="font-size:24px;line-height:1" title="${info.label}">${info.icon}</span>
           <span class="text-xs mono font-semibold">${d.tmin}° / ${d.tmax}°</span>
           <span class="text-[11px] mono" style="color:var(--ink-soft)">🍃 ${d.wind} km/h</span>
           <span class="pill ${d.precipMm>0?'pill-blue':'pill-neutral'}" style="font-size:10px;padding:1px 7px">${d.precipMm>0? d.precipMm+' mm':'seco'}</span>
         </div>`;
       }).join('')}
     </div>
-    <div class="text-[11px] mt-2" style="color:var(--ink-faint)">${forecastState==='loading'?'A atualizar… · ':''}Atualizado ${new Date(c.fetchedAt).toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'})} · dados Open-Meteo</div>`;
+    <div class="text-[11px] mt-2.5" style="color:var(--ink-faint)">${forecastState==='loading'?'A atualizar… · ':''}Atualizado ${new Date(c.fetchedAt).toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'})} · dados Open-Meteo</div>`;
   }
   return `<div class="card p-5 mb-4">
-    <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
-      <div>
-        <h3 class="display font-semibold m-0" style="font-size:15px">Previsão — próximas 2 semanas</h3>
-        <div class="text-xs" style="color:var(--ink-faint)">${loc.name}</div>
-      </div>
-      <div class="flex gap-2">
+    ${secHead('blue','sun','Previsão — próximas 2 semanas', `<div class="flex gap-2">
         <button class="btn btn-ghost btn-sm" onclick="promptLocation()">📍 Mudar local</button>
         <button class="btn btn-ghost btn-sm" onclick="ensureForecast(true)">↻ Atualizar</button>
-      </div>
-    </div>
+      </div>`, esc(loc.name))}
     ${body}
   </div>`;
 }
@@ -2897,14 +2968,11 @@ function renderDashboard(){
   el.innerHTML = `
     ${renderForecastCard()}
     <div class="card p-5 mb-4">
-      <div class="flex items-center justify-between mb-3 gap-2 flex-wrap">
-        <h3 class="display font-semibold m-0" style="font-size:15px">Histórico (últimos 3 anos)</h3>
-        <div class="flex items-center gap-2">
+      ${secHead('teal','grid','Histórico (últimos 3 anos)', `<div class="flex items-center gap-2">
           ${histFresh? `<span class="pill pill-green">🌍 Dados reais — ${DB.location.name.split(',')[0]}</span>` : historicalWeatherState==='loading'? `<span class="pill pill-blue">A obter dados reais…</span>` : `<span class="pill pill-neutral">Dados ilustrativos</span>`}
           <span class="pill pill-blue">${MONTHS[now.getMonth()]} ${now.getDate()}</span>
           <button class="btn btn-ghost btn-sm" onclick="ensureHistoricalWeather(true)">↻ Atualizar</button>
-        </div>
-      </div>
+        </div>`)}
       <div class="overflow-x-auto">
         <table class="w-full" style="border-collapse:collapse">
           <thead><tr class="text-xs text-left" style="color:var(--ink-faint)">
@@ -2931,37 +2999,25 @@ function renderDashboard(){
     </div>
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
       <div class="card p-5">
-        <h3 class="display font-semibold mb-3" style="font-size:15px">Hoje na quinta</h3>
+        ${secHead('green','sprout','Hoje na quinta')}
         <div class="grid grid-cols-2 gap-3">
-          <div class="p-3 rounded-xl" style="background:var(--green-100)">
-            <div class="text-2xl font-bold mono" style="color:var(--green-700)">${activePlantings.length}</div>
-            <div class="text-xs" style="color:var(--ink-soft)">culturas ativas</div>
-          </div>
-          <div class="p-3 rounded-xl" style="background:var(--orange-100)">
-            <div class="text-2xl font-bold mono" style="color:var(--orange-600)">${todayEggs}</div>
-            <div class="text-xs" style="color:var(--ink-soft)">ovos hoje</div>
-          </div>
-          <div class="p-3 rounded-xl" style="background:var(--surface-2)">
-            <div class="text-2xl font-bold mono">${DB.chickenBatches.reduce((s,b)=>s+b.currentCount,0)}</div>
-            <div class="text-xs" style="color:var(--ink-soft)">galinhas</div>
-          </div>
-          <div class="p-3 rounded-xl" style="background:var(--blue-100)">
-            <div class="text-2xl font-bold mono" style="color:var(--blue-600)">${DB.tasks.filter(t=>t.status!=='done').length}</div>
-            <div class="text-xs" style="color:var(--ink-soft)">tarefas pendentes</div>
-          </div>
+          <div class="stat-tile"><span class="stat-chip" style="background:var(--green-100);color:var(--green-700)">${dicon('leaf',18)}</span><div class="min-w-0"><div class="text-xl font-bold mono leading-none" style="color:var(--green-700)">${activePlantings.length}</div><div class="text-[11px] mt-1" style="color:var(--ink-soft)">culturas ativas</div></div></div>
+          <div class="stat-tile"><span class="stat-chip" style="background:var(--orange-100);color:var(--orange-600)">${dicon('egg',18)}</span><div class="min-w-0"><div class="text-xl font-bold mono leading-none" style="color:var(--orange-600)">${todayEggs}</div><div class="text-[11px] mt-1" style="color:var(--ink-soft)">ovos hoje</div></div></div>
+          <div class="stat-tile"><span class="stat-chip" style="background:var(--surface);color:var(--ink-soft);box-shadow:var(--elev-1)">${ICONS.galinhas}</span><div class="min-w-0"><div class="text-xl font-bold mono leading-none">${DB.chickenBatches.reduce((s,b)=>s+b.currentCount,0)}</div><div class="text-[11px] mt-1" style="color:var(--ink-soft)">galinhas</div></div></div>
+          <div class="stat-tile"><span class="stat-chip" style="background:var(--blue-100);color:var(--blue-600)">${ICONS.tarefas}</span><div class="min-w-0"><div class="text-xl font-bold mono leading-none" style="color:var(--blue-600)">${DB.tasks.filter(t=>t.status!=='done').length}</div><div class="text-[11px] mt-1" style="color:var(--ink-soft)">tarefas pendentes</div></div></div>
         </div>
       </div>
 
       <div class="card p-5">
-        <h3 class="display font-semibold mb-3" style="font-size:15px">Precisam de atenção</h3>
+        ${secHead('red','target','Precisam de atenção')}
         ${attention.length===0? `<p class="text-sm" style="color:var(--ink-faint)">Tudo em dia — nenhuma área parada há mais de 10 dias.</p>` :
         `<div class="flex flex-col gap-2">${attention.slice(0,4).map(a=>`
-          <div class="flex items-center justify-between px-3 py-2 rounded-xl" style="background:var(--surface-2)">
-            <div>
-              <div class="text-sm font-semibold">${a.area.name}</div>
+          <div class="list-tile clickable justify-between">
+            <div class="min-w-0">
+              <div class="text-sm font-semibold truncate">${a.area.name}</div>
               <div class="text-xs" style="color:var(--ink-faint)">${a.planting.status} há ${a.daysSince}d</div>
             </div>
-            <button class="btn btn-sm btn-accent" onclick="switchTab('areas');setTimeout(()=>selectArea('${a.area.id}'),50)">Ver</button>
+            <button class="btn btn-sm btn-accent flex-none" onclick="switchTab('areas');setTimeout(()=>selectArea('${a.area.id}'),50)">Ver</button>
           </div>`).join('')}</div>`}
       </div>
     </div>
@@ -2969,10 +3025,10 @@ function renderDashboard(){
     ${renderLunarCard()}
 
     <div class="card p-5 mb-4">
-      <h3 class="display font-semibold mb-3" style="font-size:15px">⚠️ Alertas — previsão × tarefas</h3>
+      ${secHead('yellow','alert','Alertas — previsão × tarefas')}
       ${(()=>{ const alerts = weatherTaskAlerts(); return alerts.length===0? `<p class="text-sm m-0" style="color:var(--ink-faint)">Sem conflitos entre a previsão dos próximos 14 dias e as tarefas agendadas.</p>` :
       `<div class="flex flex-col gap-2">${alerts.map(({task,warning})=>`
-        <div class="flex items-center justify-between px-3 py-2 rounded-xl gap-2" style="background:var(--yellow-100)">
+        <div class="list-tile justify-between gap-2" style="background:var(--yellow-100)">
           <div class="min-w-0">
             <div class="text-sm font-semibold truncate">${warning.icon} ${task.title}</div>
             <div class="text-xs" style="color:var(--ink-soft)">${fmtDate(task.dueDate)} — ${warning.msg}</div>
@@ -2983,10 +3039,10 @@ function renderDashboard(){
 
     ${anyStockTracked()? (()=>{ const low = allTrackedStock().filter(s=>s.status==='low'||s.status==='empty');
       return `<div class="card p-5 mb-4">
-        <h3 class="display font-semibold mb-3" style="font-size:15px">📦 Stock de insumos e herbicidas</h3>
+        ${secHead('orange','box','Stock de insumos e herbicidas')}
         ${!low.length? `<p class="text-sm m-0" style="color:var(--ink-faint)">Todos os itens controlados têm stock suficiente.</p>` :
         `<div class="flex flex-col gap-2">${low.map(s=>`
-          <div class="flex items-center justify-between px-3 py-2 rounded-xl gap-2" style="background:${s.status==='empty'?'var(--red-100)':'var(--orange-100)'}">
+          <div class="list-tile justify-between gap-2" style="background:${s.status==='empty'?'var(--red-100)':'var(--orange-100)'}">
             <div class="min-w-0">
               <div class="text-sm font-semibold truncate">${s.item.name}</div>
               <div class="text-xs" style="color:var(--ink-soft)">${s.stock.quantity} ${s.stock.unit} em stock${s.stock.lowThreshold!=null?` · alerta em ${s.stock.lowThreshold} ${s.stock.unit}`:''}</div>
@@ -2996,49 +3052,48 @@ function renderDashboard(){
       </div>`; })() : ''}
 
     <div class="card p-5 mb-4">
-      <div class="flex items-center justify-between mb-3">
-        <h3 class="display font-semibold m-0" style="font-size:15px">Áreas em produção hoje</h3>
-        <span class="pill pill-green">${producaoRows.length} ativa${producaoRows.length===1?'':'s'}</span>
-      </div>
+      ${secHead('green','grid','Áreas em produção hoje', `<span class="pill pill-green">${producaoRows.length} ativa${producaoRows.length===1?'':'s'}</span>`)}
       ${producaoRows.length===0? `<p class="text-sm" style="color:var(--ink-faint)">Nenhuma área com cultura ativa neste momento — vai a Áreas / Mapa para registar um plantio.</p>` :
-      `<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-        ${producaoRows.map(r=>`
-          <button class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-left" style="background:var(--surface-2)" onclick="switchTab('areas');setTimeout(()=>selectArea('${r.area.id}'),50)">
-            <div style="width:44px" class="flex-none">${cropThumbHTML(r.crop, 44, true)}</div>
-            <div class="min-w-0 flex-1">
-              <div class="text-sm font-semibold truncate">${r.area.name}</div>
-              <div class="text-xs flex items-center gap-1" style="color:var(--ink-faint)"><span class="pill pill-${CAT_COLORS[r.crop.cat]}" style="font-size:10px;padding:1px 6px">${r.crop.name}</span></div>
-            </div>
-            <span class="pill pill-neutral flex-none" style="font-size:10.5px">${r.planting.status}</span>
-          </button>`).join('')}
+      `<div class="grid-crop-tiles">
+        ${producaoRows.map(r=>{ const url = DB.cropImageCache[r.crop.id];
+        return `<div class="crop-tile" style="background:linear-gradient(150deg, var(--${CAT_COLORS[r.crop.cat]}-600), var(--${CAT_COLORS[r.crop.cat]}-600))" role="link" tabindex="0" onclick="switchTab('areas');setTimeout(()=>selectArea('${r.area.id}'),50)" onkeydown="if(event.key==='Enter'){switchTab('areas');setTimeout(()=>selectArea('${r.area.id}'),50)}">
+            <span class="kbx-ph" style="font-size:44px">${CAT_EMOJI[r.crop.cat]||'🌿'}</span>
+            ${url? `<img class="tile-img-el" src="${url}" alt="" loading="lazy" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" onerror="this.remove()">` : ''}
+            <span class="tile-shade"></span>
+            <span class="tile-badge">${r.planting.status}</span>
+            <span class="crop-tile-cap"><b>${r.area.name}</b><span class="text-[11px]" style="opacity:.92">${r.crop.name}</span></span>
+          </div>`; }).join('')}
       </div>`}
     </div>
 
     <div class="card p-5 mb-4">
-      <h3 class="display font-semibold mb-3" style="font-size:15px">Colheitas previstas (30 dias)</h3>
+      ${secHead('blue','target','Colheitas previstas', null, 'Próximos 30 dias')}
       ${upcoming.length===0? `<p class="text-sm" style="color:var(--ink-faint)">Sem colheitas previstas no próximo mês.</p>` :
       `<div class="flex flex-col gap-2">${upcoming.map(p=>{
         const area = DB.areas.find(a=>a.id===p.areaId); const crop = cropById(p.cropId);
-        return `<div class="flex items-center gap-3 px-3 py-2 rounded-xl" style="background:var(--surface-2)">
-          <span class="pill pill-${CAT_COLORS[crop.cat]}"><span class="dot" style="background:currentColor"></span>${crop.name}</span>
-          <span class="text-sm" style="color:var(--ink-soft)">${area? area.name:'—'}</span>
-          <span class="ml-auto text-sm font-semibold mono">${p.daysLeft===0?'hoje':p.daysLeft+'d'}</span>
+        const urg = p.daysLeft<=3? 'var(--red-600)' : p.daysLeft<=10? 'var(--orange-500)' : 'var(--green-500)';
+        return `<div class="list-tile" style="align-items:stretch">
+          <span class="stat-chip" style="background:var(--${CAT_COLORS[crop.cat]}-100);color:var(--${CAT_COLORS[crop.cat]}-600)">${CAT_EMOJI[crop.cat]||'🌿'}</span>
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-sm font-semibold truncate">${crop.name} <span class="font-normal" style="color:var(--ink-faint)">· ${area? area.name:'—'}</span></span>
+              <span class="text-sm font-semibold mono flex-none" style="color:${urg}">${p.daysLeft===0?'hoje':p.daysLeft+'d'}</span>
+            </div>
+            <div class="urg-bar"><i style="width:${Math.max(6,100-p.daysLeft/30*100)}%;background:${urg}"></i></div>
+          </div>
         </div>`;
       }).join('')}</div>`}
     </div>
 
     <div class="card p-5 mb-4">
-      <div class="flex items-center gap-2 mb-1 flex-wrap">
-        <h3 class="display font-semibold m-0" style="font-size:15px">Próximas plantações —</h3>
-        <div class="relative">
-          <button class="btn btn-ghost btn-sm" style="padding:3px 10px;font-size:12.5px;gap:4px" onclick="toggleNextPlantMonthsMenu()">${nextPlantMonthsWindow} ${nextPlantMonthsWindow===1?'mês':'meses'} <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
-          <div id="nextPlantMonthsMenu" hidden class="absolute left-0 mt-1 card p-1 z-30" style="width:130px">
+      ${secHead('purple','calplus','Próximas plantações', `<div class="relative">
+          <button class="btn btn-ghost btn-sm" style="padding:5px 11px;font-size:12.5px;gap:4px" onclick="toggleNextPlantMonthsMenu()">${nextPlantMonthsWindow} ${nextPlantMonthsWindow===1?'mês':'meses'} <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
+          <div id="nextPlantMonthsMenu" hidden class="absolute right-0 mt-1 card p-1 z-30" style="width:130px">
             ${[1,2,3].map(n=>`<button class="w-full flex items-center justify-between gap-1 px-2 py-1.5 rounded-lg text-left text-sm" style="background:${n===nextPlantMonthsWindow?'var(--surface-2)':'transparent'}" onclick="setNextPlantMonthsWindow(${n})"><span>${n} ${n===1?'mês':'meses'}</span>${n===nextPlantMonthsWindow?`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--green-600)" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg>`:''}</button>`).join('')}
           </div>
-        </div>
-      </div>
-      <p class="text-sm mb-3" style="color:var(--ink-faint)">Culturas com época de sementeira/plantio a chegar, com os fertilizantes a preparar antecipadamente.</p>
+        </div>`, 'Culturas com época de sementeira/plantio a chegar, com os fertilizantes a preparar antecipadamente')}
       <div class="flex flex-wrap items-center gap-2 mb-3">
+        <span class="stat-chip" style="width:30px;height:30px;background:var(--surface-2);color:var(--ink-faint)">${dicon('filter',14)}</span>
         <select class="field" style="width:auto;padding:6px 10px;font-size:12px" onchange="setNextPlantFilter('cultura', this.value)">
           <option value="all">Cultura: todas</option>
           ${nextPlantCulturaOpts.map(c=>`<option value="${c}" ${nextPlantFilters.cultura===c?'selected':''}>${CAT_LABELS[c]||c}</option>`).join('')}
@@ -3094,15 +3149,11 @@ function renderDashboard(){
     </div>
 
     <div class="card p-5 mb-4">
-      <div class="flex items-center justify-between mb-1 gap-2">
-        <h3 class="display font-semibold m-0" style="font-size:15px">🌾 Dicas do Agrónomo</h3>
-        <span class="pill pill-neutral">${MONTHS_FULL[now.getMonth()]}</span>
-      </div>
-      <p class="text-sm mb-3" style="color:var(--ink-faint)">Conselhos para as culturas atualmente em consórcio (guildas ideais este mês em AgroFloresta) — vão mudando ao longo dos dias.</p>
+      ${secHead('green','leaf','Dicas do Agrónomo', `<span class="pill pill-neutral">${MONTHS_FULL[now.getMonth()]}</span>`, 'Conselhos para as culturas atualmente em consórcio (guildas ideais este mês) — vão mudando ao longo dos dias')}
       ${agroTips.length===0? `<p class="text-sm m-0" style="color:var(--ink-faint)">Nenhuma guilda tem culturas na janela ideal este mês — consulta o módulo AgroFloresta para veres as próximas.</p>` :
       `<div class="flex flex-col gap-2">
         ${agroTips.map(({crop,tip})=>`
-          <div class="flex items-start gap-3 px-3 py-2.5 rounded-xl" style="background:var(--surface-2)">
+          <div class="list-tile" style="align-items:flex-start">
             <div style="width:36px" class="flex-none">${cropThumbHTML(crop, 36, true)}</div>
             <div class="min-w-0">
               <div class="text-sm font-semibold">${crop.name}</div>
@@ -3123,43 +3174,44 @@ let culturaFilter = 'all';
 function renderCulturas(){
   const el = document.getElementById('panel-culturas');
   const now = new Date();
+  const visibleCrops = allCrops().filter(c=>culturaFilter==='all'||c.cat===culturaFilter);
   el.innerHTML = `
     <div class="card p-5 mb-4">
-      <h3 class="display font-semibold mb-1" style="font-size:15px">Calendário de plantio — ${MONTHS_FULL[now.getMonth()]}</h3>
-      <p class="text-sm mb-3" style="color:var(--ink-faint)">Culturas com época ideal de sementeira/plantio neste mês (clima de Portugal continental).</p>
+      ${secHead('green','calplus',`Calendário de plantio — ${MONTHS_FULL[now.getMonth()]}`, null, 'Culturas com época ideal de sementeira/plantio neste mês (clima de Portugal continental)')}
       <div class="flex flex-wrap gap-2">
         ${allCrops().filter(c=>c.months.includes(now.getMonth()+1)).map(c=>`<button class="pill pill-${CAT_COLORS[c.cat]}" onclick="openCropDetail('${c.id}')"><span class="dot" style="background:currentColor"></span>${c.name}</button>`).join('') || '<span class="text-sm" style="color:var(--ink-faint)">Nenhuma este mês.</span>'}
       </div>
     </div>
 
-    <div class="flex items-center justify-between gap-2 mb-4 flex-wrap">
-      <div class="flex items-center gap-2 flex-wrap">
-        <button class="btn btn-sm ${culturaFilter==='all'?'btn-primary':'btn-ghost'}" onclick="setCulturaFilter('all')">Todas</button>
-        ${Object.keys(CAT_LABELS).map(k=>`<button class="btn btn-sm ${culturaFilter===k?'btn-primary':'btn-ghost'}" onclick="setCulturaFilter('${k}')">${CAT_LABELS[k]}</button>`).join('')}
+    <div class="flex items-center justify-between gap-3 mb-4 flex-wrap">
+      <div class="seg" style="flex-wrap:wrap">
+        <button class="seg-btn ${culturaFilter==='all'?'on':''}" onclick="setCulturaFilter('all')">Todas</button>
+        ${Object.keys(CAT_LABELS).map(k=>`<button class="seg-btn ${culturaFilter===k?'on':''}" onclick="setCulturaFilter('${k}')">${CAT_LABELS[k]}</button>`).join('')}
       </div>
-      <button class="btn btn-accent btn-sm" onclick="promptAddCrop()">+ Adicionar cultura</button>
+      <button class="btn btn-accent btn-sm" onclick="promptAddCrop()">${dicon('plus',15)} Adicionar cultura</button>
     </div>
+    <p class="text-xs mb-3" style="color:var(--ink-faint)">${visibleCrops.length} cultura${visibleCrops.length===1?'':'s'}${culturaFilter!=='all'?' em '+CAT_LABELS[culturaFilter]:''}</p>
 
     <div class="grid-crops">
-      ${allCrops().filter(c=>culturaFilter==='all'||c.cat===culturaFilter).map(c=>`
-        <button class="card overflow-hidden text-left flex flex-col" onclick="openCropDetail('${c.id}')">
-          ${cropThumbHTML(c, 92)}
+      ${visibleCrops.map(c=>{ const url = DB.cropImageCache[c.id];
+      return `<button class="card overflow-hidden text-left flex flex-col hoverable" onclick="openCropDetail('${c.id}')">
+          <div class="tile-img" style="height:100px">
+            <span class="kbx-ph" style="font-size:${Math.round(100*0.4)}px;position:absolute;inset:0;display:flex;align-items:center;justify-content:center;opacity:.5">${CAT_EMOJI[c.cat]||'🌿'}</span>
+            ${url? `<img src="${url}" alt="" loading="lazy" class="in" onerror="this.remove()">` : ''}
+            <span class="tile-badge" style="left:auto;right:10px;background:var(--${CAT_COLORS[c.cat]}-600)">${CAT_LABELS[c.cat]}</span>
+          </div>
           <div class="p-4">
-            <div class="flex items-center justify-between mb-2">
-              <span class="font-semibold display" style="font-size:15px">${c.name}</span>
-              <span class="pill pill-${CAT_COLORS[c.cat]}">${CAT_LABELS[c.cat]}</span>
-            </div>
+            <div class="font-semibold display mb-1" style="font-size:15px">${c.name}</div>
             <div class="text-xs mb-2" style="color:var(--ink-faint)">${c.family}${c.custom?' · personalizada':''}</div>
             <div class="flex items-center gap-3 text-xs mono" style="color:var(--ink-soft)">
               <span>🗓 ${c.months.map(m=>MONTHS[m-1]).join(', ')}</span>
             </div>
             <div class="text-xs mt-1" style="color:var(--ink-soft)">${c.perennial? (c.noHarvest? 'Perene — '+(c.mainUse||'árvore estrutural') : 'Perene — colheita '+c.harvestMonths.map(m=>MONTHS[m-1]).join('/')) : 'Ciclo: '+c.growDays+' dias'}</div>
           </div>
-        </button>
-      `).join('')}
+        </button>`; }).join('')}
     </div>
   `;
-  ensureCropImages(allCrops().filter(c=>culturaFilter==='all'||c.cat===culturaFilter));
+  ensureCropImages(visibleCrops);
 }
 function setCulturaFilter(k){ culturaFilter=k; renderCulturas(); }
 function openCropDetail(id){
