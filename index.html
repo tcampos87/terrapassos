@@ -2966,6 +2966,61 @@ function dailyAgronomistTips(month){
     return {crop, tip: pool[(dayIndex + crop.id.length) % pool.length]};
   }).filter(Boolean);
 }
+/* ---- Climograma: temperatura (banda máx/mín) + precipitação do ano mais recente, com o intervalo dos anos anteriores em fundo ---- */
+function climateChartSVG(weathers){
+  const W=900, H=260, padL=32, padR=14, padT=14, padB=24;
+  const plotW=W-padL-padR, plotH=H-padT-padB;
+  const cur = weathers[0].months, months = cur.map(m=>m.label), n = months.length;
+  const stepX = n>1? plotW/(n-1) : 0;
+  const others = weathers.slice(1);
+  const allT = []; weathers.forEach(w=>w.months.forEach(m=>{ if(m.agg){ allT.push(m.agg.tmin, m.agg.tmax); } }));
+  const tMin = allT.length? Math.min(...allT) : 0, tMax = allT.length? Math.max(...allT) : 1;
+  const tRange = (tMax-tMin) || 1;
+  const rainMax = Math.max(1, ...cur.map(m=>m.agg? m.agg.rainTotal : 0));
+  const tempTop = padT, tempH = plotH*0.6;
+  const rainTop = padT + plotH*0.68, rainH = plotH*0.32;
+  const yTemp = t => tempTop + tempH - ((t-tMin)/tRange)*tempH;
+  const yRain = v => rainTop + rainH - (v/rainMax)*rainH;
+  const x = i => padL + i*stepX;
+  const idx = cur.map((m,i)=>m.agg? i : null).filter(i=>i!==null);
+
+  const refBands = others.map(w=>{
+    const iw = w.months.map((m,i)=>m.agg? i : null).filter(i=>i!==null);
+    const top = iw.map(i=>`${x(i).toFixed(1)},${yTemp(w.months[i].agg.tmax).toFixed(1)}`).join(' ');
+    const bot = iw.map(i=>`${x(i).toFixed(1)},${yTemp(w.months[i].agg.tmin).toFixed(1)}`).join(' ');
+    return `<polyline points="${top}" fill="none" stroke="var(--ink-faint)" stroke-width="1" stroke-dasharray="2,3" opacity=".45"/><polyline points="${bot}" fill="none" stroke="var(--ink-faint)" stroke-width="1" stroke-dasharray="2,3" opacity=".45"/>`;
+  }).join('');
+
+  const areaPath = idx.length? `M ${idx.map(i=>`${x(i).toFixed(1)} ${yTemp(cur[i].agg.tmax).toFixed(1)}`).join(' L ')} L ${idx.slice().reverse().map(i=>`${x(i).toFixed(1)} ${yTemp(cur[i].agg.tmin).toFixed(1)}`).join(' L ')} Z` : '';
+  const maxLine = idx.map(i=>`${x(i).toFixed(1)},${yTemp(cur[i].agg.tmax).toFixed(1)}`).join(' ');
+  const minLine = idx.map(i=>`${x(i).toFixed(1)},${yTemp(cur[i].agg.tmin).toFixed(1)}`).join(' ');
+  const dots = idx.map(i=>{ const a=cur[i].agg;
+    return `<circle cx="${x(i).toFixed(1)}" cy="${yTemp(a.tmax).toFixed(1)}" r="3" fill="var(--orange-600)"><title>${months[i]} — máx ${a.tmax}°C</title></circle><circle cx="${x(i).toFixed(1)}" cy="${yTemp(a.tmin).toFixed(1)}" r="3" fill="var(--blue-600)"><title>${months[i]} — mín ${a.tmin}°C</title></circle>`;
+  }).join('');
+
+  const barW = Math.max(8, Math.min(20, stepX*0.42));
+  const bars = idx.map(i=>{ const v=cur[i].agg.rainTotal, h=Math.max(1,yRain(0)-yRain(v));
+    return `<rect x="${(x(i)-barW/2).toFixed(1)}" y="${yRain(v).toFixed(1)}" width="${barW.toFixed(1)}" height="${h.toFixed(1)}" rx="3" fill="var(--blue-600)" opacity=".5"><title>${months[i]} — ${v} mm</title></rect>`;
+  }).join('');
+
+  const tempTicks = [tMin, (tMin+tMax)/2, tMax].map(t=>`<line x1="${padL}" y1="${yTemp(t).toFixed(1)}" x2="${W-padR}" y2="${yTemp(t).toFixed(1)}" stroke="var(--border)" stroke-width="1" opacity=".5"/><text x="2" y="${(yTemp(t)+3).toFixed(1)}" font-size="9" fill="var(--ink-faint)">${Math.round(t)}°</text>`).join('');
+  const xLabels = months.map((lbl,i)=>`<text x="${x(i).toFixed(1)}" y="${H-4}" text-anchor="middle" font-size="10" fill="var(--ink-faint)">${lbl}</text>`).join('');
+
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block;min-width:640px">
+    <defs><linearGradient id="climTempFill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" style="stop-color:var(--orange-500);stop-opacity:.4"/>
+      <stop offset="100%" style="stop-color:var(--orange-500);stop-opacity:.06"/>
+    </linearGradient></defs>
+    ${tempTicks}
+    ${refBands}
+    ${bars}
+    <path d="${areaPath}" fill="url(#climTempFill)"/>
+    <polyline points="${maxLine}" fill="none" stroke="var(--orange-600)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+    <polyline points="${minLine}" fill="none" stroke="var(--blue-600)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+    ${dots}
+    ${xLabels}
+  </svg>`;
+}
 function renderDashboard(){
   const el = document.getElementById('panel-dashboard');
   const now = new Date();
@@ -3029,27 +3084,39 @@ function renderDashboard(){
           <button class="btn btn-ghost btn-sm" onclick="ensureHistoricalWeather(true)">↻ Atualizar</button>
         </div>`)}
       <div class="overflow-x-auto">
-        <table class="w-full" style="border-collapse:collapse">
-          <thead><tr class="text-xs text-left" style="color:var(--ink-faint)">
-            <th class="pb-2 pr-3 font-semibold">Ano</th>
-            ${weathers[0].months.map(m=>`<th class="pb-2 px-2 text-center font-semibold">${m.label}</th>`).join('')}
-          </tr></thead>
-          <tbody>
-            ${weathers.map(({year,months})=>`
-              <tr style="border-top:1px solid var(--border)">
-                <td class="py-2 pr-3 text-sm font-semibold" style="color:var(--ink-soft)">${year}</td>
-                ${months.map(m=>`
-                  <td class="px-2 py-2 text-center">
-                    ${m.agg? `
-                    <div class="mono text-xs">${m.agg.tmin}°–${m.agg.tmax}°C</div>
-                    <div class="text-[10px] mono" style="color:${m.agg.rainTotal>0?'var(--blue-600)':'var(--ink-faint)'}">${m.agg.rainTotal>0? m.agg.rainTotal+' mm':'seco'}</div>
-                    <div class="text-[10px] mono" style="color:var(--ink-faint)">${m.agg.humidity!=null? m.agg.humidity+'% hum.':'—'}</div>
-                    ` : `<div class="text-xs" style="color:var(--ink-faint)">—</div>`}
-                  </td>`).join('')}
-              </tr>`).join('')}
-          </tbody>
-        </table>
+        ${climateChartSVG(weathers)}
       </div>
+      <div class="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-[11px]" style="color:var(--ink-faint)">
+        <span class="flex items-center gap-1.5"><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--orange-600)"></i>Máxima ${weathers[0].year}</span>
+        <span class="flex items-center gap-1.5"><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--blue-600)"></i>Mínima ${weathers[0].year}</span>
+        <span class="flex items-center gap-1.5"><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--blue-600);opacity:.5"></i>Precipitação ${weathers[0].year}</span>
+        ${weathers.length>1? `<span class="flex items-center gap-1.5"><i style="display:inline-block;width:10px;height:2px;background:var(--ink-faint)"></i>Anos anteriores (${weathers.slice(1).map(w=>w.year).join(', ')})</span>` : ''}
+      </div>
+      <details class="mt-3">
+        <summary class="text-xs font-semibold cursor-pointer select-none" style="color:var(--ink-soft)">Ver tabela detalhada (valores exatos por mês)</summary>
+        <div class="overflow-x-auto mt-2">
+          <table class="w-full" style="border-collapse:collapse">
+            <thead><tr class="text-xs text-left" style="color:var(--ink-faint)">
+              <th class="pb-2 pr-3 font-semibold">Ano</th>
+              ${weathers[0].months.map(m=>`<th class="pb-2 px-2 text-center font-semibold">${m.label}</th>`).join('')}
+            </tr></thead>
+            <tbody>
+              ${weathers.map(({year,months})=>`
+                <tr style="border-top:1px solid var(--border)">
+                  <td class="py-2 pr-3 text-sm font-semibold" style="color:var(--ink-soft)">${year}</td>
+                  ${months.map(m=>`
+                    <td class="px-2 py-2 text-center">
+                      ${m.agg? `
+                      <div class="mono text-xs">${m.agg.tmin}°–${m.agg.tmax}°C</div>
+                      <div class="text-[10px] mono" style="color:${m.agg.rainTotal>0?'var(--blue-600)':'var(--ink-faint)'}">${m.agg.rainTotal>0? m.agg.rainTotal+' mm':'seco'}</div>
+                      <div class="text-[10px] mono" style="color:var(--ink-faint)">${m.agg.humidity!=null? m.agg.humidity+'% hum.':'—'}</div>
+                      ` : `<div class="text-xs" style="color:var(--ink-faint)">—</div>`}
+                    </td>`).join('')}
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+      </details>
       <p class="text-[11px] mt-3 mb-0" style="color:var(--ink-faint)">${histFresh? 'Dados reais medidos (reanálise ERA5) via Open-Meteo Historical Weather API — funciona para qualquer localização de Portugal ou do Brasil escolhida em "Mudar local".' : historicalWeatherState==='loading'? 'A obter o histórico real dos últimos 3 anos para esta localização…' : 'Dados ilustrativos — sem ligação à internet para obter o histórico real; liga-te e atualiza para ver dados medidos.'}</p>
     </div>
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
