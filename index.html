@@ -101,6 +101,8 @@ button{font-family:inherit;cursor:pointer}
 input,select,textarea{font-family:inherit;color:var(--ink);background:var(--surface)}
 ::-webkit-scrollbar{width:10px;height:10px}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:8px}
+table tbody tr{transition:background var(--dur-1) var(--ease)}
+@media(hover:hover){table tbody tr:hover td{background:var(--surface-2)}}
 @media(prefers-reduced-motion:reduce){*{transition-duration:.001ms!important;animation-duration:.001ms!important}}
 
 .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--elev-1);transition:box-shadow var(--dur-2) var(--ease),transform var(--dur-2) var(--ease),border-color var(--dur-2) var(--ease)}
@@ -161,6 +163,7 @@ button.pill:active{transform:scale(.96)}
 .tile-img img.in{opacity:1}
 .tile-shade{position:absolute;inset:0;background:linear-gradient(0deg,rgba(10,14,8,.82) 0%,rgba(10,14,8,.15) 55%,rgba(10,14,8,0) 75%)}
 .tile-badge{position:absolute;left:10px;top:10px;font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:var(--r-pill);background:rgba(15,18,11,.5);color:#fff;backdrop-filter:blur(4px)}
+.empty-box{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:34px 20px;border:1.5px dashed var(--border);border-radius:var(--r-md);color:var(--ink-faint);font-size:13.5px}
 /* ---- Peças de bento do piloto (Visão Geral / Culturas) ---- */
 .stat-tile{display:flex;align-items:center;gap:11px;padding:12px 13px;border-radius:var(--r-md);background:var(--surface-2);transition:background var(--dur-1) var(--ease)}
 .list-tile{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:var(--r-md);background:var(--surface-2);transition:transform var(--dur-1) var(--ease),box-shadow var(--dur-1) var(--ease)}
@@ -407,7 +410,7 @@ button.pill:active{transform:scale(.96)}
     <header class="app-header flex items-center gap-3 px-4 md:px-7 py-3" style="position:sticky;top:0;z-index:40">
       <button class="md:hidden btn btn-ghost btn-sm" onclick="toggleMobileNav()">☰</button>
       <div class="flex-1 min-w-0">
-        <h1 class="display font-semibold m-0" id="pageTitle" style="font-size:19px">Visão Geral</h1>
+        <h1 class="display font-semibold m-0" id="pageTitle" style="font-size:23px;letter-spacing:-.01em">Visão Geral</h1>
         <div class="text-[12.5px]" style="color:var(--ink-faint)" id="pageSubtitle">A carregar…</div>
       </div>
       <div class="hidden lg:flex items-center gap-2 pill pill-neutral mono" id="dateBadge" style="font-size:12.5px"></div>
@@ -2794,7 +2797,7 @@ function deleteUser(id){
 /* =========================================================================
    MODAL
    ========================================================================= */
-function openModal(html){ document.getElementById('modalBody').innerHTML = html; document.getElementById('modalRoot').hidden=false; }
+function openModal(html, wide){ const b=document.getElementById('modalBody'); b.innerHTML = html; b.style.maxWidth = wide? '720px' : '520px'; document.getElementById('modalRoot').hidden=false; }
 function closeModal(){ document.getElementById('modalRoot').hidden=true; }
 document.addEventListener('keydown', e=>{ if(e.key==='Escape' && !document.getElementById('modalRoot').hidden) closeModal(); });
 document.getElementById('modalRoot').addEventListener('click', e=>{ if(e.target.id==='modalRoot') closeModal(); });
@@ -3061,7 +3064,7 @@ function renderDashboard(){
 
     <div class="card p-5 mb-4">
       ${secHead('green','grid','Áreas em produção hoje', `<span class="pill pill-green">${producaoRows.length} ativa${producaoRows.length===1?'':'s'}</span>`)}
-      ${producaoRows.length===0? `<p class="text-sm" style="color:var(--ink-faint)">Nenhuma área com cultura ativa neste momento — vai a Áreas / Mapa para registar um plantio.</p>` :
+      ${producaoRows.length===0? `<div class="empty-box">Nenhuma área com cultura ativa neste momento.<button class="btn btn-outline btn-sm" onclick="switchTab('areas')">Ir a Áreas / Mapa</button></div>` :
       `<div class="grid-crop-tiles">
         ${producaoRows.map(r=>{ const url = DB.cropImageCache[r.crop.id];
         return `<div class="crop-tile" style="background:linear-gradient(150deg, var(--${CAT_COLORS[r.crop.cat]}-600), var(--${CAT_COLORS[r.crop.cat]}-600))" role="link" tabindex="0" onclick="switchTab('areas');setTimeout(()=>selectArea('${r.area.id}'),50)" onkeydown="if(event.key==='Enter'){switchTab('areas');setTimeout(()=>selectArea('${r.area.id}'),50)}">
@@ -3076,7 +3079,7 @@ function renderDashboard(){
 
     <div class="card p-5 mb-4">
       ${secHead('blue','target','Colheitas previstas', null, 'Próximos 30 dias')}
-      ${upcoming.length===0? `<p class="text-sm" style="color:var(--ink-faint)">Sem colheitas previstas no próximo mês.</p>` :
+      ${upcoming.length===0? `<div class="empty-box">Sem colheitas previstas no próximo mês.</div>` :
       `<div class="flex flex-col gap-2">${upcoming.map(p=>{
         const area = DB.areas.find(a=>a.id===p.areaId); const crop = cropById(p.cropId);
         const urg = p.daysLeft<=3? 'var(--red-600)' : p.daysLeft<=10? 'var(--orange-500)' : 'var(--green-500)';
@@ -3140,7 +3143,7 @@ function renderDashboard(){
           <tbody>
             ${nextPlantings.length===0? `<tr><td colspan="7" class="py-2 text-sm" style="color:var(--ink-faint)">Nenhuma cultura corresponde aos filtros escolhidos.</td></tr>` :
               nextPlantings.map(r=>`<tr style="border-top:1px solid var(--border)">
-                <td class="py-2 pr-2"><button class="pill pill-${CAT_COLORS[r.crop.cat]}" style="cursor:pointer;border:none" onclick="switchTab('culturas');setTimeout(()=>openCropDetail('${r.crop.id}'),50)">${r.crop.name}</button></td>
+                <td class="py-2 pr-2"><button class="pill" style="${catTagStyle(r.crop.cat)};cursor:pointer" onclick="switchTab('culturas');setTimeout(()=>openCropDetail('${r.crop.id}'),50)">${r.crop.name}</button></td>
                 <td class="py-2 pr-2 text-xs mono" style="color:var(--ink-faint)">${r.monthLabel}</td>
                 <td class="py-2 pr-2 text-xs mono" style="color:var(--ink-faint)">${r.crop.perennial?'Perene':(r.crop.growDays?r.crop.growDays+' dias':'—')}</td>
                 <td class="py-2 pr-2 text-xs" style="color:var(--ink-soft)">${r.sol}</td>
@@ -3185,7 +3188,7 @@ function renderCulturas(){
     <div class="card p-5 mb-4">
       ${secHead('green','calplus',`Calendário de plantio — ${MONTHS_FULL[now.getMonth()]}`, null, 'Culturas com época ideal de sementeira/plantio neste mês (clima de Portugal continental)')}
       <div class="flex flex-wrap gap-2">
-        ${allCrops().filter(c=>c.months.includes(now.getMonth()+1)).map(c=>`<button class="pill pill-${CAT_COLORS[c.cat]}" onclick="openCropDetail('${c.id}')">${c.name}</button>`).join('') || '<span class="text-sm" style="color:var(--ink-faint)">Nenhuma este mês.</span>'}
+        ${allCrops().filter(c=>c.months.includes(now.getMonth()+1)).map(c=>`<button class="pill" style="${catTagStyle(c.cat)}" onclick="openCropDetail('${c.id}')">${c.name}</button>`).join('') || '<span class="text-sm" style="color:var(--ink-faint)">Nenhuma este mês.</span>'}
       </div>
     </div>
 
@@ -3306,7 +3309,7 @@ function promptAddCrop(){
     <div class="flex gap-2 justify-end">
       <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
       <button class="btn btn-primary" onclick="addCustomCrop()">Adicionar cultura</button>
-    </div>`);
+    </div>`, true);
 }
 function toggleCropCycleFields(){
   const perene = document.getElementById('ncCycle').value==='perene';
@@ -3551,9 +3554,9 @@ function renderAreas(){
               <span class="font-semibold display" style="font-size:15px">${a.name}</span>
               <span style="width:14px;height:14px;border-radius:4px;background:${statusColor}" title="${p?p.status:'Sem cultura'}"></span>
             </div>
-            ${crop? `<span class="pill pill-${CAT_COLORS[crop.cat]}">${crop.name}</span><div class="text-xs mt-2" style="color:var(--ink-soft)">${p.status}</div>` : `<span class="pill pill-neutral">Sem cultura ativa</span>`}
+            ${crop? `<span class="pill" style="${catTagStyle(crop.cat)}">${crop.name}</span><div class="text-xs mt-2" style="color:var(--ink-soft)">${p.status}</div>` : `<span class="pill pill-neutral">Sem cultura ativa</span>`}
           </button>`;
-        }).join('') || `<p class="text-sm" style="color:var(--ink-faint)">Ainda sem áreas — carrega a imagem acima e desenha a primeira.</p>`}
+        }).join('') || `<div class="empty-box">Ainda sem áreas — carrega a imagem acima e desenha a primeira.</div>`}
       </div>
     </div>
 
@@ -3997,7 +4000,9 @@ function multiLineChartSVG(seriesList, xLabels){
     if(n>8 && i%2!==0 && i!==n-1) return '';
     return `<text x="${(padL+i*stepX).toFixed(1)}" y="${H-6}" text-anchor="middle" font-size="9" fill="var(--ink-faint)">${lbl}</text>`;
   }).join('');
+  const gridLines = [0,.25,.5,.75,1].map(f=>`<line x1="${padL}" y1="${(padT+plotH*f).toFixed(1)}" x2="${padL+plotW}" y2="${(padT+plotH*f).toFixed(1)}" stroke="var(--border)" stroke-width="1" opacity=".5"/>`).join('');
   return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block;min-width:640px">
+    ${gridLines}
     <line x1="${padL}" y1="${padT+plotH}" x2="${padL+plotW}" y2="${padT+plotH}" stroke="var(--border)" stroke-width="1"/>
     ${linesHTML}
     ${xAxisLabels}
@@ -6305,6 +6310,12 @@ const KB_SAFETY = {
 const KB_GROUP_CAT = {1:'culturas',2:'agrofloresta',3:'solo',4:'agua',5:'clima',6:'pragas',7:'mudas',8:'medicinais',9:'saude-humana',10:'saude-animal',11:'manejo',12:'conservacao'};
 const KB_GROUP_ICONS = {1:'🌱',2:'🌳',3:'🟤',4:'💧',5:'☀️',6:'🐛',7:'🌿',8:'🌾',9:'🧑‍⚕️',10:'🐔',11:'🛠️',12:'🫙'};
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+/* Etiqueta de categoria mais discreta que a pill sólida — só a cor muda, sem ícone */
+function catTagStyle(cat){
+  const c = CAT_COLORS[cat] || 'neutral';
+  if(c==='neutral') return 'background:var(--surface-2);color:var(--ink-soft)';
+  return `background:color-mix(in srgb, var(--${c}-600) 12%, var(--surface));color:var(--${c}-600);border:1px solid color-mix(in srgb, var(--${c}-600) 24%, var(--border))`;
+}
 function kbNorm(s){ return String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,''); }
 function kbLoadJson(file){ return fetch('kb/'+file).then(r=>{ if(!r.ok) throw new Error(file+' ('+r.status+')'); return r.json(); }); }
 function kbFail(e){ kbLibError = 'Não foi possível carregar a biblioteca ('+(e&&e.message||e)+'). Verifica a ligação e tenta de novo.'; renderKbLibrary(); }
@@ -6759,29 +6770,13 @@ function resolveBrandValue(selectId, otherId){
   }
   return sel.value;
 }
-function probeImage(url){
-  return new Promise(resolve=>{
-    const img = new Image();
-    img.onload = ()=>resolve(true);
-    img.onerror = ()=>resolve(false);
-    img.src = url;
-  });
-}
-async function ensureEstufaBanner(){
-  if('estufaBannerCache' in DB) return;
-  const localPath = LOCAL_IMAGES.misc['estufa-banner'];
-  const localOk = localPath? await probeImage(localPath) : false;
-  DB.estufaBannerCache = localOk? localPath : await fetchWikiThumb('Polytunnel', 'en');
-  saveDB();
-  if(currentTab==='estufa') renderEstufaBanner();
-}
+function ensureEstufaBanner(){ /* imagem local fixa — sem obtenção assíncrona */ }
 function renderEstufaBanner(){
   const el = document.getElementById('estufaBanner');
   if(!el) return;
-  const url = DB.estufaBannerCache;
   el.innerHTML = `
-    ${url? `<img src="${url}" alt="Estufa" class="absolute inset-0 w-full h-full object-cover" onerror="this.style.display='none'">` : ''}
-    <div class="absolute inset-0" style="background:linear-gradient(to top, rgba(15,20,10,.7), rgba(15,20,10,.08) 60%)"></div>
+    <img src="${LOCAL_IMAGES.misc['estufa-banner']}" alt="Estufa" class="absolute inset-0 w-full h-full object-cover" onerror="this.style.display='none'">
+    <div class="absolute inset-0" style="background:linear-gradient(to top, rgba(15,20,10,.72), rgba(15,20,10,.08) 60%)"></div>
     <div class="absolute left-5 bottom-4 right-5 text-white">
       <h2 class="display font-bold m-0" style="font-size:22px;text-shadow:0 1px 6px rgba(0,0,0,.35)">Estufa</h2>
       <p class="m-0" style="font-size:12.5px;opacity:.92;text-shadow:0 1px 4px rgba(0,0,0,.35)">Sementeiras, mudas e áreas de cultivo protegido</p>
@@ -6842,7 +6837,7 @@ function renderEstufa(){
                 <span class="font-semibold display" style="font-size:15px">${a.name}</span>
                 <span style="width:14px;height:14px;border-radius:4px;background:${statusColor}" title="${p?p.status:'Sem cultura'}"></span>
               </div>
-              ${crop? `<span class="pill pill-${CAT_COLORS[crop.cat]}">${crop.name}</span><div class="text-xs mt-2" style="color:var(--ink-soft)">${p.status}</div>` : `<span class="pill pill-neutral">Sem cultura ativa</span>`}
+              ${crop? `<span class="pill" style="${catTagStyle(crop.cat)}">${crop.name}</span><div class="text-xs mt-2" style="color:var(--ink-soft)">${p.status}</div>` : `<span class="pill pill-neutral">Sem cultura ativa</span>`}
             </button>`;
           }).join('')}
         </div>
@@ -6858,7 +6853,7 @@ function renderEstufa(){
       ${secHead('green','seed','Sementeiras / Mudas', `<button class="btn btn-primary btn-sm" onclick="promptAddSeedling()">+ Nova sementeira</button>`, 'Regista sementeiras, acompanha a germinação e sabe quando transplantar cada muda para o solo')}
     </div>
     <div class="grid-crops mb-4">
-      ${active.length? active.map(s=>renderSeedlingCard(s)).join('') : `<p class="text-sm" style="color:var(--ink-faint)">Sem sementeiras ativas — cria a primeira acima.</p>`}
+      ${active.length? active.map(s=>renderSeedlingCard(s)).join('') : `<div class="empty-box">Sem sementeiras ativas — cria a primeira acima.</div>`}
     </div>
     <div class="card p-4">
       ${secHead('blue','history',`Histórico (${history.length})`)}
