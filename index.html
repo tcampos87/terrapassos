@@ -177,7 +177,19 @@ button.pill:active{transform:scale(.96)}
 .crop-tile-cap b{display:block;font-family:'Fredoka',sans-serif;font-size:14.5px;font-weight:600;text-shadow:0 1px 4px rgba(0,0,0,.4)}
 
 .tab-panel{display:none}
-.tab-panel.active{display:block}
+.tab-panel.active{display:block;animation:viewIn .38s var(--ease-out)}
+@keyframes viewIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.fade-swap{animation:viewIn .3s var(--ease-out)}
+#pageTitle,#pageSubtitle{animation:headIn .3s var(--ease-out)}
+@keyframes headIn{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:translateY(0)}}
+@keyframes modalBackdropIn{from{opacity:0}to{opacity:1}}
+@keyframes modalBackdropOut{from{opacity:1}to{opacity:0}}
+@keyframes modalBodyIn{from{opacity:0;transform:translateY(12px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes modalBodyOut{from{opacity:1;transform:translateY(0) scale(1)}to{opacity:0;transform:translateY(8px) scale(.97)}}
+#modalRoot{animation:modalBackdropIn .2s var(--ease-out)}
+#modalRoot.closing{animation:modalBackdropOut .17s var(--ease) forwards}
+#modalRoot #modalBody{animation:modalBodyIn .24s var(--ease-out)}
+#modalRoot.closing #modalBody{animation:modalBodyOut .17s var(--ease) forwards}
 
 .scrollbar-thin::-webkit-scrollbar{height:8px;width:8px}
 
@@ -2555,8 +2567,12 @@ function switchTab(id){
   document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
   document.getElementById('panel-'+id).classList.add('active');
   const t = TABS.find(x=>x.id===id);
-  document.getElementById('pageTitle').textContent = t? t.label : 'Gestão de Utilizadores';
-  document.getElementById('pageSubtitle').textContent = t? t.sub : 'Cria utilizadores, define permissões por módulo e acompanha o último acesso.';
+  const h1 = document.getElementById('pageTitle'), sub = document.getElementById('pageSubtitle');
+  h1.textContent = t? t.label : 'Gestão de Utilizadores';
+  sub.textContent = t? t.sub : 'Cria utilizadores, define permissões por módulo e acompanha o último acesso.';
+  h1.style.animation = 'none'; sub.style.animation = 'none';
+  void h1.offsetWidth;
+  h1.style.animation = ''; sub.style.animation = '';
   renderNav();
   document.getElementById('mobileNav').hidden = true;
   renderTab(id);
@@ -2795,8 +2811,20 @@ function deleteUser(id){
 /* =========================================================================
    MODAL
    ========================================================================= */
-function openModal(html, wide){ const b=document.getElementById('modalBody'); b.innerHTML = html; b.style.maxWidth = wide? '720px' : '520px'; document.getElementById('modalRoot').hidden=false; }
-function closeModal(){ document.getElementById('modalRoot').hidden=true; }
+function openModal(html, wide){
+  const root=document.getElementById('modalRoot'), b=document.getElementById('modalBody');
+  root.classList.remove('closing');
+  b.innerHTML = html; b.style.maxWidth = wide? '720px' : '520px';
+  root.hidden=false;
+}
+function closeModal(){
+  const root=document.getElementById('modalRoot');
+  if(root.hidden || root.classList.contains('closing')) return;
+  root.classList.add('closing');
+  const done=()=>{ root.hidden=true; root.classList.remove('closing'); root.removeEventListener('animationend', done); };
+  root.addEventListener('animationend', done);
+  setTimeout(done, 220);
+}
 document.addEventListener('keydown', e=>{ if(e.key==='Escape' && !document.getElementById('modalRoot').hidden) closeModal(); });
 document.getElementById('modalRoot').addEventListener('click', e=>{ if(e.target.id==='modalRoot') closeModal(); });
 
@@ -6201,7 +6229,8 @@ function kbxArticleHTML(id){
   </div>`;
 }
 function kbxJump(n){ const el = document.getElementById('kbh-'+n); if(el) el.scrollIntoView({behavior:'smooth', block:'start'}); }
-function kbxToTop(){ window.scrollTo(0,0); const m = document.getElementById('mainContent'); if(m) m.scrollTop = 0; }
+function swapFade(el){ if(!el) return; el.classList.remove('fade-swap'); void el.offsetWidth; el.classList.add('fade-swap'); }
+function kbxToTop(){ window.scrollTo(0,0); const m = document.getElementById('mainContent'); if(m) m.scrollTop = 0; swapFade(document.getElementById('panel-conhecimento')); }
 function kbxBindProgress(){
   if(window._kbxP) window.removeEventListener('scroll', window._kbxP);
   window._kbxP = function(){
@@ -6269,6 +6298,7 @@ function kbxBackTo(){
   kbMode = kbxPrev.mode || 'guias'; kbxView = kbxPrev.view || 'home'; kbxCat = kbxPrev.cat; kbxTrail = kbxPrev.trail; kbxSel = null; kbxCtx = null;
   renderConhecimento();
   window.scrollTo(0, kbxPrev.scroll || 0);
+  swapFade(document.getElementById('panel-conhecimento'));
 }
 function selectKbArticle(id){ kbxOpen(id); }
 
