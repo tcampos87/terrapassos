@@ -127,7 +127,10 @@ button.card:active, a.card:active{transform:translateY(0) scale(.99)}
 .btn-icon{padding:9px;border-radius:var(--r-pill)}
 .btn-icon.btn-sm{padding:6px}
 
-.pill{display:inline-flex;align-items:center;gap:6px;padding:4px 11px;border-radius:var(--r-pill);font-size:12px;font-weight:700;letter-spacing:.01em}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:4px 11px;border-radius:var(--r-pill);font-size:12px;font-weight:700;letter-spacing:.01em;transition:filter var(--dur-1) var(--ease),transform var(--dur-1) var(--ease)}
+button.pill{border:none;cursor:pointer}
+@media(hover:hover){button.pill:hover{filter:brightness(.96)}}
+button.pill:active{transform:scale(.96)}
 .dot{width:7px;height:7px;border-radius:50%;flex:none}
 .pill-green{background:var(--green-100);color:var(--green-700)}
 .pill-orange{background:var(--orange-100);color:var(--orange-600)}
@@ -158,9 +161,6 @@ button.card:active, a.card:active{transform:translateY(0) scale(.99)}
 .tile-img img.in{opacity:1}
 .tile-shade{position:absolute;inset:0;background:linear-gradient(0deg,rgba(10,14,8,.82) 0%,rgba(10,14,8,.15) 55%,rgba(10,14,8,0) 75%)}
 .tile-badge{position:absolute;left:10px;top:10px;font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:var(--r-pill);background:rgba(15,18,11,.5);color:#fff;backdrop-filter:blur(4px)}
-.chip-crop{display:inline-flex;align-items:center;gap:7px;padding:5px 13px 5px 5px;border-radius:var(--r-pill);font-size:12.5px;font-weight:600;background:var(--surface);border:1px solid var(--border);color:var(--ink);transition:transform var(--dur-1) var(--ease),box-shadow var(--dur-1) var(--ease),border-color var(--dur-1) var(--ease)}
-.chip-crop .ic{width:23px;height:23px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12.5px;flex:none}
-@media(hover:hover){.chip-crop:hover{transform:translateY(-1px);box-shadow:var(--elev-1);border-color:color-mix(in srgb, var(--green-500) 35%, var(--border))}}
 /* ---- Peças de bento do piloto (Visão Geral / Culturas) ---- */
 .stat-tile{display:flex;align-items:center;gap:11px;padding:12px 13px;border-radius:var(--r-md);background:var(--surface-2);transition:background var(--dur-1) var(--ease)}
 .list-tile{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:var(--r-md);background:var(--surface-2);transition:transform var(--dur-1) var(--ease),box-shadow var(--dur-1) var(--ease)}
@@ -2519,13 +2519,10 @@ function dicon(name, sz){
   };
   return `<svg width="${sz||16}" height="${sz||16}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p[name]||''}</svg>`;
 }
-/* Cabeçalho de secção consistente: chip com ícone (cor "tint") + título + ação opcional à direita */
+/* Cabeçalho de secção consistente: título + subtítulo opcional + ação opcional à direita (sem ícones) */
 function secHead(tint, iconName, title, right, sub){
   return `<div class="flex items-center justify-between mb-3 gap-2 flex-wrap">
-    <div class="flex items-center gap-2.5 min-w-0">
-      <span class="stat-chip" style="background:var(--${tint}-100);color:var(--${tint}-600)">${dicon(iconName,18)}</span>
-      <div class="min-w-0"><h3 class="display font-semibold m-0" style="font-size:15.5px">${title}</h3>${sub?`<div class="text-xs" style="color:var(--ink-faint)">${sub}</div>`:''}</div>
-    </div>
+    <div class="min-w-0"><h3 class="display font-semibold m-0" style="font-size:15.5px">${title}</h3>${sub?`<div class="text-xs mt-0.5" style="color:var(--ink-faint)">${sub}</div>`:''}</div>
     ${right||''}
   </div>`;
 }
@@ -2701,7 +2698,7 @@ function renderUsuarios(){
   el.innerHTML = `
     <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
       <p class="text-sm m-0" style="color:var(--ink-faint)">Cria utilizadores, define que módulos cada um pode ver, e acompanha o último acesso.</p>
-      <button class="btn btn-primary btn-sm" onclick="promptAddUser()">${dicon('plus',14)} Novo utilizador</button>
+      <button class="btn btn-primary btn-sm" onclick="promptAddUser()">+ Novo utilizador</button>
     </div>
     <div class="card p-4">
       <div class="overflow-x-auto">
@@ -3012,10 +3009,10 @@ function renderDashboard(){
       <div class="card p-5">
         ${secHead('green','sprout','Hoje na quinta')}
         <div class="grid grid-cols-2 gap-3">
-          <div class="stat-tile"><span class="stat-chip" style="background:var(--green-100);color:var(--green-700)">${dicon('leaf',18)}</span><div class="min-w-0"><div class="text-xl font-bold mono leading-none" style="color:var(--green-700)">${activePlantings.length}</div><div class="text-[11px] mt-1" style="color:var(--ink-soft)">culturas ativas</div></div></div>
-          <div class="stat-tile"><span class="stat-chip" style="background:var(--orange-100);color:var(--orange-600)">${dicon('egg',18)}</span><div class="min-w-0"><div class="text-xl font-bold mono leading-none" style="color:var(--orange-600)">${todayEggs}</div><div class="text-[11px] mt-1" style="color:var(--ink-soft)">ovos hoje</div></div></div>
-          <div class="stat-tile"><span class="stat-chip" style="background:var(--surface);color:var(--ink-soft);box-shadow:var(--elev-1)">${ICONS.galinhas}</span><div class="min-w-0"><div class="text-xl font-bold mono leading-none">${DB.chickenBatches.reduce((s,b)=>s+b.currentCount,0)}</div><div class="text-[11px] mt-1" style="color:var(--ink-soft)">galinhas</div></div></div>
-          <div class="stat-tile"><span class="stat-chip" style="background:var(--blue-100);color:var(--blue-600)">${ICONS.tarefas}</span><div class="min-w-0"><div class="text-xl font-bold mono leading-none" style="color:var(--blue-600)">${DB.tasks.filter(t=>t.status!=='done').length}</div><div class="text-[11px] mt-1" style="color:var(--ink-soft)">tarefas pendentes</div></div></div>
+          <div class="stat-tile" style="background:var(--green-100)"><div><div class="text-xl font-bold mono leading-none" style="color:var(--green-700)">${activePlantings.length}</div><div class="text-[11px] mt-1" style="color:var(--ink-soft)">culturas ativas</div></div></div>
+          <div class="stat-tile" style="background:var(--orange-100)"><div><div class="text-xl font-bold mono leading-none" style="color:var(--orange-600)">${todayEggs}</div><div class="text-[11px] mt-1" style="color:var(--ink-soft)">ovos hoje</div></div></div>
+          <div class="stat-tile"><div><div class="text-xl font-bold mono leading-none">${DB.chickenBatches.reduce((s,b)=>s+b.currentCount,0)}</div><div class="text-[11px] mt-1" style="color:var(--ink-soft)">galinhas</div></div></div>
+          <div class="stat-tile" style="background:var(--blue-100)"><div><div class="text-xl font-bold mono leading-none" style="color:var(--blue-600)">${DB.tasks.filter(t=>t.status!=='done').length}</div><div class="text-[11px] mt-1" style="color:var(--ink-soft)">tarefas pendentes</div></div></div>
         </div>
       </div>
 
@@ -3083,8 +3080,7 @@ function renderDashboard(){
       `<div class="flex flex-col gap-2">${upcoming.map(p=>{
         const area = DB.areas.find(a=>a.id===p.areaId); const crop = cropById(p.cropId);
         const urg = p.daysLeft<=3? 'var(--red-600)' : p.daysLeft<=10? 'var(--orange-500)' : 'var(--green-500)';
-        return `<div class="list-tile" style="align-items:stretch">
-          <span class="stat-chip" style="background:var(--${CAT_COLORS[crop.cat]}-100);color:var(--${CAT_COLORS[crop.cat]}-600)">${CAT_EMOJI[crop.cat]||'🌿'}</span>
+        return `<div class="list-tile" style="align-items:stretch;border-left:4px solid var(--${CAT_COLORS[crop.cat]}-600)">
           <div class="min-w-0 flex-1">
             <div class="flex items-center justify-between gap-2">
               <span class="text-sm font-semibold truncate">${crop.name} <span class="font-normal" style="color:var(--ink-faint)">· ${area? area.name:'—'}</span></span>
@@ -3104,7 +3100,6 @@ function renderDashboard(){
           </div>
         </div>`, 'Culturas com época de sementeira/plantio a chegar, com os fertilizantes a preparar antecipadamente')}
       <div class="flex flex-wrap items-center gap-2 mb-3">
-        <span class="stat-chip" style="width:30px;height:30px;background:var(--surface-2);color:var(--ink-faint)">${dicon('filter',14)}</span>
         <select class="field" style="width:auto;padding:6px 10px;font-size:12px" onchange="setNextPlantFilter('cultura', this.value)">
           <option value="all">Cultura: todas</option>
           ${nextPlantCulturaOpts.map(c=>`<option value="${c}" ${nextPlantFilters.cultura===c?'selected':''}>${CAT_LABELS[c]||c}</option>`).join('')}
@@ -3190,7 +3185,7 @@ function renderCulturas(){
     <div class="card p-5 mb-4">
       ${secHead('green','calplus',`Calendário de plantio — ${MONTHS_FULL[now.getMonth()]}`, null, 'Culturas com época ideal de sementeira/plantio neste mês (clima de Portugal continental)')}
       <div class="flex flex-wrap gap-2">
-        ${allCrops().filter(c=>c.months.includes(now.getMonth()+1)).map(c=>`<button class="chip-crop" onclick="openCropDetail('${c.id}')"><span class="ic" style="background:var(--${CAT_COLORS[c.cat]}-100);color:var(--${CAT_COLORS[c.cat]}-600)">${CAT_EMOJI[c.cat]||'🌿'}</span>${c.name}</button>`).join('') || '<span class="text-sm" style="color:var(--ink-faint)">Nenhuma este mês.</span>'}
+        ${allCrops().filter(c=>c.months.includes(now.getMonth()+1)).map(c=>`<button class="pill pill-${CAT_COLORS[c.cat]}" onclick="openCropDetail('${c.id}')">${c.name}</button>`).join('') || '<span class="text-sm" style="color:var(--ink-faint)">Nenhuma este mês.</span>'}
       </div>
     </div>
 
@@ -3199,7 +3194,7 @@ function renderCulturas(){
         <button class="seg-btn ${culturaFilter==='all'?'on':''}" onclick="setCulturaFilter('all')">Todas</button>
         ${Object.keys(CAT_LABELS).map(k=>`<button class="seg-btn ${culturaFilter===k?'on':''}" onclick="setCulturaFilter('${k}')">${CAT_LABELS[k]}</button>`).join('')}
       </div>
-      <button class="btn btn-accent btn-sm" onclick="promptAddCrop()">${dicon('plus',15)} Adicionar cultura</button>
+      <button class="btn btn-accent btn-sm" onclick="promptAddCrop()">+ Adicionar cultura</button>
     </div>
     <p class="text-xs mb-3" style="color:var(--ink-faint)">${visibleCrops.length} cultura${visibleCrops.length===1?'':'s'}${culturaFilter!=='all'?' em '+CAT_LABELS[culturaFilter]:''}</p>
 
@@ -3391,11 +3386,11 @@ function renderDiagnostico(){
         <label class="label">Cultura afetada</label>
         <select class="field mb-3" id="diagCropSelect">${allCrops().slice().sort((a,b)=>a.name.localeCompare(b.name,'pt')).map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}</select>
         <label class="label">Foto da folha/planta afetada (opcional)</label>
-        <div id="diagPhotoPreview" class="relative overflow-hidden mb-3" style="height:140px;background:var(--surface-2);border:1.5px dashed var(--border);border-radius:var(--r-md);display:flex;align-items:center;justify-content:center;color:var(--ink-faint);font-size:12px;cursor:pointer;text-align:center;padding:0 12px;gap:6px;flex-direction:column" onclick="document.getElementById('diagPhotoInput').click()">${dicon('camera',22)}Clica para carregar uma foto</div>
+        <div id="diagPhotoPreview" class="relative overflow-hidden mb-3" style="height:140px;background:var(--surface-2);border:1.5px dashed var(--border);border-radius:var(--r-md);display:flex;align-items:center;justify-content:center;color:var(--ink-faint);font-size:12px;cursor:pointer;text-align:center;padding:0 12px;gap:6px;flex-direction:column" onclick="document.getElementById('diagPhotoInput').click()">📷 Clica para carregar uma foto</div>
         <input type="file" accept="image/*" class="hidden" id="diagPhotoInput" onchange="handleDiagnosticPhoto(event)">
         <label class="label">Sintomas observados</label>
         <textarea class="field mb-3" id="diagSymptoms" rows="4" placeholder="Ex: manchas escuras nas folhas, bordos amarelados, teia fina branca por baixo..."></textarea>
-        <button class="btn btn-primary btn-sm w-full" onclick="runDiagnosis()">${dicon('target',14)} Diagnosticar</button>
+        <button class="btn btn-primary btn-sm w-full" onclick="runDiagnosis()">🔍 Diagnosticar</button>
         <p class="text-[11px] mt-2 mb-0" style="color:var(--ink-faint)">Comparamos o texto que descreveres com a base de pragas conhecidas dessa cultura — não usa reconhecimento de imagem; a foto fica guardada só como referência tua.</p>
       </div>
       <div class="card p-5" id="diagResultsPanel">
@@ -3521,7 +3516,7 @@ function renderAreas(){
       <div class="lg:col-span-2 card p-4">
         ${secHead('green','pin','Mapa aéreo da propriedade', `<div class="flex gap-2">
             <label class="btn btn-outline btn-sm cursor-pointer">
-              ${dicon('camera',14)} ${DB.propertyImage? 'Trocar imagem':'Carregar imagem'}
+              📷 ${DB.propertyImage? 'Trocar imagem':'Carregar imagem'}
               <input type="file" accept="image/*" class="hidden" onchange="handleImageUpload(event)">
             </label>
             ${DB.propertyImage? `<button class="btn btn-sm ${drawingMode?'btn-accent':'btn-primary'}" onclick="toggleDrawing()">${drawingMode? 'A desenhar… (clica para adicionar pontos)':'+ Nova área'}</button>`:''}
@@ -4027,10 +4022,10 @@ function renderGalinheirosOverview(el){
       <button class="btn btn-outline btn-sm" onclick="promptExportReport('galinhas')">🖨️ Exportar relatório PDF</button>
     </div>
     <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
-      <div class="stat-tile"><span class="stat-chip" style="background:var(--surface);color:var(--ink-soft);box-shadow:var(--elev-1)">${dicon('coop',18)}</span><div><div class="text-xl font-bold mono leading-none">${DB.coops.length}</div><div class="text-[11px] mt-1" style="color:var(--ink-soft)">galinheiros</div></div></div>
-      <div class="stat-tile"><span class="stat-chip" style="background:var(--green-100);color:var(--green-700)">${ICONS.galinhas}</span><div><div class="text-xl font-bold mono leading-none">${totalBirds}</div><div class="text-[11px] mt-1" style="color:var(--ink-soft)">galinhas ativas</div></div></div>
-      <div class="stat-tile"><span class="stat-chip" style="background:var(--orange-100);color:var(--orange-600)">${dicon('egg',18)}</span><div><div class="text-xl font-bold mono leading-none" style="color:var(--orange-600)">${todayEggs}</div><div class="text-[11px] mt-1" style="color:var(--ink-soft)">ovos hoje</div></div></div>
-      <div class="stat-tile"><span class="stat-chip" style="background:${quarantined?'var(--red-100)':'var(--surface)'};color:${quarantined?'var(--red-600)':'var(--ink-soft)'}${quarantined?'':';box-shadow:var(--elev-1)'}">${dicon('health',18)}</span><div><div class="text-xl font-bold mono leading-none" style="color:${quarantined?'var(--red-600)':'inherit'}">${quarantined}</div><div class="text-[11px] mt-1" style="color:var(--ink-soft)">em quarentena</div></div></div>
+      <div class="stat-tile"><div><div class="text-xl font-bold mono leading-none">${DB.coops.length}</div><div class="text-[11px] mt-1" style="color:var(--ink-soft)">galinheiros</div></div></div>
+      <div class="stat-tile" style="background:var(--green-100)"><div><div class="text-xl font-bold mono leading-none" style="color:var(--green-700)">${totalBirds}</div><div class="text-[11px] mt-1" style="color:var(--ink-soft)">galinhas ativas</div></div></div>
+      <div class="stat-tile" style="background:var(--orange-100)"><div><div class="text-xl font-bold mono leading-none" style="color:var(--orange-600)">${todayEggs}</div><div class="text-[11px] mt-1" style="color:var(--ink-soft)">ovos hoje</div></div></div>
+      <div class="stat-tile" style="background:${quarantined?'var(--red-100)':'var(--surface-2)'}"><div><div class="text-xl font-bold mono leading-none" style="color:${quarantined?'var(--red-600)':'inherit'}">${quarantined}</div><div class="text-[11px] mt-1" style="color:var(--ink-soft)">em quarentena</div></div></div>
     </div>
 
     <div class="card p-5 mb-5">
@@ -4049,7 +4044,7 @@ function renderGalinheirosOverview(el){
     </div>
 
     <div>
-      ${secHead('green','coop','Galinheiros', `<button class="btn btn-primary btn-sm" onclick="promptAddCoop()">${dicon('plus',14)} Adicionar galinheiro</button>`)}
+      ${secHead('green','coop','Galinheiros', `<button class="btn btn-primary btn-sm" onclick="promptAddCoop()">+ Adicionar galinheiro</button>`)}
     </div>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       ${DB.coops.map(renderCoopCard).join('') || `<p class="text-sm" style="color:var(--ink-faint)">Ainda sem galinheiros — cria o primeiro para começares a registar lotes, ovos e cuidados.</p>`}
@@ -4192,10 +4187,10 @@ function renderCoopDetail(el){
       ${amenities.map(([,icon,label])=>`<span class="pill pill-neutral">${icon} ${label}</span>`).join('') || `<span class="text-xs" style="color:var(--ink-faint)">Sem infraestrutura registada</span>`}
     </div>
     <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-      <div class="stat-tile"><span class="stat-chip" style="background:var(--surface);color:var(--ink-soft);box-shadow:var(--elev-1)">${ICONS.galinhas}</span><div><div class="text-xl font-bold mono leading-none">${totalBirds}</div><div class="text-[11px] mt-1" style="color:var(--ink-soft)">galinhas ativas</div></div></div>
-      <div class="stat-tile"><span class="stat-chip" style="background:var(--orange-100);color:var(--orange-600)">${dicon('egg',18)}</span><div><div class="text-xl font-bold mono leading-none" style="color:var(--orange-600)">${todayEggs}</div><div class="text-[11px] mt-1" style="color:var(--ink-soft)">ovos hoje</div></div></div>
-      <div class="stat-tile"><span class="stat-chip" style="background:var(--green-100);color:var(--green-700)">${dicon('chart',18)}</span><div><div class="text-xl font-bold mono leading-none" style="color:var(--green-700)">${rate}%</div><div class="text-[11px] mt-1" style="color:var(--ink-soft)">produtividade (7d)</div></div></div>
-      <div class="stat-tile"><span class="stat-chip" style="background:${quarantined?'var(--red-100)':'var(--surface)'};color:${quarantined?'var(--red-600)':'var(--ink-soft)'}${quarantined?'':';box-shadow:var(--elev-1)'}">${dicon('health',18)}</span><div><div class="text-xl font-bold mono leading-none" style="color:${quarantined?'var(--red-600)':'inherit'}">${quarantined}</div><div class="text-[11px] mt-1" style="color:var(--ink-soft)">em quarentena</div></div></div>
+      <div class="stat-tile"><div><div class="text-xl font-bold mono leading-none">${totalBirds}</div><div class="text-[11px] mt-1" style="color:var(--ink-soft)">galinhas ativas</div></div></div>
+      <div class="stat-tile" style="background:var(--orange-100)"><div><div class="text-xl font-bold mono leading-none" style="color:var(--orange-600)">${todayEggs}</div><div class="text-[11px] mt-1" style="color:var(--ink-soft)">ovos hoje</div></div></div>
+      <div class="stat-tile" style="background:var(--green-100)"><div><div class="text-xl font-bold mono leading-none" style="color:var(--green-700)">${rate}%</div><div class="text-[11px] mt-1" style="color:var(--ink-soft)">produtividade (7d)</div></div></div>
+      <div class="stat-tile" style="background:${quarantined?'var(--red-100)':'var(--surface-2)'}"><div><div class="text-xl font-bold mono leading-none" style="color:${quarantined?'var(--red-600)':'inherit'}">${quarantined}</div><div class="text-[11px] mt-1" style="color:var(--ink-soft)">em quarentena</div></div></div>
     </div>
     <div class="seg mb-4" style="flex-wrap:wrap">${subtabs.map(([k,l])=>`<button class="seg-btn ${galinhasSubtab===k?'on':''}" onclick="setGalinhasSubtab('${k}')">${l}</button>`).join('')}</div>
     <div id="galinhasContent"></div>
@@ -4420,7 +4415,7 @@ function renderCoopEnvironmentCard(coop){
         <div class="text-lg font-bold mono" id="coopTemp-${coop.id}">${temp}°C</div>
       </div>
       <div class="p-2.5" style="background:var(--surface-2);border-radius:var(--r-sm)">
-        <div class="text-xs mb-0.5" style="color:var(--ink-faint)">${dicon('drop',12)} Humidade</div>
+        <div class="text-xs mb-0.5" style="color:var(--ink-faint)">💧 Humidade</div>
         <div class="text-lg font-bold mono" id="coopHum-${coop.id}">${hum}%</div>
       </div>
     </div>
@@ -4545,9 +4540,9 @@ function renderFinancas(){
       <button class="btn btn-outline btn-sm" onclick="promptExportReport('financas')">🖨️ Exportar relatório PDF</button>
     </div>
     <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
-      <div class="card p-4"><div class="flex items-center gap-2 mb-1"><span class="stat-chip" style="width:26px;height:26px;background:var(--green-100);color:var(--green-700)">${dicon('money',13)}</span><span class="text-xs" style="color:var(--ink-soft)">Receitas (mês)</span></div><div class="text-2xl font-bold mono" style="color:var(--green-700)">${fmtMoney(receitas)}</div></div>
-      <div class="card p-4"><div class="flex items-center gap-2 mb-1"><span class="stat-chip" style="width:26px;height:26px;background:var(--red-100);color:var(--red-600)">${dicon('money',13)}</span><span class="text-xs" style="color:var(--ink-soft)">Despesas (mês)</span></div><div class="text-2xl font-bold mono" style="color:var(--red-600)">${fmtMoney(despesas)}</div></div>
-      <div class="card p-4"><div class="flex items-center gap-2 mb-1"><span class="stat-chip" style="width:26px;height:26px;background:var(--surface-2);color:var(--ink-soft)">${dicon('money',13)}</span><span class="text-xs" style="color:var(--ink-soft)">Saldo (mês)</span></div><div class="text-2xl font-bold mono">${fmtMoney(receitas-despesas)}</div></div>
+      <div class="card p-4" style="border-left:4px solid var(--green-600)"><div class="text-xs mb-1" style="color:var(--ink-soft)">Receitas (mês)</div><div class="text-2xl font-bold mono" style="color:var(--green-700)">${fmtMoney(receitas)}</div></div>
+      <div class="card p-4" style="border-left:4px solid var(--red-600)"><div class="text-xs mb-1" style="color:var(--ink-soft)">Despesas (mês)</div><div class="text-2xl font-bold mono" style="color:var(--red-600)">${fmtMoney(despesas)}</div></div>
+      <div class="card p-4"><div class="text-xs mb-1" style="color:var(--ink-soft)">Saldo (mês)</div><div class="text-2xl font-bold mono">${fmtMoney(receitas-despesas)}</div></div>
     </div>
 
     <div class="card p-4 mb-4">
@@ -4571,7 +4566,7 @@ function renderFinancas(){
     </div>
 
     <div class="card p-4 mb-4" style="background:var(--green-100);border-color:var(--green-600)">
-      <h3 class="display font-semibold mb-3 flex items-center gap-2" style="font-size:15px;color:var(--green-900)">${dicon('plus',16)} Novo lançamento</h3>
+      <h3 class="display font-semibold mb-3" style="font-size:15px;color:var(--green-900)">Novo lançamento</h3>
       <div class="grid grid-cols-1 md:grid-cols-6 gap-2 items-end">
         <div><span class="label">Tipo</span><select class="field" id="txType" onchange="renderTxCats()"><option value="despesa">Despesa</option><option value="receita">Receita</option></select></div>
         <div><span class="label">Categoria</span><select class="field" id="txCat"></select></div>
@@ -6605,7 +6600,7 @@ function renderTarefas(){
   el.innerHTML = `
     <div class="flex items-center justify-between gap-2 mb-4 flex-wrap">
       <p class="text-sm m-0" style="color:var(--ink-faint)">Arrasta os cartões entre colunas — ou usa as setas ‹ › em ecrãs táteis.</p>
-      <button class="btn btn-primary btn-sm" onclick="promptAddTask('todo')">${dicon('plus',14)} Nova tarefa</button>
+      <button class="btn btn-primary btn-sm" onclick="promptAddTask('todo')">+ Nova tarefa</button>
     </div>
     <div class="flex items-center gap-2 mb-4 flex-wrap">
       <select class="field" style="width:auto" onchange="setTaskDateSort(this.value)">
@@ -6860,7 +6855,7 @@ function renderEstufa(){
     </div>
 
     <div class="mb-3">
-      ${secHead('green','seed','Sementeiras / Mudas', `<button class="btn btn-primary btn-sm" onclick="promptAddSeedling()">${dicon('plus',14)} Nova sementeira</button>`, 'Regista sementeiras, acompanha a germinação e sabe quando transplantar cada muda para o solo')}
+      ${secHead('green','seed','Sementeiras / Mudas', `<button class="btn btn-primary btn-sm" onclick="promptAddSeedling()">+ Nova sementeira</button>`, 'Regista sementeiras, acompanha a germinação e sabe quando transplantar cada muda para o solo')}
     </div>
     <div class="grid-crops mb-4">
       ${active.length? active.map(s=>renderSeedlingCard(s)).join('') : `<p class="text-sm" style="color:var(--ink-faint)">Sem sementeiras ativas — cria a primeira acima.</p>`}
