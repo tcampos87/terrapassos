@@ -2,7 +2,7 @@
 // próprio ficheiro da app (mesma origem). Pedidos a APIs externas (previsão
 // do tempo, fotos da Wikipédia) passam sempre direto para a rede: a app já
 // trata a falta de ligação de forma graciosa nesses casos.
-const CACHE_NAME = 'quinta-viva-v11';
+const CACHE_NAME = 'quinta-viva-v12';
 
 self.addEventListener('install', event => {
   self.skipWaiting();

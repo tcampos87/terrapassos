@@ -116,8 +116,8 @@ button.card:active, a.card:active{transform:translateY(0) scale(.99)}
 .label{font-size:12px;font-weight:600;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;display:block}
 .btn{display:inline-flex;align-items:center;gap:6px;padding:9px 15px;border-radius:var(--r-sm);font-weight:600;font-size:14px;border:1px solid transparent;transition:filter var(--dur-1) var(--ease), transform var(--dur-1) var(--ease), box-shadow var(--dur-1) var(--ease), background var(--dur-1) var(--ease)}
 .btn:active{transform:scale(.96)}
-.btn-primary{background:var(--green-600);color:#fff;box-shadow:0 1px 2px rgba(27,32,24,.08), 0 4px 10px -4px color-mix(in srgb, var(--green-600) 55%, transparent)}
-.btn-primary:hover{filter:brightness(1.08);box-shadow:0 2px 4px rgba(27,32,24,.1), 0 6px 16px -4px color-mix(in srgb, var(--green-600) 65%, transparent)}
+.btn-primary{background:var(--green-100);color:var(--green-700);border-color:color-mix(in srgb, var(--green-600) 40%, transparent)}
+.btn-primary:hover{background:color-mix(in srgb, var(--green-600) 16%, var(--green-100))}
 .btn-accent{background:var(--orange-500);color:#fff;box-shadow:0 1px 2px rgba(27,32,24,.08), 0 4px 10px -4px color-mix(in srgb, var(--orange-500) 55%, transparent)}
 .btn-accent:hover{filter:brightness(1.08)}
 .btn-ghost{background:var(--surface-2);color:var(--ink)}
@@ -240,9 +240,7 @@ button.pill:active{transform:scale(.96)}
 @media(min-width:1024px){.kbx-chips{flex-wrap:wrap;overflow:visible}}
 .kbx-chip{flex:none;white-space:nowrap;font-size:12.5px;font-weight:600;padding:6px 12px;border-radius:999px;background:var(--surface);border:1px solid var(--border);color:var(--ink-soft);cursor:pointer;transition:background .15s,color .15s}
 .kbx-chip:hover{background:var(--green-100);color:var(--green-700)}
-.kbx-chip.on{background:var(--green-700);border-color:var(--green-700);color:#fff}
-:root[data-theme="dark"] .kbx-chip.on{color:#10210F}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .kbx-chip.on{color:#10210F}}
+.kbx-chip.on{background:var(--green-100);border-color:color-mix(in srgb, var(--green-600) 40%, transparent);color:var(--green-700)}
 
 .kbx-hero{position:relative;border-radius:22px;overflow:hidden;min-height:340px;display:flex;align-items:flex-end;color:#fff;background:var(--kb-g,linear-gradient(135deg,#2A6B3A,#1F4429));box-shadow:var(--shadow)}
 .kbx-hero-sm{min-height:210px}
@@ -357,7 +355,7 @@ button.pill:active{transform:scale(.96)}
 .kbx-lesson{display:flex;align-items:center;gap:12px;padding:10px;border-radius:12px;cursor:pointer}
 .kbx-lesson:hover{background:var(--surface-2)}
 .kbx-lnum{width:30px;height:30px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;background:var(--surface-2);color:var(--ink-soft)}
-.kbx-lesson.done .kbx-lnum{background:var(--green-600);color:var(--surface)}
+.kbx-lesson.done .kbx-lnum{background:var(--green-100);color:var(--green-700)}
 .kbx-lesson.next .kbx-lnum{border:2px solid var(--green-500);color:var(--green-700);background:transparent}
 .kbx-lthumb{position:relative;width:88px;height:56px;border-radius:10px;overflow:hidden;flex:none;background:var(--kb-g)}
 .kbx-linfo{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
