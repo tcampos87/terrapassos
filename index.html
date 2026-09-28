@@ -1,12 +1,12 @@
-<title>Quinta Viva</title>
+<title>TerraPassos OS</title>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="Gestão de quinta, agrofloresta e manejo — culturas, áreas, estufa, galinhas e finanças, com funcionamento offline.">
+<meta name="description" content="TerraPassos — Guiar a terra. Cultivar o futuro. Gestão agrícola integrada e agrofloresta: culturas, áreas, estufa, galinhas e finanças, com funcionamento offline.">
 <meta name="theme-color" content="#2F7A3D">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Quinta Viva">
+<meta name="apple-mobile-web-app-title" content="TerraPassos">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23F5F7EE'/%3E%3Cpath d='M16 3C10 8 6 14 6 19a10 10 0 0020 0c0-5-4-11-10-16Z' fill='%232F7A3D'/%3E%3Cpath d='M16 8v18' stroke='%231F4429' stroke-width='1.4' opacity='.5'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Public+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap">
@@ -485,7 +485,7 @@ button.pill:active{transform:scale(.96)}
 /* =========================================================================
    DATA MODEL
    ========================================================================= */
-const STORAGE_KEY = 'quintaVivaDB_v1';
+const STORAGE_KEY = 'quintaVivaDB_v1'; // nome interno mantido de propósito (app rebrandizada para TerraPassos) — mudar apagaria os dados já guardados no navegador de quem já usa a app
 const uid = () => Math.random().toString(36).slice(2,10);
 const dateISO = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 const todayISO = () => dateISO(new Date());
@@ -640,7 +640,7 @@ function defaultDB(){
     stockLevels: {}, // {'insumo:<id>'|'herbicida:<id>': {quantity,unit,lowThreshold,updatedAt}}
     stockMovements: [], // {id,date,kind:'insumo'|'herbicida',itemId,itemName,type:'entrada'|'saida'|'ajuste',quantity,unit,note,userId}
     kbP: {}, // progresso de aprendizagem por utilizador: {userId:{done,read,prog,days,fav,goal,ach}}
-    brandLogo: null, // dataURL — logótipo da empresa que substitui "Quinta Viva" no cabeçalho e nas etiquetas QR
+    brandLogo: null, // dataURL — logótipo da empresa que substitui "TerraPassos" no cabeçalho e nas etiquetas QR
   };
 }
 let DB = loadDB();
@@ -2347,7 +2347,7 @@ function promptSettings(){
 
     <div class="mb-4">
       <span class="label">Logótipo da empresa</span>
-      <p class="text-xs mb-2" style="color:var(--ink-faint)">Substitui "Quinta Viva" pelo teu logótipo no canto superior esquerdo e nas etiquetas de rastreabilidade QR impressas — para quem usa esta app com marca própria.</p>
+      <p class="text-xs mb-2" style="color:var(--ink-faint)">Substitui "TerraPassos" pelo teu logótipo no canto superior esquerdo e nas etiquetas de rastreabilidade QR impressas — para quem usa esta app com marca própria.</p>
       <div class="flex items-center gap-3 mb-2">
         <div class="rounded-lg flex items-center justify-center flex-none" style="width:64px;height:64px;background:var(--surface-2);border:1px solid var(--border)">
           ${DB.brandLogo? `<img src="${DB.brandLogo}" alt="Logótipo atual" style="max-width:56px;max-height:56px;object-fit:contain">` : `<span class="text-[10px] text-center" style="color:var(--ink-faint)">sem logo</span>`}
@@ -2355,7 +2355,7 @@ function promptSettings(){
         <div class="flex flex-col gap-1.5 flex-1">
           <button class="btn btn-outline btn-sm w-full" onclick="document.getElementById('brandLogoInput').click()">⬆️ ${DB.brandLogo?'Trocar logótipo':'Carregar logótipo'}</button>
           <input type="file" accept="image/*" id="brandLogoInput" class="hidden" onchange="handleBrandLogoUpload(event)">
-          ${DB.brandLogo? `<button class="btn btn-ghost btn-sm w-full" style="color:var(--red-600)" onclick="removeBrandLogo()">Remover e voltar a "Quinta Viva"</button>` : ''}
+          ${DB.brandLogo? `<button class="btn btn-ghost btn-sm w-full" style="color:var(--red-600)" onclick="removeBrandLogo()">Remover e voltar a "TerraPassos"</button>` : ''}
         </div>
       </div>
     </div>
@@ -2413,7 +2413,7 @@ function exportBackup(){
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `quinta-viva-backup-${todayISO()}.json`;
+  a.download = `terrapassos-backup-${todayISO()}.json`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -2428,7 +2428,7 @@ function handleImportBackup(ev){
     let parsed;
     try{ parsed = JSON.parse(e.target.result); }
     catch(err){ alert('Ficheiro inválido — não foi possível ler este backup.'); return; }
-    if(!parsed || !Array.isArray(parsed.users)){ alert('Este ficheiro não parece ser um backup válido da Quinta Viva.'); return; }
+    if(!parsed || !Array.isArray(parsed.users)){ alert('Este ficheiro não parece ser um backup válido do TerraPassos.'); return; }
     if(!confirm('Importar este backup vai substituir TODOS os dados atuais desta aplicação. Esta ação não pode ser desfeita. Continuar?')) return;
     DB = Object.assign(defaultDB(), parsed);
     saveDB();
@@ -2564,8 +2564,8 @@ function renderBrandBlocks(){
     if(mobile) mobile.innerHTML = logoImg;
   } else {
     const leafSvg = `<svg width="30" height="30" viewBox="0 0 32 32" fill="none"><path d="M16 3C10 8 6 14 6 19a10 10 0 0020 0c0-5-4-11-10-16Z" fill="var(--green-600)"/><path d="M16 8v18" stroke="var(--green-900)" stroke-width="1.4" opacity=".5"/></svg>`;
-    if(desktop) desktop.innerHTML = `${leafSvg}<div><div class="display font-semibold leading-none" style="font-size:17px">Quinta Viva</div><div class="text-[11px]" style="color:var(--ink-faint)">agrofloresta &amp; manejo</div></div>`;
-    if(mobile) mobile.innerHTML = `<div class="display font-semibold" style="font-size:17px">Quinta Viva</div>`;
+    if(desktop) desktop.innerHTML = `${leafSvg}<div><div class="display font-semibold leading-none" style="font-size:17px">TerraPassos</div><div class="text-[11px]" style="color:var(--ink-faint)">Gestão Agrícola Integrada &amp; Agrofloresta</div></div>`;
+    if(mobile) mobile.innerHTML = `<div class="display font-semibold" style="font-size:17px">TerraPassos</div>`;
   }
 }
 function switchTab(id){
@@ -5946,7 +5946,7 @@ function kbxCertificate(tid){
   };
   g.fillStyle = '#FBFAF4'; g.fillRect(0,0,W,H);
   g.strokeStyle = '#2A6B3A'; g.lineWidth = 14; g.strokeRect(40,40,W-80,H-80); g.lineWidth = 3; g.strokeRect(66,66,W-132,H-132);
-  const brandText = ()=>{ g.textAlign = 'center'; g.fillStyle = '#2F7A3D'; g.font = '700 34px sans-serif'; g.fillText('QUINTA VIVA', W/2, 200); finish(); };
+  const brandText = ()=>{ g.textAlign = 'center'; g.fillStyle = '#2F7A3D'; g.font = '700 34px sans-serif'; g.fillText('TERRAPASSOS', W/2, 200); finish(); };
   if(DB.brandLogo){
     const img = new Image();
     img.onload = ()=>{ const s = Math.min(420/img.width, 130/img.height, 1), w = img.width*s, h = img.height*s; g.drawImage(img, (W-w)/2, 130+(130-h)/2, w, h); finish(); };
@@ -7508,7 +7508,7 @@ function exportFinanceCSV(){
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `quinta-viva-contabilidade-${periodLabel}.csv`;
+  a.download = `terrapassos-contabilidade-${periodLabel}.csv`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -7538,7 +7538,7 @@ function ensureQRLib(){
 }
 function buildTraceabilityText(p, isEstufa){
   const lines = [];
-  lines.push('QUINTA VIVA — RASTREABILIDADE');
+  lines.push('TERRAPASSOS — RASTREABILIDADE');
   lines.push(`Cultura: ${p.cropName}`);
   lines.push(`${isEstufa?'Bancada':'Área'}: ${p.areaName || '—'}`);
   lines.push(`Lote: ${p.id}`);
@@ -7625,7 +7625,7 @@ function downloadTraceabilityQR(cropName, lotId){
     ctx.fillStyle = '#2F7A3D';
     ctx.textAlign = 'center';
     ctx.font = '700 20px sans-serif';
-    ctx.fillText('QUINTA VIVA', W/2, headerH/2+7);
+    ctx.fillText('TERRAPASSOS', W/2, headerH/2+7);
   };
   if(DB.brandLogo){
     const img = new Image();
@@ -7663,7 +7663,7 @@ function buildFinanceReportHTML(periodLabel, inPeriod, month){
   };
   const allRows = txs.map(t=>`<tr><td>${fmtDate(t.date)}</td><td>${t.type}</td><td>${t.category}</td><td>${t.note||'—'}</td><td class="num">${t.type==='receita'?'+':'-'}${fmtMoney(Math.abs(t.amount)).slice(1)}</td></tr>`).join('');
   return `
-    <h1>Quinta Viva</h1>
+    <h1>TerraPassos</h1>
     <h2>Relatório Financeiro — ${periodLabel}</h2>
     <p class="rep-meta">Gerado em ${new Date().toLocaleDateString('pt-PT')} às ${new Date().toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'})} por ${activeUser().name}</p>
     <div class="rep-summary">
@@ -7706,7 +7706,7 @@ function buildGalinhasReportHTML(periodLabel, inPeriod, month){
   const saleRows = sales.map(s=>`<tr><td>${fmtDate(s.date)}</td><td>${DB.chickenBatches.find(b=>b.id===s.batchId)?.breed||'—'}</td><td class="num">${s.count}</td><td class="num">${fmtMoney(s.price)}</td></tr>`).join('');
 
   return `
-    <h1>Quinta Viva</h1>
+    <h1>TerraPassos</h1>
     <h2>Relatório de Galinhas — ${periodLabel}</h2>
     <p class="rep-meta">Gerado em ${new Date().toLocaleDateString('pt-PT')} às ${new Date().toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'})} por ${activeUser().name}</p>
     <div class="rep-summary">
@@ -7749,7 +7749,7 @@ function buildAreaHistoryReportHTML(periodLabel, inPeriod){
   }).join('');
   const activeCount = DB.areas.filter(a=>a.plantingId).length;
   return `
-    <h1>Quinta Viva</h1>
+    <h1>TerraPassos</h1>
     <h2>Relatório de Áreas — ${periodLabel}</h2>
     <p class="rep-meta">Gerado em ${new Date().toLocaleDateString('pt-PT')} às ${new Date().toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'})} por ${activeUser().name}</p>
     <div class="rep-summary">
@@ -7776,7 +7776,7 @@ function buildEstufaHistoryReportHTML(periodLabel, inPeriod){
   const activeCount = DB.estufaAreas.filter(a=>a.plantingId).length;
   const vendas = rows.filter(p=>p.harvestDecision==='venda').reduce((s,p)=>s+(p.saleValue||0),0);
   return `
-    <h1>Quinta Viva</h1>
+    <h1>TerraPassos</h1>
     <h2>Relatório de Estufa — ${periodLabel}</h2>
     <p class="rep-meta">Gerado em ${new Date().toLocaleDateString('pt-PT')} às ${new Date().toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'})} por ${activeUser().name}</p>
     <div class="rep-summary">
@@ -7822,9 +7822,9 @@ function setupPWA(){
       document.head.appendChild(appleIcon);
 
       const manifest = {
-        name: 'Quinta Viva — Agrofloresta & Manejo',
-        short_name: 'Quinta Viva',
-        description: 'Gestão de quinta, agrofloresta e manejo — culturas, áreas, estufa, galinhas e finanças.',
+        name: 'TerraPassos OS — Gestão Agrícola Integrada & Agrofloresta',
+        short_name: 'TerraPassos',
+        description: 'Guiar a terra. Cultivar o futuro. Aplicação PWA offline-first para pequenos e médios produtores — culturas, áreas, estufa, galinhas e finanças.',
         start_url: location.pathname.split('/').pop() || '.',
         scope: './',
         display: 'standalone',
