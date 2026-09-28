@@ -158,6 +158,9 @@ button.card:active, a.card:active{transform:translateY(0) scale(.99)}
 .tile-img img.in{opacity:1}
 .tile-shade{position:absolute;inset:0;background:linear-gradient(0deg,rgba(10,14,8,.82) 0%,rgba(10,14,8,.15) 55%,rgba(10,14,8,0) 75%)}
 .tile-badge{position:absolute;left:10px;top:10px;font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:var(--r-pill);background:rgba(15,18,11,.5);color:#fff;backdrop-filter:blur(4px)}
+.chip-crop{display:inline-flex;align-items:center;gap:7px;padding:5px 13px 5px 5px;border-radius:var(--r-pill);font-size:12.5px;font-weight:600;background:var(--surface);border:1px solid var(--border);color:var(--ink);transition:transform var(--dur-1) var(--ease),box-shadow var(--dur-1) var(--ease),border-color var(--dur-1) var(--ease)}
+.chip-crop .ic{width:23px;height:23px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12.5px;flex:none}
+@media(hover:hover){.chip-crop:hover{transform:translateY(-1px);box-shadow:var(--elev-1);border-color:color-mix(in srgb, var(--green-500) 35%, var(--border))}}
 /* ---- Peças de bento do piloto (Visão Geral / Culturas) ---- */
 .stat-tile{display:flex;align-items:center;gap:11px;padding:12px 13px;border-radius:var(--r-md);background:var(--surface-2);transition:background var(--dur-1) var(--ease)}
 .list-tile{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:var(--r-md);background:var(--surface-2);transition:transform var(--dur-1) var(--ease),box-shadow var(--dur-1) var(--ease)}
@@ -3187,7 +3190,7 @@ function renderCulturas(){
     <div class="card p-5 mb-4">
       ${secHead('green','calplus',`Calendário de plantio — ${MONTHS_FULL[now.getMonth()]}`, null, 'Culturas com época ideal de sementeira/plantio neste mês (clima de Portugal continental)')}
       <div class="flex flex-wrap gap-2">
-        ${allCrops().filter(c=>c.months.includes(now.getMonth()+1)).map(c=>`<button class="pill pill-${CAT_COLORS[c.cat]}" onclick="openCropDetail('${c.id}')"><span class="dot" style="background:currentColor"></span>${c.name}</button>`).join('') || '<span class="text-sm" style="color:var(--ink-faint)">Nenhuma este mês.</span>'}
+        ${allCrops().filter(c=>c.months.includes(now.getMonth()+1)).map(c=>`<button class="chip-crop" onclick="openCropDetail('${c.id}')"><span class="ic" style="background:var(--${CAT_COLORS[c.cat]}-100);color:var(--${CAT_COLORS[c.cat]}-600)">${CAT_EMOJI[c.cat]||'🌿'}</span>${c.name}</button>`).join('') || '<span class="text-sm" style="color:var(--ink-faint)">Nenhuma este mês.</span>'}
       </div>
     </div>
 
