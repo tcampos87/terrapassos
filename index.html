@@ -857,8 +857,8 @@ function migrateBatchesToCoops(db){
    ========================================================================= */
 const CLOUD_COLLECTIONS = ['areas','plantings','chickenBatches','coops','eggLogs','healthLogs','vaccineLogs',
   'deathLogs','salesLogs','cleaningLogs','transactions','tasks','pestDiagnoses','stockMovements',
-  'warehouseItems','inputApplications','herbicideApplications','estufaAreas','estufaPlantings','seedlings'];
-const CLOUD_SETTINGS_FIELDS = ['currency','location','propertyImage','customCrops','brandLogo'];
+  'warehouseItems','inputApplications','herbicideApplications','estufaAreas','estufaPlantings','seedlings','users'];
+const CLOUD_SETTINGS_FIELDS = ['currency','location','propertyImage','customCrops','brandLogo','activeUserId'];
 let cloudSyncActive = false;
 let cloudUnsubs = [];
 let lastCloudSnapshot = {}; // {colecao: [...cópias profundas do último estado recebido da nuvem]}
@@ -868,7 +868,28 @@ function startCloudSync(){
   stopCloudSync();
   if(!authProfile || !authProfile.farmId) return; // proprietário não tem farm própria — fica em modo local
   cloudSyncActive = true;
-  CLOUD_COLLECTIONS.forEach(name=>{
+  // "users" (perfis locais de atribuição) tem um caso especial: uma quinta nova (ou uma já
+  // existente ainda sem nenhum) é semeada automaticamente com um primeiro perfil com o nome
+  // da própria conta — nunca deve aparecer vazia, nem mostrar o nome de outra pessoa que
+  // tenha ficado por engano no navegador de testes.
+  const unsubUsers = farmCol('users').onSnapshot(async snap=>{
+    const docs = snap.docs.map(d=>d.data());
+    if(!docs.length && authProfile){
+      const seedUser = {id:uid(), name:authProfile.name||authProfile.email||'Utilizador', color:USER_COLORS[0], role:'admin', permissions:null, lastActiveAt:Date.now()};
+      lastCloudSnapshot.users = [];
+      DB.users = [seedUser];
+      DB.activeUserId = seedUser.id;
+      if(appInitialized) renderTab(currentTab);
+      saveDB();
+      return;
+    }
+    lastCloudSnapshot.users = deepCopy(docs);
+    DB.users = docs;
+    if(!docs.some(u=>u.id===DB.activeUserId)) DB.activeUserId = docs[0].id;
+    if(appInitialized) renderTab(currentTab);
+  }, err=>console.error('Sincronização falhou para "users"', err));
+  cloudUnsubs.push(unsubUsers);
+  CLOUD_COLLECTIONS.filter(n=>n!=='users').forEach(name=>{
     const unsub = farmCol(name).onSnapshot(snap=>{
       const docs = snap.docs.map(d=>d.data());
       lastCloudSnapshot[name] = deepCopy(docs);
@@ -943,7 +964,10 @@ function saveDB(){
   catch(e){ console.error('Falha ao guardar (armazenamento cheio?)', e); alert('Não foi possível guardar — o armazenamento local pode estar cheio (ex: imagem muito grande).'); }
   syncToCloud();
 }
-function activeUser(){ return DB.users.find(u=>u.id===DB.activeUserId) || DB.users[0]; }
+function activeUser(){
+  return DB.users.find(u=>u.id===DB.activeUserId) || DB.users[0] ||
+    {id:null, name:(authProfile&&(authProfile.name||authProfile.email))||'…', color:'#2F7A3D', role:'admin', permissions:null};
+}
 
 /* =========================================================================
    REFERENCE DATA: crop catalog, categories, statuses
