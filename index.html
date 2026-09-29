@@ -146,26 +146,38 @@ button.card:active, a.card:active{transform:translateY(0) scale(.99)}
   radial-gradient(620px circle at 94% 14%, color-mix(in srgb, var(--teal-600) 16%, transparent), transparent 60%),
   radial-gradient(720px circle at 22% 98%, color-mix(in srgb, var(--orange-500) 13%, transparent), transparent 60%)}
 .min-h-screen.flex{position:relative;z-index:1}
-/* ---- Ecrã de login TerraPassos — assinatura visual fixa da marca (preto + branco + laranja neon + verde),
-   igual em qualquer tema escolhido dentro da app; é a "porta de entrada" da plataforma. ---- */
-.tp-auth{position:relative;overflow:hidden;background:#070706}
-.tp-auth-glow{position:absolute;inset:0;pointer-events:none;background:
-  radial-gradient(900px circle at 12% 10%, rgba(255,138,31,.12), transparent 60%),
-  radial-gradient(700px circle at 90% 12%, rgba(62,203,99,.09), transparent 60%),
-  radial-gradient(760px circle at 88% 86%, rgba(62,203,99,.1), transparent 60%),
-  radial-gradient(1300px circle at 50% 126%, rgba(40,40,36,.6), transparent 70%)}
-.tp-auth-mark{position:absolute;right:-160px;bottom:-160px;width:620px;height:620px;opacity:.16;pointer-events:none;border-radius:0}
-.tp-auth-card{position:relative;z-index:1;max-width:400px;width:100%;padding:30px 28px;border-radius:22px;
-  background:rgba(18,18,16,.74);border:1px solid rgba(255,170,80,.18);
-  backdrop-filter:blur(22px) saturate(1.4);-webkit-backdrop-filter:blur(22px) saturate(1.4);
-  box-shadow:inset 0 1px 0 rgba(255,180,100,.14), 0 26px 64px -20px rgba(0,0,0,.75)}
-.tp-auth-logo{display:block;width:56px;height:56px;margin-bottom:14px;border-radius:14px;filter:drop-shadow(0 0 12px rgba(255,138,31,.5))}
-.tp-auth-word{font-family:'Fredoka',ui-sans-serif,sans-serif;font-weight:600;font-size:27px;letter-spacing:.01em;color:#F4F1E6;line-height:1.1}
-.tp-auth-sub{font-size:11.5px;color:#A8A59C;letter-spacing:.05em;text-transform:uppercase;margin-top:5px;margin-bottom:26px}
-.tp-auth-h1{font-family:'Fredoka',ui-sans-serif,sans-serif;font-weight:600;font-size:19px;color:#F4F1E6;margin:0 0 16px}
+/* ---- Ecrã de login TerraPassos — layout em duas colunas (ilustração + formulário), assinatura
+   visual fixa da marca (preto + branco + laranja neon + verde), igual em qualquer tema escolhido
+   dentro da app; é a "porta de entrada" da plataforma. ---- */
+.tp-auth{position:relative;min-height:100vh;display:flex;background:#0B0B09}
+.tp-auth-left{position:relative;flex:1 1 52%;max-width:640px;overflow:hidden;background:#10130D;display:flex;flex-direction:column}
+.tp-auth-left-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.tp-auth-left-shade{position:absolute;inset:0;background:linear-gradient(180deg, rgba(10,12,8,.35), rgba(10,12,8,.72) 45%, rgba(10,12,8,.5) 100%)}
+.tp-auth-left-content{position:relative;z-index:1;flex:1;display:flex;flex-direction:column;justify-content:space-between;padding:44px 40px;box-sizing:border-box}
+.tp-auth-left-top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.tp-auth-left-brand{display:flex;align-items:center;gap:10px}
+.tp-auth-left-word{font-family:'Fredoka',ui-sans-serif,sans-serif;font-weight:600;font-size:19px}
+.tp-auth-pill{display:inline-flex;align-items:center;gap:7px;padding:5px 12px;border-radius:999px;background:rgba(62,203,99,.14);border:1px solid rgba(62,203,99,.3);color:#7FE29B;font-size:10.5px;font-weight:700;letter-spacing:.06em}
+.tp-auth-pill i{width:6px;height:6px;border-radius:50%;background:#4CD97A;display:block;box-shadow:0 0 6px #4CD97A}
+.tp-auth-left-mid{max-width:480px}
+.tp-auth-left-h1{font-family:'Fredoka',ui-sans-serif,sans-serif;font-weight:600;font-size:32px;line-height:1.18;color:#F8F7F2;margin:0 0 16px;text-wrap:balance}
+.tp-auth-accent{color:#FF8A1F}
+.tp-auth-left-sub{font-size:14px;line-height:1.65;color:#C4C1B6;margin:0 0 26px}
+.tp-auth-features{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+.tp-auth-feature{display:flex;align-items:center;gap:11px;padding:12px 13px;border-radius:14px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.09);backdrop-filter:blur(6px)}
+.tp-auth-feature span{flex:none;width:32px;height:32px;border-radius:9px;background:rgba(255,138,31,.16);display:flex;align-items:center;justify-content:center;font-size:16px}
+.tp-auth-feature b{display:block;font-size:12.5px;font-weight:700;color:#F1EEE6}
+.tp-auth-feature i{font-style:normal;font-size:10.5px;color:#98958A}
+.tp-auth-left-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:10.5px;color:#75726690;padding-top:18px;margin-top:18px;border-top:1px solid rgba(255,255,255,.08)}
+.tp-auth-right{flex:1 1 48%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;position:relative}
+.tp-auth-card{width:100%;max-width:380px}
+.tp-auth-mobile-brand{display:none;align-items:center;gap:9px;margin-bottom:22px}
+.tp-auth-mobile-brand span{font-family:'Fredoka',ui-sans-serif,sans-serif;font-weight:600;font-size:19px}
+.tp-auth-h1{font-family:'Fredoka',ui-sans-serif,sans-serif;font-weight:600;font-size:23px;color:#F8F7F2;margin:0 0 6px}
+.tp-auth-intro{font-size:13px;color:#A8A59C;line-height:1.5;margin:0 0 22px}
 .tp-auth-error{font-size:12.5px;margin-bottom:14px;padding:9px 12px;border-radius:10px;color:#FFB199;background:rgba(226,105,92,.16)}
 .tp-auth-label{display:block;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#8B887C;margin-bottom:6px}
-.tp-auth-input{width:100%;box-sizing:border-box;padding:12px 14px;margin-bottom:16px;border-radius:12px;border:1px solid #302E28;background:#161513;color:#F4F1E6;font-size:14.5px;font-family:inherit;outline:none;transition:border-color .15s ease,box-shadow .15s ease}
+.tp-auth-input{width:100%;box-sizing:border-box;padding:12px 14px;margin-bottom:16px;border-radius:12px;border:1px solid #2A2823;background:#141311;color:#F8F7F2;font-size:14.5px;font-family:inherit;outline:none;transition:border-color .15s ease,box-shadow .15s ease}
 .tp-auth-input::placeholder{color:#5C594F}
 .tp-auth-input:focus{border-color:#E2751A;box-shadow:0 0 0 3.5px rgba(226,117,26,.22)}
 .tp-auth-btn{width:100%;padding:13px;border:none;border-radius:12px;background:linear-gradient(135deg,#FF9A38,#E2601A);color:#1A1200;font-weight:700;font-size:14.5px;letter-spacing:.01em;cursor:pointer;box-shadow:0 10px 26px -8px rgba(255,138,31,.55);transition:filter .15s ease,transform .1s ease}
@@ -175,7 +187,12 @@ button.card:active, a.card:active{transform:translateY(0) scale(.99)}
 .tp-auth-link{display:block;width:100%;padding:10px;margin-top:8px;border:none;background:transparent;color:#C4C1B6;font-size:12.5px;font-family:inherit;cursor:pointer;text-align:center}
 .tp-auth-link:hover{color:#F4F1E6}
 .tp-auth-note{font-size:10.5px;color:#6B685E;margin:20px 0 0;line-height:1.55}
-@media(max-width:480px){.tp-auth-card{padding:26px 22px;border-radius:18px}.tp-auth-mark{right:-220px;bottom:-220px}}
+.tp-auth-right-foot{margin-top:28px;font-size:10.5px;color:#55524A}
+@media(max-width:900px){
+  .tp-auth-left{display:none}
+  .tp-auth-right{flex:1 1 100%;padding:40px 22px}
+  .tp-auth-mobile-brand{display:flex}
+}
 .field{width:100%;border:1px solid var(--border);background:var(--surface);border-radius:var(--r-sm);padding:9px 13px;font-size:14px;outline:none;transition:border-color var(--dur-1) var(--ease),box-shadow var(--dur-1) var(--ease)}
 .field:focus{border-color:var(--green-500);box-shadow:0 0 0 3.5px color-mix(in srgb, var(--green-500) 20%, transparent)}
 .label{font-size:12px;font-weight:600;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;display:block}
@@ -471,27 +488,59 @@ button.pill:active{transform:scale(.96)}
 <div class="bg-mesh" aria-hidden="true"></div>
 
 <!-- Ecrã de login — visível enquanto não há sessão válida -->
-<div id="authScreen" class="tp-auth min-h-screen flex items-center justify-center p-4">
-  <div class="tp-auth-glow" aria-hidden="true"></div>
-  <img class="tp-auth-mark" aria-hidden="true" src="images/misc/terrapassos-mark.png" alt="">
+<div id="authScreen" class="tp-auth">
+  <!-- Coluna esquerda: identidade + contexto (mapa topográfico de quinta, ao estilo do mockup de referência) -->
+  <div class="tp-auth-left">
+    <img class="tp-auth-left-bg" src="images/misc/terrapassos-topo.svg" alt="">
+    <div class="tp-auth-left-shade" aria-hidden="true"></div>
+    <div class="tp-auth-left-content">
+      <div class="tp-auth-left-top">
+        <div class="tp-auth-left-brand">
+          <img src="images/misc/terrapassos-mark.png" alt="" width="38" height="38" style="border-radius:10px">
+          <span class="tp-auth-left-word"><span style="color:#FF8A1F">Terra</span><span style="color:#F4F1E6">Passos</span></span>
+        </div>
+        <span class="tp-auth-pill"><i></i>GESTÃO AGRÍCOLA</span>
+      </div>
+      <div class="tp-auth-left-mid">
+        <h1 class="tp-auth-left-h1">Simplifica a gestão da tua quinta com o <span class="tp-auth-accent">TerraPassos</span></h1>
+        <p class="tp-auth-left-sub">Plataforma de Gestão Agrícola Integrada e Agrofloresta — culturas, áreas, estufa, galinhas, armazém e finanças, tudo num só sítio.</p>
+        <div class="tp-auth-features">
+          <div class="tp-auth-feature"><span>🌱</span><div><b>Culturas</b><i>Plantio &amp; Colheita</i></div></div>
+          <div class="tp-auth-feature"><span>🗺️</span><div><b>Áreas</b><i>Mapa &amp; Rotação</i></div></div>
+          <div class="tp-auth-feature"><span>💶</span><div><b>Finanças</b><i>Fluxo de caixa</i></div></div>
+          <div class="tp-auth-feature"><span>📦</span><div><b>Armazém</b><i>Stock &amp; Inventário</i></div></div>
+          <div class="tp-auth-feature"><span>📊</span><div><b>Relatórios</b><i>KPIs em tempo real</i></div></div>
+        </div>
+      </div>
+      <div class="tp-auth-left-foot">
+        <span>TerraPassos · Gestão Agrícola Integrada</span>
+        <span>v1.0</span>
+      </div>
+    </div>
+  </div>
 
-  <div class="tp-auth-card">
-    <img class="tp-auth-logo" src="images/misc/terrapassos-mark.png" alt="TerraPassos" width="56" height="56">
-    <div class="tp-auth-word"><span style="color:#FF8A1F">Terra</span><span style="color:#F4F1E6">Passos</span></div>
-    <div class="tp-auth-sub">Gestão Agrícola Integrada &amp; Agrofloresta</div>
+  <!-- Coluna direita: formulário de entrada -->
+  <div class="tp-auth-right">
+    <div class="tp-auth-card">
+      <div class="tp-auth-mobile-brand">
+        <img src="images/misc/terrapassos-mark.png" alt="" width="34" height="34" style="border-radius:9px">
+        <span><span style="color:#FF8A1F">Terra</span><span style="color:#F4F1E6">Passos</span></span>
+      </div>
+      <h1 class="tp-auth-h1">Iniciar Sessão</h1>
+      <p class="tp-auth-intro">Introduz as tuas credenciais para aceder à plataforma.</p>
+      <div id="authError" class="tp-auth-error" style="display:none"></div>
 
-    <h1 class="tp-auth-h1">Entrar</h1>
-    <div id="authError" class="tp-auth-error" style="display:none"></div>
+      <label class="tp-auth-label">Email</label>
+      <input type="email" class="tp-auth-input" id="authEmail" autocomplete="username" placeholder="tu@exemplo.com">
+      <label class="tp-auth-label">Password</label>
+      <input type="password" class="tp-auth-input" id="authPassword" autocomplete="current-password" onkeydown="if(event.key==='Enter') handleLogin()" style="margin-bottom:20px">
 
-    <label class="tp-auth-label">Email</label>
-    <input type="email" class="tp-auth-input" id="authEmail" autocomplete="username" placeholder="tu@exemplo.com">
-    <label class="tp-auth-label">Password</label>
-    <input type="password" class="tp-auth-input" id="authPassword" autocomplete="current-password" onkeydown="if(event.key==='Enter') handleLogin()" style="margin-bottom:20px">
+      <button class="tp-auth-btn" id="authSubmitBtn" onclick="handleLogin()">Entrar no Portal</button>
+      <button class="tp-auth-link" onclick="handlePasswordReset()">Esqueci-me da password</button>
 
-    <button class="tp-auth-btn" id="authSubmitBtn" onclick="handleLogin()">Entrar</button>
-    <button class="tp-auth-link" onclick="handlePasswordReset()">Esqueci-me da password</button>
-
-    <p class="tp-auth-note">O acesso é feito por convite — se ainda não tens conta, fala com quem geriu a subscrição da tua propriedade.</p>
+      <p class="tp-auth-note">O acesso é feito por convite — se ainda não tens conta, fala com quem geriu a subscrição da tua propriedade.</p>
+    </div>
+    <div class="tp-auth-right-foot">© TerraPassos. Todos os direitos reservados.</div>
   </div>
 </div>
 
