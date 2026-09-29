@@ -858,10 +858,20 @@ function migrateBatchesToCoops(db){
 const CLOUD_COLLECTIONS = ['areas','plantings','chickenBatches','coops','eggLogs','healthLogs','vaccineLogs',
   'deathLogs','salesLogs','cleaningLogs','transactions','tasks','pestDiagnoses','stockMovements',
   'warehouseItems','inputApplications','herbicideApplications','estufaAreas','estufaPlantings','seedlings','users'];
-const CLOUD_SETTINGS_FIELDS = ['currency','location','propertyImage','customCrops','brandLogo','activeUserId'];
+// Moeda/localização/culturas/utilizador ativo — campos pequenos, sempre seguros para um único documento.
+const CLOUD_SETTINGS_FIELDS = ['currency','location','customCrops','activeUserId'];
+// propertyImage/brandLogo são imagens em base64 e podem, sozinhas, aproximar-se do limite de
+// 1MB por documento do Firestore — por isso vivem em documentos próprios, separados dos campos
+// pequenos acima (para uma falha numa imagem grande nunca impedir a moeda/localização de gravar).
+const CLOUD_IMAGE_FIELDS = ['propertyImage','brandLogo'];
+const FIRESTORE_DOC_SAFE_BYTES = 900000; // margem de segurança abaixo do limite real (~1.048.487 bytes)
+function estimateBytes(v){ return v==null? 0 : new Blob([JSON.stringify(v)]).size; }
 let cloudSyncActive = false;
 let cloudUnsubs = [];
 let lastCloudSnapshot = {}; // {colecao: [...cópias profundas do último estado recebido da nuvem]}
+let cloudSkipped = {}; // {colecao: Set(ids)} — registos grandes de mais para o Firestore; ficam só locais,
+                        // e têm de ser reintroduzidos manualmente sempre que a nuvem atualiza essa coleção
+                        // (senão o listener em tempo real substituía DB[nome] inteiro e apagava-os do ecrã).
 function farmCol(name){ return fbDb.collection('farms').doc(authProfile.farmId).collection(name); }
 function deepCopy(v){ return v==null? v : JSON.parse(JSON.stringify(v)); }
 function startCloudSync(){
@@ -893,7 +903,9 @@ function startCloudSync(){
     const unsub = farmCol(name).onSnapshot(snap=>{
       const docs = snap.docs.map(d=>d.data());
       lastCloudSnapshot[name] = deepCopy(docs);
-      DB[name] = docs;
+      const skipped = cloudSkipped[name];
+      const localOnly = (skipped && skipped.size)? (DB[name]||[]).filter(x=>skipped.has(x.id)) : [];
+      DB[name] = localOnly.length? docs.concat(localOnly) : docs;
       if(appInitialized) refreshUIAfterCloudUpdate();
     }, err=>console.error('Sincronização falhou para "'+name+'"', err));
     cloudUnsubs.push(unsub);
@@ -912,6 +924,15 @@ function startCloudSync(){
     if(appInitialized) refreshUIAfterCloudUpdate();
   }, err=>console.error('Sincronização falhou para "settings"', err));
   cloudUnsubs.push(unsubSettings);
+  CLOUD_IMAGE_FIELDS.forEach(field=>{
+    const unsub = farmCol('meta').doc(field).onSnapshot(doc=>{
+      const value = doc.exists? doc.data().value : null;
+      lastCloudSnapshot[field] = value===undefined? null : value;
+      DB[field] = value===undefined? null : value;
+      if(appInitialized) refreshUIAfterCloudUpdate();
+    }, err=>console.error('Sincronização falhou para "'+field+'"', err));
+    cloudUnsubs.push(unsub);
+  });
 }
 // Chamado sempre que dados sincronizados da nuvem chegam depois da app já estar visível.
 // Redesenha o topo/menu e a barra lateral (que só rendering() normal não toca) além do
@@ -926,6 +947,7 @@ function stopCloudSync(){
   cloudUnsubs = [];
   cloudSyncActive = false;
   lastCloudSnapshot = {};
+  cloudSkipped = {};
 }
 async function runBatchedWrites(ops){
   // Firestore permite no máx. 500 operações por batch — divide em grupos por segurança.
@@ -941,23 +963,58 @@ async function syncCloudCollection(name){
   const knownById = new Map(known.map(x=>[x.id,x]));
   const nowIds = new Set(arr.map(x=>x.id));
   const ops = [];
-  known.forEach(old=>{ if(!nowIds.has(old.id)) ops.push(batch=>batch.delete(farmCol(name).doc(old.id))); });
+  cloudSkipped[name] = cloudSkipped[name] || new Set();
+  known.forEach(old=>{ if(!nowIds.has(old.id)){ ops.push(batch=>batch.delete(farmCol(name).doc(old.id))); cloudSkipped[name].delete(old.id); } });
   arr.forEach(item=>{
     if(!item.id) item.id = farmCol(name).doc().id;
     const old = knownById.get(item.id);
-    if(!old || JSON.stringify(old)!==JSON.stringify(item)) ops.push(batch=>batch.set(farmCol(name).doc(item.id), item));
+    if(old && JSON.stringify(old)===JSON.stringify(item)) return; // sem alteração
+    const size = estimateBytes(item);
+    if(size > FIRESTORE_DOC_SAFE_BYTES){
+      // Ex: uma foto de diagnóstico grande — fica só neste dispositivo, sem bloquear os restantes registos.
+      cloudSkipped[name].add(item.id);
+      console.warn(`"${name}" — registo ${item.id} tem ~${Math.round(size/1024)}KB, acima do limite seguro do Firestore (1 documento). Ficou só neste dispositivo.`);
+      return;
+    }
+    cloudSkipped[name].delete(item.id);
+    ops.push(batch=>batch.set(farmCol(name).doc(item.id), item));
   });
   if(!ops.length) return;
-  lastCloudSnapshot[name] = deepCopy(arr); // otimista — a próxima leitura em tempo real confirma/corrige
-  try{ await runBatchedWrites(ops); }
-  catch(e){ console.error('Falha ao gravar "'+name+'" na nuvem', e); }
+  try{
+    await runBatchedWrites(ops);
+    // só atualiza o snapshot conhecido depois de confirmar que a gravação teve sucesso —
+    // uma falha a meio faz o próximo saveDB() tentar outra vez, em vez de ficar silenciosamente desatualizado.
+    // (itens saltados por serem grandes de mais ficam também marcados como "conhecidos", para não
+    // repetir o aviso a cada gravação — continuam só locais até serem reduzidos de tamanho.)
+    lastCloudSnapshot[name] = deepCopy(arr);
+  }catch(e){ console.error('Falha ao gravar "'+name+'" na nuvem', e); }
 }
 async function syncCloudSingleton(docId, data){
   const known = lastCloudSnapshot[docId] || {};
   if(JSON.stringify(known)===JSON.stringify(data||{})) return;
-  lastCloudSnapshot[docId] = deepCopy(data||{});
-  try{ await farmCol('meta').doc(docId).set(data||{}); }
-  catch(e){ console.error('Falha ao gravar "'+docId+'" na nuvem', e); }
+  const size = estimateBytes(data);
+  if(size > FIRESTORE_DOC_SAFE_BYTES){
+    console.warn(`"${docId}" tem ~${Math.round(size/1024)}KB, acima do limite seguro do Firestore. Não foi sincronizado.`);
+    return;
+  }
+  try{
+    await farmCol('meta').doc(docId).set(data||{});
+    lastCloudSnapshot[docId] = deepCopy(data||{});
+  }catch(e){ console.error('Falha ao gravar "'+docId+'" na nuvem', e); }
+}
+async function syncCloudImageField(field){
+  const value = DB[field]||null;
+  const known = lastCloudSnapshot[field]!==undefined? lastCloudSnapshot[field] : null;
+  if(known===value) return;
+  const size = estimateBytes(value);
+  if(size > FIRESTORE_DOC_SAFE_BYTES){
+    console.warn(`"${field}" tem ~${Math.round(size/1024)}KB, acima do limite seguro de um documento do Firestore — usa uma imagem mais pequena/comprimida.`);
+    return;
+  }
+  try{
+    await farmCol('meta').doc(field).set({value});
+    lastCloudSnapshot[field] = value;
+  }catch(e){ console.error('Falha ao gravar "'+field+'" na nuvem', e); }
 }
 function syncToCloud(){
   if(!cloudSyncActive) return;
@@ -965,6 +1022,7 @@ function syncToCloud(){
   syncCloudSingleton('stockLevels', DB.stockLevels);
   const settings = {}; CLOUD_SETTINGS_FIELDS.forEach(f=>settings[f]=DB[f]);
   syncCloudSingleton('settings', settings);
+  CLOUD_IMAGE_FIELDS.forEach(f=>syncCloudImageField(f));
 }
 
 function saveDB(){
@@ -4422,12 +4480,12 @@ function handleDiagnosticPhoto(ev){
   reader.onload = e=>{
     const img = new Image();
     img.onload = ()=>{
-      const maxW = 900;
+      const maxW = 700;
       const scale = Math.min(1, maxW/img.width);
       const canvas = document.createElement('canvas');
       canvas.width = img.width*scale; canvas.height = img.height*scale;
       canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
-      diagPhotoDataURL = canvas.toDataURL('image/jpeg',0.75);
+      diagPhotoDataURL = canvas.toDataURL('image/jpeg',0.6);
       const preview = document.getElementById('diagPhotoPreview');
       if(preview) preview.innerHTML = `<img src="${diagPhotoDataURL}" class="absolute inset-0 w-full h-full object-cover">`;
     };
@@ -4637,12 +4695,12 @@ function handleImageUpload(ev){
   reader.onload = e=>{
     const img = new Image();
     img.onload = ()=>{
-      const maxW = 1200;
+      const maxW = 1000;
       const scale = Math.min(1, maxW/img.width);
       const canvas = document.createElement('canvas');
       canvas.width = img.width*scale; canvas.height = img.height*scale;
       canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
-      DB.propertyImage = canvas.toDataURL('image/jpeg',0.75);
+      DB.propertyImage = canvas.toDataURL('image/jpeg',0.65);
       saveDB(); renderAreas();
     };
     img.src = e.target.result;
