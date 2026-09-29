@@ -421,7 +421,30 @@ button.pill:active{transform:scale(.96)}
 </style>
 
 <div class="bg-mesh" aria-hidden="true"></div>
-<div class="min-h-screen flex">
+
+<!-- Ecrã de login — visível enquanto não há sessão válida -->
+<div id="authScreen" class="min-h-screen flex items-center justify-center p-4">
+  <div class="card glass-panel p-6" style="max-width:380px;width:100%">
+    <div class="flex items-center gap-2 mb-1">
+      <div style="width:36px;height:36px;border-radius:10px;background:var(--green-600);display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;flex:none">🌱</div>
+      <div class="min-w-0">
+        <div class="display font-semibold" style="font-size:17px">TerraPassos</div>
+        <div class="text-[11px]" style="color:var(--ink-faint)">Gestão Agrícola Integrada & Agrofloresta</div>
+      </div>
+    </div>
+    <h1 class="display font-semibold mt-4 mb-3" style="font-size:20px">Entrar</h1>
+    <div id="authError" class="text-xs mb-3 p-2 rounded-lg" style="color:var(--red-600);background:var(--red-100);display:none"></div>
+    <label class="label">Email</label>
+    <input type="email" class="field mb-2" id="authEmail" autocomplete="username" placeholder="tu@exemplo.com">
+    <label class="label">Password</label>
+    <input type="password" class="field mb-3" id="authPassword" autocomplete="current-password" onkeydown="if(event.key==='Enter') handleLogin()">
+    <button class="btn btn-primary w-full" id="authSubmitBtn" onclick="handleLogin()">Entrar</button>
+    <button class="btn btn-ghost btn-sm w-full mt-2" onclick="handlePasswordReset()">Esqueci-me da password</button>
+    <p class="text-[11px] mt-4 mb-0" style="color:var(--ink-faint)">O acesso é feito por convite — se ainda não tens conta, fala com quem geriu a subscrição da tua propriedade.</p>
+  </div>
+</div>
+
+<div id="appRoot" class="min-h-screen flex" hidden>
 
   <!-- SIDEBAR -->
   <aside class="app-sidebar w-[236px] flex-none hidden md:flex flex-col gap-1 p-4" style="border-right:1px solid var(--border);position:sticky;top:0;height:100vh;overflow-y:auto">
@@ -471,6 +494,7 @@ button.pill:active{transform:scale(.96)}
       <div id="panel-herbicidas" class="tab-panel"></div>
       <div id="panel-armazem" class="tab-panel"></div>
       <div id="panel-agrofloresta" class="tab-panel"></div>
+      <div id="panel-proprietario" class="tab-panel"></div>
     </main>
   </div>
 </div>
@@ -492,7 +516,88 @@ button.pill:active{transform:scale(.96)}
 <!-- Print-only report, filled dynamically and printed via window.print() -->
 <div id="printReport"></div>
 
+<!-- Firebase (Auth + Firestore) — plataforma multi-cliente. Compat SDK usado de propósito
+     (em vez do modular/ESM) para poder continuar a chamar tudo a partir de onclick="..." inline,
+     tal como o resto desta app, sem introduzir um passo de build. -->
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+
 <script>
+/* =========================================================================
+   FIREBASE — autenticação e base de dados da plataforma (multi-cliente)
+   ========================================================================= */
+const firebaseConfig = {
+  apiKey: "AIzaSyAAe7chPIYUiMZhwk0JeWCSQTNMoE_XYXw",
+  authDomain: "terrapassos-d2c73.firebaseapp.com",
+  projectId: "terrapassos-d2c73",
+  storageBucket: "terrapassos-d2c73.firebasestorage.app",
+  messagingSenderId: "961364727869",
+  appId: "1:961364727869:web:fc67c60c05103b0e0e3254",
+};
+firebase.initializeApp(firebaseConfig);
+const fbAuth = firebase.auth();
+const fbDb = firebase.firestore();
+// Instância secundária — só usada pelo Proprietário para criar contas de novos clientes
+// sem perder a sua própria sessão (createUserWithEmailAndPassword troca de sessão na instância onde corre).
+const fbSecondary = firebase.initializeApp(firebaseConfig, 'Secondary');
+const fbSecondaryAuth = fbSecondary.auth();
+
+let authUser = null;      // objeto do Firebase Auth (uid, email...)
+let authProfile = null;   // doc de users/{uid} — {email,name,role,farmId,active}
+let appInitialized = false;
+
+function showAuthScreen(msg){
+  document.getElementById('appRoot').hidden = true;
+  document.getElementById('authScreen').hidden = false;
+  const err = document.getElementById('authError');
+  if(msg){ err.textContent = msg; err.style.display='block'; } else { err.style.display='none'; }
+}
+function showApp(){
+  document.getElementById('authScreen').hidden = true;
+  document.getElementById('appRoot').hidden = false;
+}
+function authErrorMessage(e){
+  const map = {
+    'auth/invalid-email':'Email inválido.', 'auth/user-disabled':'Esta conta foi desativada.',
+    'auth/user-not-found':'Não existe nenhuma conta com este email.', 'auth/wrong-password':'Password incorreta.',
+    'auth/invalid-credential':'Email ou password incorretos.',
+    'auth/too-many-requests':'Demasiadas tentativas — tenta novamente daqui a alguns minutos.',
+    'auth/network-request-failed':'Sem ligação à internet — verifica a tua rede.',
+  };
+  return map[e.code] || ('Não foi possível entrar (' + (e.message||'erro desconhecido') + ').');
+}
+async function handleLogin(){
+  const email = document.getElementById('authEmail').value.trim();
+  const password = document.getElementById('authPassword').value;
+  if(!email || !password){ showAuthScreen('Preenche o email e a password.'); return; }
+  const btn = document.getElementById('authSubmitBtn');
+  btn.disabled = true; btn.textContent = 'A entrar…';
+  try{
+    await fbAuth.signInWithEmailAndPassword(email, password);
+    // o resto é tratado pelo listener onAuthStateChanged, no fundo do ficheiro
+  }catch(e){
+    showAuthScreen(authErrorMessage(e));
+  }finally{
+    btn.disabled = false; btn.textContent = 'Entrar';
+  }
+}
+async function handlePasswordReset(){
+  const email = document.getElementById('authEmail').value.trim();
+  if(!email){ showAuthScreen('Escreve o teu email na caixa acima e volta a clicar em "Esqueci-me da password".'); return; }
+  try{
+    await fbAuth.sendPasswordResetEmail(email);
+    showAuthScreen(null);
+    alert('Enviámos um email para ' + email + ' com um link para definires uma nova password.');
+  }catch(e){
+    showAuthScreen(authErrorMessage(e));
+  }
+}
+function handleLogout(){
+  if(!confirm('Sair da tua conta?')) return;
+  fbAuth.signOut();
+}
+
 /* =========================================================================
    DATA MODEL
    ========================================================================= */
@@ -3040,11 +3145,13 @@ safeMigrate('migrateUserRoles', function(){
   if(changed) saveDB();
 });
 function isAdmin(){ return activeUser().role==='admin'; }
+function isOwnerAccount(){ return !!(authProfile && authProfile.role==='owner'); }
 function hasModuleAccess(moduleId){ return isAdmin() || !!(activeUser().permissions && activeUser().permissions[moduleId]); }
 function firstAccessibleTab(){ const t = TABS.find(t=>hasModuleAccess(t.id)); return t? t.id : null; }
 
 const SETTINGS_ICON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15a3 3 0 100-6 3 3 0 000 6Z"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1.08-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09a1.65 1.65 0 001.51-1.08 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1Z"/></svg>';
 const USERS_ICON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H7a4 4 0 00-4 4v2"/><circle cx="10" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>';
+const OWNER_ICON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V10l7-6 7 6v11"/><path d="M9 21v-6h6v6"/></svg>';
 /* ---- Ícones de linha (piloto de design: Visão Geral e Culturas) — mesmo traço da barra lateral, substituem emoji de cabeçalho ---- */
 function dicon(name, sz){
   const p = {
@@ -3094,6 +3201,7 @@ function pestTreatmentHTML(p){
 function renderNav(){
   const html = TABS.filter(t=>hasModuleAccess(t.id)).map(t=>`<button class="navlink ${t.id===currentTab?'active':''}" onclick="switchTab('${t.id}')">${ICONS[t.id]}<span>${t.navLabel||t.label}</span></button>`).join('')
     + (isAdmin()? `<button class="navlink ${currentTab==='usuarios'?'active':''}" onclick="switchTab('usuarios')">${USERS_ICON}<span>Gestão de Utilizadores</span></button>` : '')
+    + (isOwnerAccount()? `<button class="navlink ${currentTab==='proprietario'?'active':''}" onclick="switchTab('proprietario')">${OWNER_ICON}<span>Área de Proprietário</span></button>` : '')
     + `<button class="navlink" onclick="promptSettings()">${SETTINGS_ICON}<span>Configurações</span></button>`;
   document.getElementById('sidebarNav').innerHTML = html;
   document.getElementById('sidebarNavMobile').innerHTML = html;
@@ -3114,14 +3222,15 @@ function renderBrandBlocks(){
 }
 function switchTab(id){
   if(id==='usuarios' && !isAdmin()) return;
-  if(id!=='usuarios' && !hasModuleAccess(id)){ alert('Não tens permissão para aceder a este módulo. Fala com um administrador.'); return; }
+  if(id==='proprietario' && !isOwnerAccount()) return;
+  if(id!=='usuarios' && id!=='proprietario' && !hasModuleAccess(id)){ alert('Não tens permissão para aceder a este módulo. Fala com um administrador.'); return; }
   currentTab = id;
   document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
   document.getElementById('panel-'+id).classList.add('active');
   const t = TABS.find(x=>x.id===id);
   const h1 = document.getElementById('pageTitle'), sub = document.getElementById('pageSubtitle');
-  h1.textContent = t? t.label : 'Gestão de Utilizadores';
-  sub.textContent = t? t.sub : 'Cria utilizadores, define permissões por módulo e acompanha o último acesso.';
+  h1.textContent = t? t.label : (id==='proprietario'? 'Área de Proprietário' : 'Gestão de Utilizadores');
+  sub.textContent = t? t.sub : (id==='proprietario'? 'Cria e gere as contas de acesso dos teus clientes' : 'Cria utilizadores, define permissões por módulo e acompanha o último acesso.');
   h1.style.animation = 'none'; sub.style.animation = 'none';
   void h1.offsetWidth;
   h1.style.animation = ''; sub.style.animation = '';
@@ -3147,7 +3256,111 @@ function renderTab(id){
   if(id==='herbicidas') renderHerbicidas();
   if(id==='armazem') renderArmazem();
   if(id==='agrofloresta') renderAgrofloresta();
+  if(id==='proprietario') renderProprietario();
   if(id==='usuarios') renderUsuarios();
+}
+
+/* =========================================================================
+   ÁREA DE PROPRIETÁRIO — o dono da plataforma cria e gere as contas de
+   acesso dos clientes (cada um com a sua "farm" isolada no Firestore).
+   Só visível/acessível quando authProfile.role === 'owner'.
+   ========================================================================= */
+async function renderProprietario(){
+  const el = document.getElementById('panel-proprietario');
+  el.innerHTML = `
+    <div class="flex items-center justify-between gap-2 mb-4 flex-wrap">
+      <p class="text-sm m-0" style="color:var(--ink-soft)">Cada cliente que crias aqui recebe a sua própria propriedade isolada — nunca vê dados de outro cliente.</p>
+      <button class="btn btn-primary btn-sm" onclick="promptNewClient()">+ Novo cliente</button>
+    </div>
+    <div id="ownerClientsBox" class="card p-5"><p class="text-sm m-0" style="color:var(--ink-faint)">A carregar clientes…</p></div>
+  `;
+  const box = document.getElementById('ownerClientsBox');
+  try{
+    const snap = await fbDb.collection('users').where('role','==','client').get();
+    const clients = snap.docs.map(d=>({uid:d.id, ...d.data()})).sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
+    if(!clients.length){
+      box.innerHTML = `<div class="empty-box">Ainda não criaste nenhum cliente.<button class="btn btn-outline btn-sm" onclick="promptNewClient()">+ Novo cliente</button></div>`;
+      return;
+    }
+    box.innerHTML = `
+      ${secHead('green','box','Clientes', `<span class="pill pill-green">${clients.length} conta${clients.length===1?'':'s'}</span>`)}
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead><tr class="text-xs text-left" style="color:var(--ink-faint)">
+            <th class="pb-2 pr-2">Cliente</th><th class="pb-2 pr-2">Email</th><th class="pb-2 pr-2">Propriedade</th><th class="pb-2 pr-2">Criado</th><th class="pb-2 pr-2">Estado</th><th class="pb-2"></th>
+          </tr></thead>
+          <tbody>${clients.map(c=>`
+            <tr style="border-top:1px solid var(--border)">
+              <td class="py-2 pr-2 font-semibold">${c.name||'—'}</td>
+              <td class="py-2 pr-2 text-xs" style="color:var(--ink-soft)">${c.email}</td>
+              <td class="py-2 pr-2 text-xs" style="color:var(--ink-soft)">${c.farmName||'—'}</td>
+              <td class="py-2 pr-2 text-xs mono" style="color:var(--ink-faint)">${c.createdAt? fmtDate(c.createdAt.slice(0,10)) : '—'}</td>
+              <td class="py-2 pr-2"><span class="pill ${c.active===false?'pill-red':'pill-green'}" style="font-size:10px">${c.active===false?'Desativado':'Ativo'}</span></td>
+              <td class="py-2 text-right"><button class="btn btn-ghost btn-sm" onclick="ownerToggleClientActive('${c.uid}', ${c.active===false})">${c.active===false?'Reativar':'Desativar'}</button></td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }catch(e){
+    box.innerHTML = `<p class="text-sm m-0" style="color:var(--red-600)">Erro ao carregar clientes: ${e.message||e}</p>`;
+  }
+}
+function promptNewClient(){
+  openModal(`
+    <h3 class="display font-semibold mb-3" style="font-size:17px">Novo cliente</h3>
+    <label class="label">Nome do cliente</label>
+    <input class="field mb-2" id="ocName" placeholder="Ex: Maria Santos">
+    <label class="label">Email de acesso</label>
+    <input type="email" class="field mb-2" id="ocEmail" placeholder="cliente@exemplo.com">
+    <label class="label">Nome da propriedade</label>
+    <input class="field mb-3" id="ocFarmName" placeholder="Ex: Quinta do Vale Verde">
+    <div id="ocError" class="text-xs mb-3" style="color:var(--red-600);display:none"></div>
+    <p class="text-[11px] mb-3" style="color:var(--ink-faint)">Vamos criar a conta e enviar um email para o cliente definir a própria password — nunca vês nem defines a password dele.</p>
+    <div class="flex gap-2 justify-end">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" id="ocSubmitBtn" onclick="ownerCreateClient()">Criar cliente</button>
+    </div>`);
+  setTimeout(()=>document.getElementById('ocName')?.focus(),50);
+}
+async function ownerCreateClient(){
+  const name = document.getElementById('ocName').value.trim();
+  const email = document.getElementById('ocEmail').value.trim();
+  const farmName = document.getElementById('ocFarmName').value.trim();
+  const errBox = document.getElementById('ocError');
+  errBox.style.display = 'none';
+  if(!name || !email || !farmName){ errBox.textContent = 'Preenche todos os campos.'; errBox.style.display='block'; return; }
+  const btn = document.getElementById('ocSubmitBtn');
+  btn.disabled = true; btn.textContent = 'A criar…';
+  try{
+    const tempPassword = uid() + uid() + 'Aa1!';
+    const cred = await fbSecondaryAuth.createUserWithEmailAndPassword(email, tempPassword);
+    const newUid = cred.user.uid;
+    const farmRef = fbDb.collection('farms').doc();
+    const nowISO = new Date().toISOString();
+    await farmRef.set({name:farmName, clientName:name, clientEmail:email, createdAt:nowISO, createdByOwnerId:authUser.uid});
+    await fbDb.collection('users').doc(newUid).set({email, name, farmName, role:'client', farmId:farmRef.id, active:true, createdAt:nowISO});
+    await fbSecondaryAuth.sendPasswordResetEmail(email);
+    await fbSecondaryAuth.signOut();
+    closeModal();
+    alert(`Cliente "${name}" criado! Foi enviado um email para ${email} com um link para definir a password.`);
+    renderProprietario();
+  }catch(e){
+    const map = {'auth/email-already-in-use':'Já existe uma conta com este email.', 'auth/invalid-email':'Email inválido.'};
+    errBox.textContent = map[e.code] || ('Erro ao criar cliente: ' + (e.message||e));
+    errBox.style.display = 'block';
+  }finally{
+    btn.disabled = false; btn.textContent = 'Criar cliente';
+  }
+}
+async function ownerToggleClientActive(uidToToggle, makeActive){
+  if(!confirm(makeActive? 'Reativar o acesso deste cliente?' : 'Desativar o acesso deste cliente? Deixa de conseguir entrar até seres tu a reativar.')) return;
+  try{
+    await fbDb.collection('users').doc(uidToToggle).update({active:makeActive});
+    renderProprietario();
+  }catch(e){
+    alert('Erro ao atualizar cliente: ' + (e.message||e));
+  }
 }
 
 /* =========================================================================
@@ -3168,7 +3381,11 @@ function renderTopbar(){
       </button>`).join('')}
     ${isAdmin()? `<div class="pt-1 mt-1" style="border-top:1px solid var(--border)">
       <button class="w-full text-left px-2 py-2 rounded-lg text-sm font-semibold" style="color:var(--green-700)" onclick="promptAddUser()">+ Adicionar utilizador</button>
-    </div>` : ''}`;
+    </div>` : ''}
+    <div class="pt-1 mt-1" style="border-top:1px solid var(--border)">
+      <div class="px-2 pt-1 pb-1.5 text-[11px] truncate" style="color:var(--ink-faint)">Ligado como ${authProfile? authProfile.email : '—'}</div>
+      <button class="w-full text-left px-2 py-2 rounded-lg text-sm font-semibold" style="color:var(--red-600)" onclick="handleLogout()">Sair da conta</button>
+    </div>`;
 }
 function toggleUserMenu(){ const m=document.getElementById('userMenu'); m.hidden=!m.hidden; }
 document.addEventListener('click', e=>{
@@ -8486,5 +8703,25 @@ function init(){
   switchTab(hasModuleAccess('dashboard')? 'dashboard' : (firstAccessibleTab()||'dashboard'));
   setupPWA();
 }
-init();
+
+/* Porta de entrada única da app: nada corre (nem init()) sem sessão válida. */
+fbAuth.onAuthStateChanged(async (user) => {
+  if(!user){ authUser=null; authProfile=null; appInitialized=false; showAuthScreen(); return; }
+  try{
+    const doc = await fbDb.collection('users').doc(user.uid).get();
+    if(!doc.exists || doc.data().active===false){
+      await fbAuth.signOut();
+      showAuthScreen('Esta conta ainda não tem acesso à plataforma, ou foi desativada. Fala com quem geriu a tua subscrição.');
+      return;
+    }
+    authUser = user;
+    authProfile = doc.data();
+    showApp();
+    if(!appInitialized){ appInitialized = true; init(); }
+    else { renderNav(); renderTopbar(); }
+  }catch(e){
+    console.error('Falha ao carregar o perfil do utilizador', e);
+    showAuthScreen('Erro ao carregar a tua conta — verifica a ligação e tenta recarregar a página.');
+  }
+});
 </script>
