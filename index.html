@@ -879,14 +879,14 @@ function startCloudSync(){
       lastCloudSnapshot.users = [];
       DB.users = [seedUser];
       DB.activeUserId = seedUser.id;
-      if(appInitialized) renderTab(currentTab);
+      if(appInitialized) refreshUIAfterCloudUpdate();
       saveDB();
       return;
     }
     lastCloudSnapshot.users = deepCopy(docs);
     DB.users = docs;
     if(!docs.some(u=>u.id===DB.activeUserId)) DB.activeUserId = docs[0].id;
-    if(appInitialized) renderTab(currentTab);
+    if(appInitialized) refreshUIAfterCloudUpdate();
   }, err=>console.error('Sincronização falhou para "users"', err));
   cloudUnsubs.push(unsubUsers);
   CLOUD_COLLECTIONS.filter(n=>n!=='users').forEach(name=>{
@@ -894,7 +894,7 @@ function startCloudSync(){
       const docs = snap.docs.map(d=>d.data());
       lastCloudSnapshot[name] = deepCopy(docs);
       DB[name] = docs;
-      if(appInitialized) renderTab(currentTab);
+      if(appInitialized) refreshUIAfterCloudUpdate();
     }, err=>console.error('Sincronização falhou para "'+name+'"', err));
     cloudUnsubs.push(unsub);
   });
@@ -902,16 +902,24 @@ function startCloudSync(){
     const data = doc.exists? doc.data() : {};
     lastCloudSnapshot.stockLevels = deepCopy(data);
     DB.stockLevels = data;
-    if(appInitialized) renderTab(currentTab);
+    if(appInitialized) refreshUIAfterCloudUpdate();
   }, err=>console.error('Sincronização falhou para "stockLevels"', err));
   cloudUnsubs.push(unsubStock);
   const unsubSettings = farmCol('meta').doc('settings').onSnapshot(doc=>{
     const data = doc.exists? doc.data() : {};
     lastCloudSnapshot.settings = deepCopy(data);
     CLOUD_SETTINGS_FIELDS.forEach(f=>{ if(data[f]!==undefined) DB[f] = data[f]; });
-    if(appInitialized) renderTab(currentTab);
+    if(appInitialized) refreshUIAfterCloudUpdate();
   }, err=>console.error('Sincronização falhou para "settings"', err));
   cloudUnsubs.push(unsubSettings);
+}
+// Chamado sempre que dados sincronizados da nuvem chegam depois da app já estar visível.
+// Redesenha o topo/menu e a barra lateral (que só rendering() normal não toca) além do
+// separador atual — evita que o menu de utilizador ou o logótipo fiquem com uma versão antiga.
+function refreshUIAfterCloudUpdate(){
+  renderNav();
+  renderTopbar();
+  renderTab(currentTab);
 }
 function stopCloudSync(){
   cloudUnsubs.forEach(u=>{ try{ u(); }catch(e){} });
