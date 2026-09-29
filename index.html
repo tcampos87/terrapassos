@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="TerraPassos">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23F5F7EE'/%3E%3Cpath d='M16 3C10 8 6 14 6 19a10 10 0 0020 0c0-5-4-11-10-16Z' fill='%232F7A3D'/%3E%3Cpath d='M16 8v18' stroke='%231F4429' stroke-width='1.4' opacity='.5'/%3E%3C/svg%3E">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2315170F'/%3E%3Cpath d='M16,3 C10,8 6,14 6,19 A10,10 0 0 0 26,19 C26,14 22,8 16,3 Z' fill='none' stroke='%235C4530' stroke-width='1.7' stroke-linecap='round'/%3E%3Cpath d='M16,5.6 C11,9.8 7.6,14.8 7.6,19 A8.4,8.4 0 0 0 24.4,19 C24.4,14.8 21,9.8 16,5.6 Z' fill='none' stroke='%237A4F2A' stroke-width='1.7' stroke-linecap='round'/%3E%3Cpath d='M16,8.1 C11.9,11.5 9.2,15.6 9.2,19 A6.8,6.8 0 0 0 22.8,19 C22.8,15.6 20.1,11.5 16,8.1 Z' fill='none' stroke='%239C5A24' stroke-width='1.7' stroke-linecap='round'/%3E%3Cpath d='M16,10.7 C12.9,13.3 10.8,16.4 10.8,19 A5.2,5.2 0 0 0 21.2,19 C21.2,16.4 19.1,13.3 16,10.7 Z' fill='none' stroke='%23C2661E' stroke-width='1.7' stroke-linecap='round'/%3E%3Cpath d='M16,13.2 C13.8,15 12.4,17.2 12.4,19 A3.6,3.6 0 0 0 19.6,19 C19.6,17.2 18.2,15 16,13.2 Z' fill='none' stroke='%23E87318' stroke-width='1.7' stroke-linecap='round'/%3E%3Cpath d='M16,15.8 C14.8,16.8 14,18 14,19 A2,2 0 0 0 18,19 C18,18 17.2,16.8 16,15.8 Z' fill='none' stroke='%23FF8A1F' stroke-width='1.7' stroke-linecap='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Public+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap">
 <script src="https://cdn.tailwindcss.com"></script>
@@ -100,6 +100,23 @@
   --elev-3: 0 16px 40px -12px rgba(27,32,24,.24), 0 4px 12px -4px rgba(27,32,24,.1);
   --glass-bg: rgba(255,255,255,.66); --glass-border: rgba(255,255,255,.6); --acrylic: rgba(237,238,236,.78); --glass-sheen: rgba(255,255,255,.5);
 }
+/* ---- TerraPassos — tema de assinatura da plataforma (matte anthracite + verde-oliva + cobre neon) ---- */
+:root[data-theme="terrapassos"]{
+  --bg:#15170F; --surface:#1E2117; --surface-2:#262A1C; --border:#3A3F2C;
+  --ink:#F1EEE3; --ink-soft:#C9C4AE; --ink-faint:#8B8770;
+  --green-900:#FFD9B0; --green-700:#FFAE66; --green-600:#FF8A1F; --green-500:#F2924A; --green-100:#3A2814;
+  --orange-600:#C97A2E; --orange-500:#D98A3C; --orange-100:#3D2B16;
+  --red-600:#E2695C; --red-100:#3A211D; --yellow-600:#E0A83D; --yellow-100:#372B10;
+  --blue-600:#7FA9DC; --blue-100:#1E2A3A;
+  --purple-600:#B3A0E8; --purple-100:#2A2340;
+  --pink-600:#E293BC; --pink-100:#3A2130;
+  --teal-600:#5FC2B7; --teal-100:#1B3733;
+  --shadow: 0 1px 2px rgba(0,0,0,.35), 0 8px 24px -12px rgba(0,0,0,.55);
+  --elev-1: 0 1px 2px rgba(0,0,0,.3), 0 1px 1px rgba(0,0,0,.22);
+  --elev-2: 0 6px 16px -6px rgba(0,0,0,.45), 0 2px 6px -2px rgba(0,0,0,.32);
+  --elev-3: 0 18px 44px -12px rgba(0,0,0,.6), 0 4px 14px -4px rgba(0,0,0,.4);
+  --glass-bg: rgba(30,33,23,.68); --glass-border: rgba(255,170,80,.16); --acrylic: rgba(21,23,15,.82); --glass-sheen: rgba(255,180,100,.12);
+}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:'Public Sans',ui-sans-serif,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
 h1,h2,h3,.display{font-family:'Fredoka',ui-sans-serif,sans-serif;text-wrap:balance}
@@ -128,6 +145,35 @@ button.card:active, a.card:active{transform:translateY(0) scale(.99)}
   radial-gradient(620px circle at 94% 14%, color-mix(in srgb, var(--teal-600) 16%, transparent), transparent 60%),
   radial-gradient(720px circle at 22% 98%, color-mix(in srgb, var(--orange-500) 13%, transparent), transparent 60%)}
 .min-h-screen.flex{position:relative;z-index:1}
+/* ---- Ecrã de login TerraPassos — assinatura visual fixa da marca (antracite + oliva + cobre neon),
+   igual em qualquer tema escolhido dentro da app; é a "porta de entrada" da plataforma. ---- */
+.tp-auth{position:relative;overflow:hidden;background:#100F0A}
+.tp-auth-glow{position:absolute;inset:0;pointer-events:none;background:
+  radial-gradient(900px circle at 12% 10%, rgba(255,138,31,.11), transparent 60%),
+  radial-gradient(760px circle at 88% 86%, rgba(122,79,42,.16), transparent 60%),
+  radial-gradient(1300px circle at 50% 126%, rgba(58,63,44,.55), transparent 70%)}
+.tp-auth-mark{position:absolute;right:-160px;bottom:-160px;opacity:.16;pointer-events:none}
+.tp-auth-card{position:relative;z-index:1;max-width:400px;width:100%;padding:30px 28px;border-radius:22px;
+  background:rgba(30,33,23,.72);border:1px solid rgba(255,170,80,.18);
+  backdrop-filter:blur(22px) saturate(1.4);-webkit-backdrop-filter:blur(22px) saturate(1.4);
+  box-shadow:inset 0 1px 0 rgba(255,180,100,.14), 0 26px 64px -20px rgba(0,0,0,.7)}
+.tp-auth-logo{margin-bottom:14px;filter:drop-shadow(0 0 12px rgba(255,138,31,.5))}
+.tp-auth-word{font-family:'Fredoka',ui-sans-serif,sans-serif;font-weight:600;font-size:27px;letter-spacing:.01em;color:#F4F1E6;line-height:1.1}
+.tp-auth-sub{font-size:11.5px;color:#AFA688;letter-spacing:.05em;text-transform:uppercase;margin-top:5px;margin-bottom:26px}
+.tp-auth-h1{font-family:'Fredoka',ui-sans-serif,sans-serif;font-weight:600;font-size:19px;color:#F4F1E6;margin:0 0 16px}
+.tp-auth-error{font-size:12.5px;margin-bottom:14px;padding:9px 12px;border-radius:10px;color:#FFB199;background:rgba(226,105,92,.16)}
+.tp-auth-label{display:block;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#8B8770;margin-bottom:6px}
+.tp-auth-input{width:100%;box-sizing:border-box;padding:12px 14px;margin-bottom:16px;border-radius:12px;border:1px solid #3A3F2C;background:#1A1C14;color:#F4F1E6;font-size:14.5px;font-family:inherit;outline:none;transition:border-color .15s ease,box-shadow .15s ease}
+.tp-auth-input::placeholder{color:#5F5C4C}
+.tp-auth-input:focus{border-color:#E2751A;box-shadow:0 0 0 3.5px rgba(226,117,26,.22)}
+.tp-auth-btn{width:100%;padding:13px;border:none;border-radius:12px;background:linear-gradient(135deg,#FF9A38,#E2601A);color:#1A1200;font-weight:700;font-size:14.5px;letter-spacing:.01em;cursor:pointer;box-shadow:0 10px 26px -8px rgba(255,138,31,.55);transition:filter .15s ease,transform .1s ease}
+.tp-auth-btn:hover{filter:brightness(1.06)}
+.tp-auth-btn:active{transform:scale(.98)}
+.tp-auth-btn:disabled{opacity:.6;cursor:default}
+.tp-auth-link{display:block;width:100%;padding:10px;margin-top:8px;border:none;background:transparent;color:#C9C4AE;font-size:12.5px;font-family:inherit;cursor:pointer;text-align:center}
+.tp-auth-link:hover{color:#F4F1E6}
+.tp-auth-note{font-size:10.5px;color:#6E6B57;margin:20px 0 0;line-height:1.55}
+@media(max-width:480px){.tp-auth-card{padding:26px 22px;border-radius:18px}.tp-auth-mark{right:-220px;bottom:-220px}}
 .field{width:100%;border:1px solid var(--border);background:var(--surface);border-radius:var(--r-sm);padding:9px 13px;font-size:14px;outline:none;transition:border-color var(--dur-1) var(--ease),box-shadow var(--dur-1) var(--ease)}
 .field:focus{border-color:var(--green-500);box-shadow:0 0 0 3.5px color-mix(in srgb, var(--green-500) 20%, transparent)}
 .label{font-size:12px;font-weight:600;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;display:block}
@@ -423,24 +469,45 @@ button.pill:active{transform:scale(.96)}
 <div class="bg-mesh" aria-hidden="true"></div>
 
 <!-- Ecrã de login — visível enquanto não há sessão válida -->
-<div id="authScreen" class="min-h-screen flex items-center justify-center p-4">
-  <div class="card glass-panel p-6" style="max-width:380px;width:100%">
-    <div class="flex items-center gap-2 mb-1">
-      <div style="width:36px;height:36px;border-radius:10px;background:var(--green-600);display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;flex:none">🌱</div>
-      <div class="min-w-0">
-        <div class="display font-semibold" style="font-size:17px">TerraPassos</div>
-        <div class="text-[11px]" style="color:var(--ink-faint)">Gestão Agrícola Integrada & Agrofloresta</div>
-      </div>
+<div id="authScreen" class="tp-auth min-h-screen flex items-center justify-center p-4">
+  <div class="tp-auth-glow" aria-hidden="true"></div>
+  <div class="tp-auth-mark" aria-hidden="true">
+    <svg width="620" height="620" viewBox="0 0 32 32" fill="none">
+      <path d="M16,3 C10,8 6,14 6,19 A10,10 0 0 0 26,19 C26,14 22,8 16,3 Z" fill="none" stroke="#5C4530" stroke-width="1.8" stroke-linecap="round"/>
+      <path d="M16,5.6 C11,9.8 7.6,14.8 7.6,19 A8.4,8.4 0 0 0 24.4,19 C24.4,14.8 21,9.8 16,5.6 Z" fill="none" stroke="#7A4F2A" stroke-width="1.8" stroke-linecap="round"/>
+      <path d="M16,8.1 C11.9,11.5 9.2,15.6 9.2,19 A6.8,6.8 0 0 0 22.8,19 C22.8,15.6 20.1,11.5 16,8.1 Z" fill="none" stroke="#9C5A24" stroke-width="1.8" stroke-linecap="round"/>
+      <path d="M16,10.7 C12.9,13.3 10.8,16.4 10.8,19 A5.2,5.2 0 0 0 21.2,19 C21.2,16.4 19.1,13.3 16,10.7 Z" fill="none" stroke="#C2661E" stroke-width="1.8" stroke-linecap="round"/>
+      <path d="M16,13.2 C13.8,15 12.4,17.2 12.4,19 A3.6,3.6 0 0 0 19.6,19 C19.6,17.2 18.2,15 16,13.2 Z" fill="none" stroke="#E87318" stroke-width="1.8" stroke-linecap="round"/>
+      <path d="M16,15.8 C14.8,16.8 14,18 14,19 A2,2 0 0 0 18,19 C18,18 17.2,16.8 16,15.8 Z" fill="none" stroke="#FF8A1F" stroke-width="1.8" stroke-linecap="round"/>
+    </svg>
+  </div>
+
+  <div class="tp-auth-card">
+    <div class="tp-auth-logo">
+      <svg width="52" height="52" viewBox="0 0 32 32" fill="none">
+        <path d="M16,3 C10,8 6,14 6,19 A10,10 0 0 0 26,19 C26,14 22,8 16,3 Z" fill="none" stroke="#5C4530" stroke-width="1.8" stroke-linecap="round"/>
+        <path d="M16,5.6 C11,9.8 7.6,14.8 7.6,19 A8.4,8.4 0 0 0 24.4,19 C24.4,14.8 21,9.8 16,5.6 Z" fill="none" stroke="#7A4F2A" stroke-width="1.8" stroke-linecap="round"/>
+        <path d="M16,8.1 C11.9,11.5 9.2,15.6 9.2,19 A6.8,6.8 0 0 0 22.8,19 C22.8,15.6 20.1,11.5 16,8.1 Z" fill="none" stroke="#9C5A24" stroke-width="1.8" stroke-linecap="round"/>
+        <path d="M16,10.7 C12.9,13.3 10.8,16.4 10.8,19 A5.2,5.2 0 0 0 21.2,19 C21.2,16.4 19.1,13.3 16,10.7 Z" fill="none" stroke="#C2661E" stroke-width="1.8" stroke-linecap="round"/>
+        <path d="M16,13.2 C13.8,15 12.4,17.2 12.4,19 A3.6,3.6 0 0 0 19.6,19 C19.6,17.2 18.2,15 16,13.2 Z" fill="none" stroke="#E87318" stroke-width="1.8" stroke-linecap="round"/>
+        <path d="M16,15.8 C14.8,16.8 14,18 14,19 A2,2 0 0 0 18,19 C18,18 17.2,16.8 16,15.8 Z" fill="none" stroke="#FF8A1F" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>
     </div>
-    <h1 class="display font-semibold mt-4 mb-3" style="font-size:20px">Entrar</h1>
-    <div id="authError" class="text-xs mb-3 p-2 rounded-lg" style="color:var(--red-600);background:var(--red-100);display:none"></div>
-    <label class="label">Email</label>
-    <input type="email" class="field mb-2" id="authEmail" autocomplete="username" placeholder="tu@exemplo.com">
-    <label class="label">Password</label>
-    <input type="password" class="field mb-3" id="authPassword" autocomplete="current-password" onkeydown="if(event.key==='Enter') handleLogin()">
-    <button class="btn btn-primary w-full" id="authSubmitBtn" onclick="handleLogin()">Entrar</button>
-    <button class="btn btn-ghost btn-sm w-full mt-2" onclick="handlePasswordReset()">Esqueci-me da password</button>
-    <p class="text-[11px] mt-4 mb-0" style="color:var(--ink-faint)">O acesso é feito por convite — se ainda não tens conta, fala com quem geriu a subscrição da tua propriedade.</p>
+    <div class="tp-auth-word">TerraPassos</div>
+    <div class="tp-auth-sub">Gestão Agrícola Integrada &amp; Agrofloresta</div>
+
+    <h1 class="tp-auth-h1">Entrar</h1>
+    <div id="authError" class="tp-auth-error" style="display:none"></div>
+
+    <label class="tp-auth-label">Email</label>
+    <input type="email" class="tp-auth-input" id="authEmail" autocomplete="username" placeholder="tu@exemplo.com">
+    <label class="tp-auth-label">Password</label>
+    <input type="password" class="tp-auth-input" id="authPassword" autocomplete="current-password" onkeydown="if(event.key==='Enter') handleLogin()" style="margin-bottom:20px">
+
+    <button class="tp-auth-btn" id="authSubmitBtn" onclick="handleLogin()">Entrar</button>
+    <button class="tp-auth-link" onclick="handlePasswordReset()">Esqueci-me da password</button>
+
+    <p class="tp-auth-note">O acesso é feito por convite — se ainda não tens conta, fala com quem geriu a subscrição da tua propriedade.</p>
   </div>
 </div>
 
@@ -3393,6 +3460,22 @@ function renderNav(){
   document.getElementById('sidebarNavMobile').innerHTML = html;
   renderBrandBlocks();
 }
+/* ---- Marca TerraPassos: impressão digital / linhas de contorno topográfico, num só desenho ----
+   Identidade + terreno + percurso, num único símbolo. Contornos concêntricos dentro do mesmo
+   contorno de "folha/gota" que a app já usava, do mais afastado (cobre discreto) ao núcleo
+   (laranja vivo) — cores fixas de marca, iguais em qualquer tema (claro ou escuro). */
+const TP_MARK_RINGS = [
+  ['M16,3 C10,8 6,14 6,19 A10,10 0 0 0 26,19 C26,14 22,8 16,3 Z', '#5C4530'],
+  ['M16,5.6 C11,9.8 7.6,14.8 7.6,19 A8.4,8.4 0 0 0 24.4,19 C24.4,14.8 21,9.8 16,5.6 Z', '#7A4F2A'],
+  ['M16,8.1 C11.9,11.5 9.2,15.6 9.2,19 A6.8,6.8 0 0 0 22.8,19 C22.8,15.6 20.1,11.5 16,8.1 Z', '#9C5A24'],
+  ['M16,10.7 C12.9,13.3 10.8,16.4 10.8,19 A5.2,5.2 0 0 0 21.2,19 C21.2,16.4 19.1,13.3 16,10.7 Z', '#C2661E'],
+  ['M16,13.2 C13.8,15 12.4,17.2 12.4,19 A3.6,3.6 0 0 0 19.6,19 C19.6,17.2 18.2,15 16,13.2 Z', '#E87318'],
+  ['M16,15.8 C14.8,16.8 14,18 14,19 A2,2 0 0 0 18,19 C18,18 17.2,16.8 16,15.8 Z', '#FF8A1F'],
+];
+function terraMarkSVG(size, strokeW){
+  const paths = TP_MARK_RINGS.map(([d,c])=>`<path d="${d}" fill="none" stroke="${c}" stroke-width="${strokeW||1.7}" stroke-linecap="round"/>`).join('');
+  return `<svg width="${size}" height="${size}" viewBox="0 0 32 32" fill="none" aria-hidden="true">${paths}</svg>`;
+}
 function renderBrandBlocks(){
   const desktop = document.getElementById('brandBlock');
   const mobile = document.getElementById('brandBlockMobile');
@@ -3401,9 +3484,9 @@ function renderBrandBlocks(){
     if(desktop) desktop.innerHTML = logoImg;
     if(mobile) mobile.innerHTML = logoImg;
   } else {
-    const leafSvg = `<svg width="30" height="30" viewBox="0 0 32 32" fill="none"><path d="M16 3C10 8 6 14 6 19a10 10 0 0020 0c0-5-4-11-10-16Z" fill="var(--green-600)"/><path d="M16 8v18" stroke="var(--green-900)" stroke-width="1.4" opacity=".5"/></svg>`;
-    if(desktop) desktop.innerHTML = `${leafSvg}<div><div class="display font-semibold leading-none" style="font-size:17px">TerraPassos</div><div class="text-[11px]" style="color:var(--ink-faint)">Gestão Agrícola Integrada &amp; Agrofloresta</div></div>`;
-    if(mobile) mobile.innerHTML = `<div class="display font-semibold" style="font-size:17px">TerraPassos</div>`;
+    const mark = terraMarkSVG(32);
+    if(desktop) desktop.innerHTML = `${mark}<div><div class="display font-semibold leading-none" style="font-size:17px">TerraPassos</div><div class="text-[11px]" style="color:var(--ink-faint)">Gestão Agrícola Integrada &amp; Agrofloresta</div></div>`;
+    if(mobile) mobile.innerHTML = `<div class="flex items-center gap-2">${terraMarkSVG(26)}<div class="display font-semibold" style="font-size:17px">TerraPassos</div></div>`;
   }
 }
 function switchTab(id){
@@ -3604,12 +3687,13 @@ function setActiveUser(id){
    TEMAS — paleta de cores da interface
    ========================================================================= */
 const THEMES = [
+  {id:'terrapassos', label:'TerraPassos — Antracite, Oliva e Cobre', badge:'Novo', swatches:['#15170F','#FF8A1F','#C97A2E']},
   {id:'verde', label:'Branco, Verde e Laranja', swatches:['#F5F7EE','#2F7A3D','#D9660A']},
   {id:'azul', label:'Branco, Azul e Laranja', swatches:['#F5F8FB','#2E6FA8','#D9660A']},
   {id:'cinza', label:'Cinza, Verde e Laranja', swatches:['#EDEEEC','#2F7A3D','#D9660A']},
   {id:'preto', label:'Preto, Verde e Laranja', swatches:['#14180F','#5FBE71','#F2924A']},
 ];
-let currentTheme = localStorage.getItem('quintaVivaTheme') || 'verde';
+let currentTheme = localStorage.getItem('quintaVivaTheme') || 'terrapassos';
 function applyTheme(theme){
   currentTheme = theme;
   localStorage.setItem('quintaVivaTheme', theme);
@@ -3627,7 +3711,7 @@ function renderThemeMenu(){
       <span style="display:flex;border-radius:6px;overflow:hidden;flex:none;border:1px solid var(--border)">
         ${t.swatches.map(c=>`<span style="width:10px;height:18px;background:${c}"></span>`).join('')}
       </span>
-      <span class="flex-1">${t.label}</span>
+      <span class="flex-1">${t.label}${t.badge?` <span class="pill pill-orange" style="font-size:9px;padding:1px 6px;vertical-align:middle">${t.badge}</span>`:''}</span>
       ${t.id===currentTheme?'<svg class="flex-none" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green-600)" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg>':''}
     </button>`).join('')}
   `;
@@ -8836,7 +8920,7 @@ function buildEstufaHistoryReportHTML(periodLabel, inPeriod){
    ========================================================================= */
 function setupPWA(){
   try{
-    const svgMarkup = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='#F5F7EE'/><path d='M16 3C10 8 6 14 6 19a10 10 0 0020 0c0-5-4-11-10-16Z' fill='#2F7A3D'/><path d='M16 8v18' stroke='#1F4429' stroke-width='1.4' opacity='.5'/></svg>`;
+    const svgMarkup = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='#15170F'/>${TP_MARK_RINGS.map(([d,c])=>`<path d='${d}' fill='none' stroke='${c}' stroke-width='1.7' stroke-linecap='round'/>`).join('')}</svg>`;
     const img = new Image();
     img.onload = () => {
       const toPngDataURL = (size, padded) => {
