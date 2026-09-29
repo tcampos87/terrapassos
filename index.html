@@ -2223,20 +2223,24 @@ function confirmDeleteWarehouseItem(id){
 }
 /* Ao concluir uma colheita com peso registado, soma automaticamente ao Armazém
    (categoria "Produção Armazenada") — evita duplicar o registo manualmente. */
-function autoStockFromHarvest(crop, weight){
+function autoStockFromHarvest(crop, weight, demo, date){
   if(!weight || weight<=0) return;
+  const d = date || todayISO();
   const name = `${crop.name} (colhido)`;
   let item = DB.warehouseItems.find(w=>w.name===name && w.category==='producao');
   if(!item){
-    item = {id:uid(), name, category:'producao', location:'', notes:'Criado automaticamente a partir de uma colheita.', createdAt:todayISO()};
+    item = {id:uid(), name, category:'producao', location:'', notes:'Criado automaticamente a partir de uma colheita.', createdAt:d};
+    if(demo) item.demo = true;
     DB.warehouseItems.push(item);
   }
   const key = stockKey('armazem', item.id);
   let stock = DB.stockLevels[key];
-  if(!stock){ stock = {quantity:0, unit:'kg', lowThreshold:null, updatedAt:todayISO()}; DB.stockLevels[key] = stock; }
+  if(!stock){ stock = {quantity:0, unit:'kg', lowThreshold:null, updatedAt:d}; if(demo) stock.demo=true; DB.stockLevels[key] = stock; }
   stock.quantity = Math.round((stock.quantity+weight)*100)/100;
-  stock.updatedAt = todayISO();
-  DB.stockMovements.unshift({id:uid(), date:todayISO(), kind:'armazem', itemId:item.id, itemName:item.name, type:'entrada', quantity:weight, unit:'kg', note:'Colheita registada', userId:DB.activeUserId});
+  stock.updatedAt = d;
+  const move = {id:uid(), date:d, kind:'armazem', itemId:item.id, itemName:item.name, type:'entrada', quantity:weight, unit:'kg', note:'Colheita registada', userId:DB.activeUserId};
+  if(demo) move.demo = true;
+  DB.stockMovements.unshift(move);
 }
 
 const EXPENSE_CATS = ['Sementes / Mudas','Fertilizantes / Adubos','Ração animais','Veterinário / Vacinas','Água / Irrigação','Energia','Equipamentos / Ferramentas','Combustível','Mão-de-obra','Embalagens','Manutenção','Outros'];
@@ -2716,7 +2720,7 @@ function confirmRemoveDemoData(){
   switchTab('dashboard');
 }
 function removeDemoData(){
-  const collections = ['areas','plantings','chickenBatches','coops','eggLogs','healthLogs','vaccineLogs','deathLogs','salesLogs','cleaningLogs','transactions','tasks','pestDiagnoses','inputApplications','herbicideApplications','stockMovements','estufaAreas','estufaPlantings'];
+  const collections = ['areas','plantings','chickenBatches','coops','eggLogs','healthLogs','vaccineLogs','deathLogs','salesLogs','cleaningLogs','transactions','tasks','pestDiagnoses','inputApplications','herbicideApplications','stockMovements','estufaAreas','estufaPlantings','warehouseItems'];
   collections.forEach(k=>{ if(Array.isArray(DB[k])) DB[k] = DB[k].filter(r=>!r.demo); });
   DB.areas.forEach(a=>{ if(a.plantingId && !DB.plantings.some(p=>p.id===a.plantingId)) a.plantingId=null; });
   DB.estufaAreas.forEach(a=>{ if(a.plantingId && !DB.estufaPlantings.some(p=>p.id===a.plantingId)) a.plantingId=null; });
@@ -2784,7 +2788,7 @@ function seedDemoYear(){
         planting.harvestUnits = units; planting.harvestWeight = weight;
         DB.plantings.push(planting);
         area.plantingId = null;
-        // a maior parte da colheita é vendida — gera a receita correspondente
+        // a maior parte da colheita é vendida — gera a receita correspondente; o resto fica guardado no Armazém
         if(Math.random() < 0.82){
           const cat = ['fruta','arvorefruto'].includes(crop.cat)? 'Venda de Frutas' : 'Venda de Hortícolas';
           const price = Math.round(weight * rnd(1.2,4.5) * 100)/100;
@@ -2793,6 +2797,8 @@ function seedDemoYear(){
               amount:price, note:`Colheita de ${crop.name} — ${area.name}`, userId:activeUserId, demo:true});
             harvestIncomeCount++;
           }
+        } else {
+          autoStockFromHarvest(crop, weight, true, harvestReady);
         }
         cursor = addDays(harvestReady, rndInt(3,15));
       } else {
@@ -2950,6 +2956,29 @@ function seedDemoYear(){
       DB.herbicideApplications.push({id:uid(), herbId:herb.id, targetKind:'mapa', targetId:'area:'+a.id, targetLabel:a.name,
         ratePerM2:'50 ml/m²', date:addDays(yearAgo,rndInt(30,300)), userId:activeUserId, notes:'', demo:true});
     }
+  });
+
+  // ---------- Armazém (itens gerais, além da "Produção Armazenada" já gerada pelas colheitas acima) ----------
+  const warehouseDefs = [
+    {name:'Sacos de aniagem', category:'embalagens', unit:'un', entries:[[addDays(yearAgo,20),'entrada',60],[addDays(yearAgo,150),'saida',22],[addDays(yearAgo,300),'saida',18]], threshold:15},
+    {name:'Sementes de tomate (saqueta)', category:'sementes', unit:'saquetas', entries:[[addDays(yearAgo,5),'entrada',10],[addDays(yearAgo,90),'saida',6]], threshold:3},
+    {name:'Pá e enxada', category:'ferramentas', unit:'un', entries:[[addDays(yearAgo,3),'entrada',4]], threshold:1},
+    {name:'Ração de milho', category:'racao', unit:'kg', entries:[[addDays(yearAgo,10),'entrada',80],[addDays(yearAgo,100),'saida',35],[addDays(yearAgo,200),'entrada',80],[addDays(yearAgo,300),'saida',60],[addDays(yearAgo,340),'saida',55]], threshold:20},
+    {name:'Gasóleo agrícola', category:'combustivel', unit:'L', entries:[[addDays(yearAgo,15),'entrada',100],[addDays(yearAgo,120),'saida',65],[addDays(yearAgo,250),'entrada',100],[addDays(yearAgo,340),'saida',75]], threshold:20},
+    {name:'Cordel e fita agrícola', category:'outros', unit:'un', entries:[[addDays(yearAgo,60),'entrada',12]], threshold:2},
+  ];
+  warehouseDefs.forEach(def=>{
+    const item = {id:uid(), name:def.name, category:def.category, location:'', notes:'', createdAt:yearAgo, demo:true};
+    DB.warehouseItems.push(item);
+    const key = stockKey('armazem', item.id);
+    let stock = {quantity:0, unit:def.unit, lowThreshold:def.threshold, updatedAt:yearAgo, demo:true};
+    def.entries.forEach(([d,type,qty])=>{
+      if(daysBetween(d,today) < 0 || daysBetween(yearAgo,d) < 0) return;
+      stock.quantity = type==='entrada'? Math.round((stock.quantity+qty)*100)/100 : Math.round(Math.max(0,stock.quantity-qty)*100)/100;
+      stock.updatedAt = d;
+      DB.stockMovements.push({id:uid(), date:d, kind:'armazem', itemId:item.id, itemName:item.name, type, quantity:qty, unit:def.unit, note:'', userId:activeUserId, demo:true});
+    });
+    DB.stockLevels[key] = stock;
   });
 
   saveDB();
