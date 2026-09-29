@@ -469,6 +469,7 @@ button.pill:active{transform:scale(.96)}
       <div id="panel-estufa" class="tab-panel"></div>
       <div id="panel-insumos" class="tab-panel"></div>
       <div id="panel-herbicidas" class="tab-panel"></div>
+      <div id="panel-armazem" class="tab-panel"></div>
       <div id="panel-agrofloresta" class="tab-panel"></div>
     </main>
   </div>
@@ -647,8 +648,9 @@ function defaultDB(){
     estufaAreas: [], // {id,name,points:[{x,y}],color,plantingId}
     estufaPlantings: [], // {id,areaId,areaName,cropId,cropName,plantedDate,status,statusHistory,harvestDecision,saleQty,saleUnit,saleValue}
     pestDiagnoses: [], // {id,date,userId,cropId,cropName,symptoms,photo,matches:[{name,score}]}
-    stockLevels: {}, // {'insumo:<id>'|'herbicida:<id>': {quantity,unit,lowThreshold,updatedAt}}
-    stockMovements: [], // {id,date,kind:'insumo'|'herbicida',itemId,itemName,type:'entrada'|'saida'|'ajuste',quantity,unit,note,userId}
+    stockLevels: {}, // {'insumo:<id>'|'herbicida:<id>'|'armazem:<id>': {quantity,unit,lowThreshold,updatedAt}}
+    stockMovements: [], // {id,date,kind:'insumo'|'herbicida'|'armazem',itemId,itemName,type:'entrada'|'saida'|'ajuste',quantity,unit,note,userId}
+    warehouseItems: [], // {id,name,category,location,notes,createdAt} — itens genéricos do Armazém (sementes, ferramentas, embalagens, produção guardada...)
     kbP: {}, // progresso de aprendizagem por utilizador: {userId:{done,read,prog,days,fav,goal,ach}}
     brandLogo: null, // dataURL — logótipo da empresa que substitui "TerraPassos" no cabeçalho e nas etiquetas QR
   };
@@ -1329,7 +1331,12 @@ function stockStatus(stock){
   if(stock.lowThreshold!=null && stock.quantity<=stock.lowThreshold) return 'low';
   return 'ok';
 }
-function stockItemById(kind, itemId){ return kind==='insumo'? inputById(itemId) : herbById(itemId); }
+function stockItemById(kind, itemId){
+  if(kind==='insumo') return inputById(itemId);
+  if(kind==='herbicida') return herbById(itemId);
+  if(kind==='armazem') return DB.warehouseItems.find(w=>w.id===itemId) || null;
+  return null;
+}
 function allTrackedStock(){
   return Object.entries(DB.stockLevels||{}).map(([key,stock])=>{
     const [kind,itemId] = key.split(':');
@@ -1443,6 +1450,7 @@ function confirmStockMovement(kind, itemId){
   saveDB(); closeModal();
   if(currentTab==='insumos') renderInsumos();
   if(currentTab==='herbicidas') renderHerbicidas();
+  if(currentTab==='armazem') renderArmazem();
   if(currentTab==='dashboard') renderDashboard();
 }
 let insumoFilter = 'all';
@@ -2016,6 +2024,219 @@ function confirmApplyHerbicide(id){
     userId: DB.activeUserId, notes: document.getElementById('applyHerbNotes').value.trim()};
   DB.herbicideApplications.push(app);
   saveDB(); closeModal(); renderHerbicidas();
+}
+
+/* =========================================================================
+   ARMAZÉM — stock genérico de tudo o que se guarda na quinta (sementes,
+   ferramentas, embalagens, ração, produção colhida, combustível, outros).
+   Reaproveita o mesmo mecanismo de stock (stockKey/stockLevels/stockMovements
+   e o modal promptStockMovement/confirmStockMovement) já usado em
+   Fertilizantes e Herbicidas — só muda o "kind" para 'armazem'.
+   ========================================================================= */
+const WAREHOUSE_CATEGORIES = [
+  {id:'sementes', label:'Sementes / Mudas', icon:'🌱'},
+  {id:'ferramentas', label:'Ferramentas / Equipamento', icon:'🧰'},
+  {id:'embalagens', label:'Embalagens', icon:'📦'},
+  {id:'racao', label:'Ração Animal', icon:'🌾'},
+  {id:'producao', label:'Produção Armazenada', icon:'🧺'},
+  {id:'combustivel', label:'Combustível', icon:'⛽'},
+  {id:'outros', label:'Outros', icon:'🗂️'},
+];
+function warehouseCatMeta(catId){ return WAREHOUSE_CATEGORIES.find(c=>c.id===catId) || WAREHOUSE_CATEGORIES[WAREHOUSE_CATEGORIES.length-1]; }
+let armazemFilter = 'all';
+function setArmazemFilter(c){ armazemFilter=c; renderArmazem(); }
+function renderArmazem(){
+  const el = document.getElementById('panel-armazem');
+  const items = DB.warehouseItems.filter(w=>armazemFilter==='all'||w.category===armazemFilter);
+  const statusMeta = {ok:{cls:'pill-green',label:'OK'}, low:{cls:'pill-orange',label:'Stock baixo'}, empty:{cls:'pill-red',label:'Esgotado'}, none:{cls:'pill-neutral',label:'Sem stock'}};
+  const lowGlobal = allTrackedStock().filter(s=>s.status==='low'||s.status==='empty');
+  const recentMoves = DB.stockMovements.filter(m=>m.kind==='armazem').slice(0,10);
+
+  el.innerHTML = `
+    <div class="flex items-center justify-between gap-2 mb-4 flex-wrap">
+      <div class="seg" style="flex-wrap:wrap">
+        <button class="seg-btn ${armazemFilter==='all'?'on':''}" onclick="setArmazemFilter('all')">Todos</button>
+        ${WAREHOUSE_CATEGORIES.map(c=>`<button class="seg-btn ${armazemFilter===c.id?'on':''}" onclick="setArmazemFilter('${c.id}')">${c.icon} ${c.label}</button>`).join('')}
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="promptNewWarehouseItem()">+ Novo item</button>
+    </div>
+
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+      <div class="card p-4"><div class="text-xs mb-1" style="color:var(--ink-soft)">Itens no armazém</div><div class="text-2xl font-bold mono">${DB.warehouseItems.length}</div></div>
+      <div class="card p-4" style="border-left:4px solid var(--orange-500)"><div class="text-xs mb-1" style="color:var(--ink-soft)">Stock baixo</div><div class="text-2xl font-bold mono" style="color:var(--orange-600)">${lowGlobal.length}</div></div>
+    </div>
+
+    ${lowGlobal.length? `<div class="card p-5 mb-4">
+      ${secHead('orange','box','A precisar de atenção', null, 'Junta itens do Armazém, Fertilizantes e Herbicidas com stock baixo')}
+      <div class="flex flex-col gap-2">${lowGlobal.map(s=>`
+        <div class="list-tile justify-between gap-2" style="background:${s.status==='empty'?'var(--red-100)':'var(--orange-100)'}">
+          <div class="min-w-0">
+            <div class="text-sm font-semibold truncate">${s.item.name}</div>
+            <div class="text-xs" style="color:var(--ink-soft)">${s.stock.quantity} ${s.stock.unit} em stock${s.stock.lowThreshold!=null?` · alerta em ${s.stock.lowThreshold} ${s.stock.unit}`:''} · ${s.kind==='insumo'?'Fertilizante':s.kind==='herbicida'?'Herbicida':'Armazém'}</div>
+          </div>
+          <button class="btn btn-sm btn-accent flex-none" onclick="${s.kind==='armazem'?`openWarehouseItemDetail('${s.itemId}')`:`switchTab('${s.kind==='insumo'?'insumos':'herbicidas'}')`}">Ver</button>
+        </div>`).join('')}</div>
+    </div>` : ''}
+
+    ${!items.length? `<div class="empty-box">Ainda não tens itens ${armazemFilter==='all'?'no Armazém':'nesta categoria'}.<button class="btn btn-outline btn-sm" onclick="promptNewWarehouseItem()">+ Novo item</button></div>` : `
+    <div class="grid-crops mb-4">
+      ${items.map(w=>{
+        const stock = getStock('armazem', w.id);
+        const st = statusMeta[stockStatus(stock)];
+        const cat = warehouseCatMeta(w.category);
+        return `<button class="card overflow-hidden flex flex-col text-left" onclick="openWarehouseItemDetail('${w.id}')">
+          <div class="relative flex items-center justify-center" style="height:92px;background:linear-gradient(135deg,var(--surface-2),var(--border));font-size:36px">${cat.icon}</div>
+          <div class="p-4 pb-3">
+            <div class="flex items-center justify-between gap-2 mb-1">
+              <span class="font-semibold display" style="font-size:15px">${w.name}</span>
+              <span class="pill ${st.cls}" style="font-size:10px;flex:none">${st.label}</span>
+            </div>
+            <div class="text-xs mb-1" style="color:var(--ink-faint)">${cat.label}</div>
+            <div class="text-lg font-bold mono">${stock? `${stock.quantity} ${stock.unit}` : '—'}</div>
+            ${w.location? `<div class="text-[11px] mt-1" style="color:var(--ink-faint)">📍 ${w.location}</div>` : ''}
+          </div>
+        </button>`;
+      }).join('')}
+    </div>`}
+
+    ${recentMoves.length? `<div class="card p-5">
+      ${secHead('blue','history','Histórico de movimentos recentes')}
+      <div class="flex flex-col gap-1 text-xs" style="color:var(--ink-soft)">
+        ${recentMoves.map(m=>{
+          const typeLabel = m.type==='entrada'?'➕ Entrada':m.type==='saida'?'➖ Saída':'✏️ Ajuste';
+          const user = DB.users.find(u=>u.id===m.userId);
+          return `<div>${fmtDate(m.date)} — <b>${typeLabel}</b> · ${m.itemName} · ${m.quantity} ${m.unit}${m.note?` · ${m.note}`:''} · ${user?user.name:'—'}</div>`;
+        }).join('')}
+      </div>
+    </div>` : ''}
+  `;
+}
+function promptNewWarehouseItem(){
+  openModal(`
+    <h3 class="display font-semibold mb-3" style="font-size:17px">Novo item no Armazém</h3>
+    <label class="label">Nome</label>
+    <input class="field mb-2" id="whName" placeholder="Ex: Sacos de aniagem, Enxada nova, Milho para ração...">
+    <label class="label">Categoria</label>
+    <select class="field mb-2" id="whCategory">${WAREHOUSE_CATEGORIES.map(c=>`<option value="${c.id}">${c.icon} ${c.label}</option>`).join('')}</select>
+    <div class="grid grid-cols-2 gap-2 mb-2">
+      <div><label class="label">Quantidade inicial</label><input type="number" min="0" step="0.01" class="field" id="whQty" placeholder="Ex: 10" value="0"></div>
+      <div><label class="label">Unidade</label><input class="field" id="whUnit" value="un" placeholder="kg, L, sacos, un..."></div>
+    </div>
+    <label class="label">Alerta de stock baixo (opcional)</label>
+    <input type="number" min="0" step="0.01" class="field mb-2" id="whThreshold" placeholder="Ex: 5 — avisa quando chegar aqui">
+    <label class="label">Localização (opcional)</label>
+    <input class="field mb-2" id="whLocation" placeholder="Ex: Arrecadação 2, prateleira norte...">
+    <label class="label">Notas (opcional)</label>
+    <input class="field mb-3" id="whNotes" placeholder="opcional">
+    <div class="flex gap-2 justify-end">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmNewWarehouseItem()">Criar item</button>
+    </div>`);
+  setTimeout(()=>document.getElementById('whName')?.focus(),50);
+}
+function confirmNewWarehouseItem(){
+  const name = document.getElementById('whName').value.trim();
+  if(!name){ alert('Indica um nome para o item.'); return; }
+  const category = document.getElementById('whCategory').value;
+  const qty = parseFloat(document.getElementById('whQty').value)||0;
+  const unit = document.getElementById('whUnit').value.trim()||'un';
+  const thresholdRaw = document.getElementById('whThreshold').value;
+  const threshold = thresholdRaw===''? null : parseFloat(thresholdRaw);
+  const location = document.getElementById('whLocation').value.trim();
+  const notes = document.getElementById('whNotes').value.trim();
+  const item = {id:uid(), name, category, location, notes, createdAt:todayISO()};
+  DB.warehouseItems.push(item);
+  const key = stockKey('armazem', item.id);
+  DB.stockLevels[key] = {quantity:qty, unit, lowThreshold:threshold, updatedAt:todayISO()};
+  if(qty>0) DB.stockMovements.unshift({id:uid(), date:todayISO(), kind:'armazem', itemId:item.id, itemName:item.name, type:'entrada', quantity:qty, unit, note:'Stock inicial', userId:DB.activeUserId});
+  saveDB(); closeModal(); renderArmazem();
+}
+function openWarehouseItemDetail(id){
+  const w = DB.warehouseItems.find(x=>x.id===id);
+  if(!w) return;
+  const stock = getStock('armazem', id);
+  const st = {ok:{cls:'pill-green',label:'OK'}, low:{cls:'pill-orange',label:'Stock baixo'}, empty:{cls:'pill-red',label:'Esgotado'}, none:{cls:'pill-neutral',label:'Sem stock'}}[stockStatus(stock)];
+  const cat = warehouseCatMeta(w.category);
+  const moves = DB.stockMovements.filter(m=>m.kind==='armazem' && m.itemId===id).slice(0,15);
+  openModal(`
+    <div class="flex items-start justify-between gap-2 mb-1">
+      <h3 class="display font-semibold m-0" style="font-size:17px">${cat.icon} ${w.name}</h3>
+      <span class="pill ${st.cls}" style="font-size:10px;flex:none">${st.label}</span>
+    </div>
+    <div class="text-xs mb-3" style="color:var(--ink-faint)">${cat.label}${w.location?` · 📍 ${w.location}`:''}</div>
+    <div class="text-2xl font-bold mono mb-1">${stock? `${stock.quantity} ${stock.unit}` : '—'}</div>
+    ${stock?.lowThreshold!=null? `<div class="text-xs mb-3" style="color:var(--ink-faint)">Alerta em ${stock.lowThreshold} ${stock.unit}</div>` : '<div class="mb-3"></div>'}
+    ${w.notes? `<p class="text-sm mb-3" style="color:var(--ink-soft)">${w.notes}</p>` : ''}
+    <div class="flex gap-2 mb-3">
+      <button class="btn btn-primary btn-sm flex-1" onclick="promptStockMovement('armazem','${id}')">Registar movimento</button>
+      <button class="btn btn-outline btn-sm" onclick="promptEditWarehouseItem('${id}')">Editar</button>
+    </div>
+    ${moves.length? `<details class="text-xs mb-3" style="color:var(--ink-soft)">
+      <summary class="cursor-pointer font-semibold">Histórico de movimentos (${moves.length})</summary>
+      <div class="flex flex-col gap-1 mt-2">
+        ${moves.map(m=>{
+          const typeLabel = m.type==='entrada'?'➕ Entrada':m.type==='saida'?'➖ Saída':'✏️ Ajuste';
+          const user = DB.users.find(u=>u.id===m.userId);
+          return `<div>${fmtDate(m.date)} — <b>${typeLabel}</b> · ${m.quantity} ${m.unit}${m.note?` · ${m.note}`:''} · ${user?user.name:'—'}</div>`;
+        }).join('')}
+      </div>
+    </details>` : ''}
+    <button class="btn btn-ghost btn-sm w-full" style="color:var(--red-600)" onclick="confirmDeleteWarehouseItem('${id}')">Eliminar item</button>
+  `);
+}
+function promptEditWarehouseItem(id){
+  const w = DB.warehouseItems.find(x=>x.id===id);
+  if(!w) return;
+  openModal(`
+    <h3 class="display font-semibold mb-3" style="font-size:17px">Editar item</h3>
+    <label class="label">Nome</label>
+    <input class="field mb-2" id="whName" value="${w.name.replace(/"/g,'&quot;')}">
+    <label class="label">Categoria</label>
+    <select class="field mb-2" id="whCategory">${WAREHOUSE_CATEGORIES.map(c=>`<option value="${c.id}" ${c.id===w.category?'selected':''}>${c.icon} ${c.label}</option>`).join('')}</select>
+    <label class="label">Localização (opcional)</label>
+    <input class="field mb-2" id="whLocation" value="${(w.location||'').replace(/"/g,'&quot;')}">
+    <label class="label">Notas (opcional)</label>
+    <input class="field mb-3" id="whNotes" value="${(w.notes||'').replace(/"/g,'&quot;')}">
+    <div class="flex gap-2 justify-end">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmEditWarehouseItem('${id}')">Guardar</button>
+    </div>`);
+}
+function confirmEditWarehouseItem(id){
+  const w = DB.warehouseItems.find(x=>x.id===id);
+  if(!w) return;
+  const name = document.getElementById('whName').value.trim();
+  if(!name){ alert('Indica um nome para o item.'); return; }
+  w.name = name;
+  w.category = document.getElementById('whCategory').value;
+  w.location = document.getElementById('whLocation').value.trim();
+  w.notes = document.getElementById('whNotes').value.trim();
+  DB.stockMovements.filter(m=>m.kind==='armazem' && m.itemId===id).forEach(m=>m.itemName=name);
+  saveDB(); closeModal(); renderArmazem();
+}
+function confirmDeleteWarehouseItem(id){
+  if(!confirm('Eliminar este item e todo o seu histórico de movimentos? Esta ação não pode ser desfeita.')) return;
+  DB.warehouseItems = DB.warehouseItems.filter(w=>w.id!==id);
+  delete DB.stockLevels[stockKey('armazem', id)];
+  DB.stockMovements = DB.stockMovements.filter(m=>!(m.kind==='armazem' && m.itemId===id));
+  saveDB(); closeModal(); renderArmazem();
+}
+/* Ao concluir uma colheita com peso registado, soma automaticamente ao Armazém
+   (categoria "Produção Armazenada") — evita duplicar o registo manualmente. */
+function autoStockFromHarvest(crop, weight){
+  if(!weight || weight<=0) return;
+  const name = `${crop.name} (colhido)`;
+  let item = DB.warehouseItems.find(w=>w.name===name && w.category==='producao');
+  if(!item){
+    item = {id:uid(), name, category:'producao', location:'', notes:'Criado automaticamente a partir de uma colheita.', createdAt:todayISO()};
+    DB.warehouseItems.push(item);
+  }
+  const key = stockKey('armazem', item.id);
+  let stock = DB.stockLevels[key];
+  if(!stock){ stock = {quantity:0, unit:'kg', lowThreshold:null, updatedAt:todayISO()}; DB.stockLevels[key] = stock; }
+  stock.quantity = Math.round((stock.quantity+weight)*100)/100;
+  stock.updatedAt = todayISO();
+  DB.stockMovements.unshift({id:uid(), date:todayISO(), kind:'armazem', itemId:item.id, itemName:item.name, type:'entrada', quantity:weight, unit:'kg', note:'Colheita registada', userId:DB.activeUserId});
 }
 
 const EXPENSE_CATS = ['Sementes / Mudas','Fertilizantes / Adubos','Ração animais','Veterinário / Vacinas','Água / Irrigação','Energia','Equipamentos / Ferramentas','Combustível','Mão-de-obra','Embalagens','Manutenção','Outros'];
@@ -2750,6 +2971,7 @@ const ICONS = {
   estufa:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M4 21V9l8-6 8 6v12"/><path d="M12 21V13"/><path d="M9 13c0-2 1.3-3 3-3s3 1 3 3"/></svg>',
   insumos:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2h6l1 5-3 3v9a1 1 0 01-1 1h0a1 1 0 01-1-1v-9L8 7Z"/><path d="M5 21c0-3 3-4 3-4s3 1 3 4"/><path d="M13 21c0-2.5 2.5-3.5 2.5-3.5s2.5 1 2.5 3.5"/></svg>',
   herbicidas:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18"/><path d="M12 8c-2-3-6-3-8-2 1 3 4 5 8 4"/><path d="M12 13c2-3 6-3 8-2-1 3-4 5-8 4"/><path d="M8 21l8 0"/></svg>',
+  armazem:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4a2 2 0 0 0 1-1.73Z"/><path d="M3.3 7L12 12l8.7-5"/><path d="M12 22V12"/></svg>',
   agrofloresta:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="6" r="2.5"/><circle cx="5" cy="17" r="2.5"/><circle cx="19" cy="17" r="2.5"/><path d="M12 8.5v4M12 12.5L6.7 15.3M12 12.5l5.3 2.8"/></svg>',
   analises:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 16l4-6 4 3 5-8"/></svg>',
 };
@@ -2762,6 +2984,7 @@ const TABS = [
   {id:'estufa', label:'Estufa', sub:'Sementeiras, mudas e transplante'},
   {id:'insumos', label:'Fertilizantes', navLabel:'Fertilizantes', sub:'Biblioteca de fertilizantes, biológicos e químicos'},
   {id:'herbicidas', label:'Herbicidas', sub:'Catálogo de controlo de ervas daninhas, biológicos e químicos'},
+  {id:'armazem', label:'Armazém', sub:'Stock de tudo o que guardas na quinta — sementes, ferramentas, embalagens, produção e mais'},
   {id:'agrofloresta', label:'AgroFloresta', sub:'Sugestão de consórcios de culturas com boa simbiose, por época do ano'},
   {id:'galinhas', label:'Galinhas', sub:'Lotes, ovos, saúde, vacinas e vendas'},
   {id:'ambiente', label:'Ambiente', sub:'Sensores e limpeza'},
@@ -2893,6 +3116,7 @@ function renderTab(id){
   if(id==='estufa') renderEstufa();
   if(id==='insumos') renderInsumos();
   if(id==='herbicidas') renderHerbicidas();
+  if(id==='armazem') renderArmazem();
   if(id==='agrofloresta') renderAgrofloresta();
   if(id==='usuarios') renderUsuarios();
 }
@@ -3455,8 +3679,9 @@ function renderDashboard(){
     </div>
 
     ${anyStockTracked()? (()=>{ const low = allTrackedStock().filter(s=>s.status==='low'||s.status==='empty');
+      const kindTab = k => k==='insumo'?'insumos':k==='herbicida'?'herbicidas':'armazem';
       return `<div class="card p-5 mb-4">
-        ${secHead('orange','box','Stock de insumos e herbicidas')}
+        ${secHead('orange','box','Stock a repor', null, 'Fertilizantes, herbicidas e itens do Armazém')}
         ${!low.length? `<p class="text-sm m-0" style="color:var(--ink-faint)">Todos os itens controlados têm stock suficiente.</p>` :
         `<div class="flex flex-col gap-2">${low.map(s=>`
           <div class="list-tile justify-between gap-2" style="background:${s.status==='empty'?'var(--red-100)':'var(--orange-100)'}">
@@ -3464,7 +3689,7 @@ function renderDashboard(){
               <div class="text-sm font-semibold truncate">${s.item.name}</div>
               <div class="text-xs" style="color:var(--ink-soft)">${s.stock.quantity} ${s.stock.unit} em stock${s.stock.lowThreshold!=null?` · alerta em ${s.stock.lowThreshold} ${s.stock.unit}`:''}</div>
             </div>
-            <button class="btn btn-sm btn-accent flex-none" onclick="switchTab('${s.kind==='insumo'?'insumos':'herbicidas'}')">Ver</button>
+            <button class="btn btn-sm btn-accent flex-none" onclick="switchTab('${kindTab(s.kind)}')${s.kind==='armazem'?`;openWarehouseItemDetail('${s.itemId}')`:''}">Ver</button>
           </div>`).join('')}</div>`}
       </div>`; })() : ''}
 
@@ -4308,6 +4533,7 @@ function confirmHarvest(plantingId){
   const area = DB.areas.find(a=>a.plantingId===plantingId);
   if(area && !crop.perennial) area.plantingId=null;
   cancelAutoTasksForPlanting(plantingId);
+  autoStockFromHarvest(crop, weight);
   saveDB(); closeModal(); renderAreas();
 }
 function deleteArea(id){
