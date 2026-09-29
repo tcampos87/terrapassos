@@ -2389,6 +2389,15 @@ function promptSettings(){
       </div>
     </div>
 
+    <div class="mb-4">
+      <span class="label">Dados de demonstração</span>
+      <p class="text-xs mb-2" style="color:var(--ink-faint)">Acrescenta um ano completo de histórico de exemplo (plantios e colheitas, finanças, galinhas, tarefas, diagnósticos...) para experimentares a app já "com vida". Não apaga os teus dados reais.</p>
+      <div class="flex gap-2">
+        <button class="btn btn-outline btn-sm flex-1" onclick="confirmSeedDemoYear()">🌱 Carregar 1 ano de exemplo</button>
+        ${hasDemoData()? `<button class="btn btn-outline btn-sm flex-1" style="color:var(--red-600)" onclick="confirmRemoveDemoData()">🧹 Remover dados de exemplo</button>` : ''}
+      </div>
+    </div>
+
     <div class="p-3 rounded-xl" style="border:1.5px solid var(--red-100)">
       <span class="label" style="color:var(--red-600)">Zona de risco</span>
       <p class="text-xs mb-2" style="color:var(--ink-soft)">Apaga permanentemente todos os dados desta aplicação neste navegador. Exporta um backup antes, se quiseres poder recuperar.</p>
@@ -2459,6 +2468,270 @@ function confirmResetAllData(){
   if(!confirm('Última confirmação — apagar tudo e recomeçar do zero?')) return;
   localStorage.removeItem(STORAGE_KEY);
   location.reload();
+}
+
+/* =========================================================================
+   DADOS DE DEMONSTRAÇÃO — gera um ano de histórico de trabalho realista
+   (plantios, colheitas, finanças, galinhas, tarefas, diagnósticos, stock)
+   para a app não começar "vazia". Tudo o que é gerado fica marcado com
+   demo:true, para poder ser removido mais tarde sem afetar dados reais.
+   ========================================================================= */
+function hasDemoData(){
+  const collections = ['areas','plantings','chickenBatches','coops','transactions','tasks','pestDiagnoses'];
+  return collections.some(k => Array.isArray(DB[k]) && DB[k].some(r=>r.demo));
+}
+function confirmSeedDemoYear(){
+  if(!confirm('Isto acrescenta um ano completo de dados de exemplo (plantios e colheitas, finanças, galinhas, tarefas, diagnósticos...) aos dados que já existem — os teus dados atuais não são apagados. Continuar?')) return;
+  seedDemoYear();
+  closeModal();
+  alert('Pronto! Foi acrescentado um ano de dados de exemplo. Explora os módulos para veres o histórico — podes removê-los a qualquer momento em Configurações.');
+  switchTab('dashboard');
+}
+function confirmRemoveDemoData(){
+  if(!confirm('Isto remove apenas os registos marcados como dados de exemplo (os teus dados reais não são tocados). Continuar?')) return;
+  removeDemoData();
+  closeModal();
+  alert('Dados de exemplo removidos.');
+  switchTab('dashboard');
+}
+function removeDemoData(){
+  const collections = ['areas','plantings','chickenBatches','coops','eggLogs','healthLogs','vaccineLogs','deathLogs','salesLogs','cleaningLogs','transactions','tasks','pestDiagnoses','inputApplications','herbicideApplications','stockMovements','estufaAreas','estufaPlantings'];
+  collections.forEach(k=>{ if(Array.isArray(DB[k])) DB[k] = DB[k].filter(r=>!r.demo); });
+  DB.areas.forEach(a=>{ if(a.plantingId && !DB.plantings.some(p=>p.id===a.plantingId)) a.plantingId=null; });
+  DB.estufaAreas.forEach(a=>{ if(a.plantingId && !DB.estufaPlantings.some(p=>p.id===a.plantingId)) a.plantingId=null; });
+  Object.keys(DB.stockLevels||{}).forEach(k=>{ if(DB.stockLevels[k] && DB.stockLevels[k].demo) delete DB.stockLevels[k]; });
+  saveDB();
+}
+function seedDemoYear(){
+  const rnd = (min,max) => min + Math.random()*(max-min);
+  const rndInt = (min,max) => Math.floor(rnd(min,max+1));
+  const pick = arr => arr[Math.floor(Math.random()*arr.length)];
+  const today = todayISO();
+  const yearAgo = addDays(today, -365);
+  const activeUserId = DB.activeUserId;
+
+  // ---------- Áreas + plantios (rotação de culturas ao longo do ano) ----------
+  const palette = ['#2F7A3D','#D9660A','#3D6FA8','#B9820F','#C1473A','#7A5AC1','#3E9750'];
+  const areaDefs = [
+    {name:'Talhão Norte', x:0.06,y:0.08,w:0.26,h:0.36},
+    {name:'Talhão Sul', x:0.06,y:0.52,w:0.26,h:0.36},
+    {name:'Horta 1', x:0.38,y:0.08,w:0.26,h:0.36},
+    {name:'Horta 2', x:0.38,y:0.52,w:0.26,h:0.36},
+    {name:'Bancal das Leguminosas', x:0.70,y:0.08,w:0.24,h:0.36},
+    {name:'Pomar', x:0.70,y:0.52,w:0.24,h:0.36},
+  ];
+  const rotationCrops = allCrops().filter(c=>!c.perennial && c.growDays && c.growDays<=150 && c.cat!=='medicinal' && c.cat!=='aromatica');
+  const perennialCrops = allCrops().filter(c=>c.perennial);
+  let harvestIncomeCount = 0;
+
+  areaDefs.forEach((def,i)=>{
+    const points = [{x:def.x,y:def.y},{x:def.x+def.w,y:def.y},{x:def.x+def.w,y:def.y+def.h},{x:def.x,y:def.y+def.h}];
+    const area = {id:uid(), name:def.name, points, color:palette[i%palette.length], plantingId:null, demo:true};
+    DB.areas.push(area);
+
+    if(def.name==='Pomar' && perennialCrops.length){
+      const crop = pick(perennialCrops);
+      const plantedDate = addDays(yearAgo, -rndInt(60,900));
+      const planting = {id:uid(), areaId:area.id, areaName:area.name, cropId:crop.id, cropName:crop.name,
+        plantedDate, status:'Crescimento', demo:true, expectedHarvest:null,
+        statusHistory:[{status:'Preparar terreno',date:plantedDate,userId:activeUserId,note:'Área criada'},
+                        {status:'Crescimento',date:addDays(plantedDate,30),userId:null,note:'Avanço automático',auto:true}]};
+      DB.plantings.push(planting);
+      area.plantingId = planting.id;
+      return;
+    }
+
+    let cursor = addDays(yearAgo, rndInt(0,20));
+    let guard = 0;
+    while(guard++<6 && daysBetween(cursor,today) >= 5 && rotationCrops.length){
+      const crop = pick(rotationCrops);
+      const plantedDate = cursor;
+      const harvestReady = addDays(plantedDate, crop.growDays + rndInt(2,8));
+      const stages = STATUS_FLOW.slice(0,8).map(stage => ({stage, date: addDays(plantedDate, Math.round(STATUS_STAGE_FRACTIONS[stage]*crop.growDays))}));
+      const planting = {id:uid(), areaId:area.id, areaName:area.name, cropId:crop.id, cropName:crop.name,
+        plantedDate, demo:true, expectedHarvest: addDays(plantedDate, crop.growDays)};
+
+      if(daysBetween(harvestReady,today) >= 0){
+        planting.statusHistory = stages.map(s=>({status:s.stage, date:s.date,
+          userId: s.stage==='Preparar terreno'? activeUserId : null,
+          note: s.stage==='Preparar terreno'? 'Área criada' : 'Avanço automático',
+          auto: s.stage!=='Preparar terreno'}));
+        const units = ['legume','verdura'].includes(crop.cat)? rndInt(15,60) : rndInt(5,30);
+        const weight = Math.round(rnd(3,25)*10)/10;
+        planting.statusHistory.push({status:'Colhido', date:harvestReady, userId:activeUserId, note:`${units} unidades · ${weight} kg`});
+        planting.status = 'Colher-concluído';
+        planting.harvestUnits = units; planting.harvestWeight = weight;
+        DB.plantings.push(planting);
+        area.plantingId = null;
+        // a maior parte da colheita é vendida — gera a receita correspondente
+        if(Math.random() < 0.82){
+          const cat = ['fruta','arvorefruto'].includes(crop.cat)? 'Venda de Frutas' : 'Venda de Hortícolas';
+          const price = Math.round(weight * rnd(1.2,4.5) * 100)/100;
+          if(price>0){
+            DB.transactions.push({id:uid(), date:addDays(harvestReady,rndInt(0,4)), type:'receita', category:cat,
+              amount:price, note:`Colheita de ${crop.name} — ${area.name}`, userId:activeUserId, demo:true});
+            harvestIncomeCount++;
+          }
+        }
+        cursor = addDays(harvestReady, rndInt(3,15));
+      } else {
+        const passed = stages.filter(s=>daysBetween(s.date,today) >= 0);
+        planting.statusHistory = passed.map(s=>({status:s.stage, date:s.date,
+          userId: s.stage==='Preparar terreno'? activeUserId : null,
+          note: s.stage==='Preparar terreno'? 'Área criada' : 'Avanço automático',
+          auto: s.stage!=='Preparar terreno'}));
+        planting.status = passed[passed.length-1].stage;
+        DB.plantings.push(planting);
+        area.plantingId = planting.id;
+        break;
+      }
+    }
+  });
+
+  // ---------- Estufa (pequeno toque, 1 área ativa) ----------
+  const estufaCrop = pick(rotationCrops.filter(c=>['legume','verdura'].includes(c.cat))) || pick(rotationCrops);
+  if(estufaCrop){
+    const eArea = {id:uid(), name:'Estufa 1', points:[{x:0.1,y:0.1},{x:0.5,y:0.1},{x:0.5,y:0.5},{x:0.1,y:0.5}], color:'#3D6FA8', plantingId:null, demo:true};
+    DB.estufaAreas.push(eArea);
+    const plantedDate = addDays(today, -rndInt(10,30));
+    const ePlanting = {id:uid(), areaId:eArea.id, areaName:eArea.name, cropId:estufaCrop.id, cropName:estufaCrop.name, plantedDate, status:'Insumos', demo:true,
+      seedCells:rndInt(24,72), seedBrand:null, substrate:'Substrato universal',
+      statusHistory:[{status:'Semeadura', date:plantedDate, userId:activeUserId, note:'Sementeira inicial'},
+                      {status:'Insumos', date:addDays(plantedDate,7), userId:activeUserId, note:'Primeira adubação'}],
+      harvestDecision:null, saleQty:null, saleUnit:'unidades', saleValue:null};
+    DB.estufaPlantings.push(ePlanting);
+    eArea.plantingId = ePlanting.id;
+  }
+
+  // ---------- Galinhas ----------
+  const coop = {id:uid(), name:'Galinheiro 1', area:24, hasTreatedWater:true, hasVentilation:true, hasTempControl:false, hasManualFeeder:true, hasAutoFeeder:false, createdAt:addDays(yearAgo,-30), demo:true};
+  DB.coops.push(coop);
+  const breedPool = CHICKEN_BREEDS['Portugal'].concat(CHICKEN_BREEDS['Internacional (comum em PT e BR)']);
+  const breed = pick(breedPool);
+  const arrivalDate = addDays(yearAgo, -rndInt(20,90));
+  const initialCount = rndInt(10,16);
+  const batch = {id:uid(), coopId:coop.id, breed, arrivalDate, initialCount, currentCount:initialCount, avgWeightKg: Math.round(rnd(1.4,2.2)*10)/10, notes:'', quarantined:false, demo:true};
+  DB.chickenBatches.push(batch);
+
+  let curDate = yearAgo;
+  while(daysBetween(curDate,today) >= 0){
+    const month = +curDate.slice(5,7);
+    const range = [11,12,1,2].includes(month)? [1,5] : [4,10];
+    if(Math.random() < 0.9) DB.eggLogs.push({id:uid(), date:curDate, batchId:batch.id, quantity:rndInt(range[0],range[1]), userId:activeUserId, demo:true});
+    curDate = addDays(curDate,1);
+  }
+  for(let m=0;m<12;m++){
+    const d = addDays(yearAgo, m*30+rndInt(0,25));
+    if(daysBetween(d,today) < 0) continue;
+    DB.cleaningLogs.push({id:uid(), date:d, coopId:coop.id, area:coop.area, notes:'Limpeza periódica do galinheiro', userId:activeUserId, demo:true});
+  }
+  [45,140,230,310].forEach(off=>{
+    const d = addDays(yearAgo, off);
+    if(daysBetween(d,today) < 0) return;
+    DB.healthLogs.push({id:uid(), date:d, batchId:batch.id, type:'rotina', description:'Verificação geral — sem sinais de doença', userId:activeUserId, demo:true});
+  });
+  DB.vaccineLogs.push({id:uid(), batchId:batch.id, vaccine:'Newcastle', date:addDays(yearAgo,10), nextDue:addDays(yearAgo,190), userId:activeUserId, demo:true});
+  if(daysBetween(addDays(yearAgo,200),today) >= 0) DB.vaccineLogs.push({id:uid(), batchId:batch.id, vaccine:'Bronquite infecciosa', date:addDays(yearAgo,200), nextDue:addDays(today,60), userId:activeUserId, demo:true});
+  const deathDate = addDays(yearAgo, rndInt(30,120));
+  DB.deathLogs.push({id:uid(), date:deathDate, batchId:batch.id, count:1, cause:'Causa natural', userId:activeUserId, demo:true});
+  batch.currentCount = Math.max(1, batch.currentCount-1);
+  for(let i=0;i<rndInt(2,4);i++){
+    const d = addDays(yearAgo, rndInt(30,360));
+    if(daysBetween(d,today) < 0) continue;
+    const count = rndInt(1,3);
+    const price = count * rndInt(8,14);
+    DB.salesLogs.push({id:uid(), date:d, batchId:batch.id, count, price, userId:activeUserId, demo:true});
+    DB.transactions.push({id:uid(), date:d, type:'receita', category:'Venda de Aves', amount:price, note:`${count} aves`, userId:activeUserId, demo:true});
+    batch.currentCount = Math.max(1, batch.currentCount-count);
+  }
+
+  // ---------- Finanças gerais (despesas mensais + venda de ovos) ----------
+  const expensePool = [
+    ['Sementes / Mudas',5,25],['Fertilizantes / Adubos',15,60],['Ração animais',20,45],
+    ['Veterinário / Vacinas',15,80],['Água / Irrigação',18,55],['Energia',20,70],
+    ['Equipamentos / Ferramentas',25,150],['Combustível',20,50],['Mão-de-obra',50,200],
+    ['Embalagens',8,28],['Manutenção',20,100],['Outros',5,40],
+  ];
+  for(let m=0;m<13;m++){
+    const monthStart = addDays(yearAgo, m*28);
+    const nTx = rndInt(4,9);
+    for(let i=0;i<nTx;i++){
+      const d = addDays(monthStart, rndInt(0,27));
+      if(daysBetween(d,today) < 0 || daysBetween(yearAgo,d) < 0) continue;
+      const [cat,lo,hi] = pick(expensePool);
+      DB.transactions.push({id:uid(), date:d, type:'despesa', category:cat, amount:Math.round(rnd(lo,hi)*100)/100, note:'', userId:activeUserId, demo:true});
+    }
+    if(Math.random() < 0.8){
+      const d = addDays(monthStart, rndInt(0,27));
+      if(daysBetween(d,today) >= 0 && daysBetween(yearAgo,d) >= 0){
+        DB.transactions.push({id:uid(), date:d, type:'receita', category:'Venda de Ovos', amount:Math.round(rnd(8,28)*100)/100, note:'Venda de excedente de ovos', userId:activeUserId, demo:true});
+      }
+    }
+  }
+
+  // ---------- Tarefas ----------
+  const taskPool = ['Regar horta','Aplicar composto','Limpar ervas daninhas','Verificar galinheiro','Recolher ovos',
+    'Podar árvores de fruto','Preparar canteiro','Semear novo ciclo','Aplicar tratamento preventivo',
+    'Vender excedente no mercado','Reparar rede do galinheiro','Verificar sistema de rega',
+    'Inspecionar pragas','Limpar estufa','Comprar ração','Manutenção de ferramentas'];
+  for(let i=0;i<48;i++){
+    const d = addDays(yearAgo, rndInt(0,363));
+    DB.tasks.push({id:uid(), title:pick(taskPool), description:'', assigneeId:activeUserId,
+      status: Math.random()<0.9?'done':'doing',
+      dueDate:d, createdAt: addDays(d,-rndInt(0,5)), demo:true});
+  }
+  // um punhado de tarefas ainda por vir, para o quadro não parecer "só passado"
+  for(let i=0;i<9;i++){
+    const d = addDays(today, rndInt(-2,21));
+    DB.tasks.push({id:uid(), title:pick(taskPool), description:'', assigneeId:activeUserId,
+      status: pick(['todo','todo','doing']),
+      dueDate:d, createdAt: addDays(today,-rndInt(1,10)), demo:true});
+  }
+
+  // ---------- Diagnósticos de pragas (aproveita o catálogo detalhado) ----------
+  const cropsWithPests = allCrops().filter(c=>c.pests && c.pests.some(p=>p.n!=='Sem pragas relevantes'));
+  for(let i=0;i<10 && cropsWithPests.length;i++){
+    const crop = pick(cropsWithPests);
+    const relevant = crop.pests.filter(p=>p.n!=='Sem pragas relevantes');
+    const pest = pick(relevant);
+    const d = addDays(yearAgo, rndInt(0,365));
+    if(daysBetween(d,today) < 0) continue;
+    DB.pestDiagnoses.push({id:uid(), date:d, userId:activeUserId, cropId:crop.id, cropName:crop.name,
+      symptoms:pest.s, photo:null, matches:[{name:pest.n, score:rndInt(72,96)}], demo:true});
+  }
+
+  // ---------- Stock (fertilizantes/herbicidas) ----------
+  function seedStock(kind, item, entries){
+    const key = stockKey(kind, item.id);
+    let stock = DB.stockLevels[key] || {quantity:0, unit:'kg', lowThreshold:2, updatedAt:yearAgo, demo:true};
+    entries.forEach(([d,type,qty])=>{
+      if(daysBetween(d,today) < 0 || daysBetween(yearAgo,d) < 0) return;
+      if(type==='entrada') stock.quantity = Math.round((stock.quantity+qty)*100)/100;
+      else stock.quantity = Math.round(Math.max(0,stock.quantity-qty)*100)/100;
+      stock.updatedAt = d;
+      DB.stockMovements.push({id:uid(), date:d, kind, itemId:item.id, itemName:item.name, type, quantity:qty, unit:'kg', note:'', userId:activeUserId, demo:true});
+    });
+    DB.stockLevels[key] = stock;
+  }
+  const demoAreas = DB.areas.filter(a=>a.demo);
+  INPUTS.slice(0,4).forEach(input=>{
+    seedStock('insumo', input, [[addDays(yearAgo,10),'entrada',rndInt(20,40)], [addDays(yearAgo,120),'saida',rndInt(5,12)], [addDays(yearAgo,240),'saida',rndInt(5,12)]]);
+    if(demoAreas.length){
+      const a = pick(demoAreas);
+      DB.inputApplications.push({id:uid(), inputId:input.id, targetKind:'mapa', targetId:'area:'+a.id, targetLabel:a.name,
+        ratePerM2:'2 kg/m²', date:addDays(yearAgo,rndInt(30,300)), userId:activeUserId, notes:'', demo:true});
+    }
+  });
+  HERBICIDES.slice(0,2).forEach(herb=>{
+    seedStock('herbicida', herb, [[addDays(yearAgo,15),'entrada',rndInt(5,15)], [addDays(yearAgo,180),'saida',rndInt(1,4)]]);
+    if(demoAreas.length){
+      const a = pick(demoAreas);
+      DB.herbicideApplications.push({id:uid(), herbId:herb.id, targetKind:'mapa', targetId:'area:'+a.id, targetLabel:a.name,
+        ratePerM2:'50 ml/m²', date:addDays(yearAgo,rndInt(30,300)), userId:activeUserId, notes:'', demo:true});
+    }
+  });
+
+  saveDB();
 }
 
 /* =========================================================================
