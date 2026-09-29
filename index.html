@@ -2,12 +2,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="description" content="TerraPassos — Guiar a terra. Cultivar o futuro. Gestão agrícola integrada e agrofloresta: culturas, áreas, estufa, galinhas e finanças, com funcionamento offline.">
-<meta name="theme-color" content="#2F7A3D">
+<meta name="theme-color" content="#15170F">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="TerraPassos">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2315170F'/%3E%3Cpath d='M16,3 C10,8 6,14 6,19 A10,10 0 0 0 26,19 C26,14 22,8 16,3 Z' fill='none' stroke='%235C4530' stroke-width='1.7' stroke-linecap='round'/%3E%3Cpath d='M16,5.6 C11,9.8 7.6,14.8 7.6,19 A8.4,8.4 0 0 0 24.4,19 C24.4,14.8 21,9.8 16,5.6 Z' fill='none' stroke='%237A4F2A' stroke-width='1.7' stroke-linecap='round'/%3E%3Cpath d='M16,8.1 C11.9,11.5 9.2,15.6 9.2,19 A6.8,6.8 0 0 0 22.8,19 C22.8,15.6 20.1,11.5 16,8.1 Z' fill='none' stroke='%239C5A24' stroke-width='1.7' stroke-linecap='round'/%3E%3Cpath d='M16,10.7 C12.9,13.3 10.8,16.4 10.8,19 A5.2,5.2 0 0 0 21.2,19 C21.2,16.4 19.1,13.3 16,10.7 Z' fill='none' stroke='%23C2661E' stroke-width='1.7' stroke-linecap='round'/%3E%3Cpath d='M16,13.2 C13.8,15 12.4,17.2 12.4,19 A3.6,3.6 0 0 0 19.6,19 C19.6,17.2 18.2,15 16,13.2 Z' fill='none' stroke='%23E87318' stroke-width='1.7' stroke-linecap='round'/%3E%3Cpath d='M16,15.8 C14.8,16.8 14,18 14,19 A2,2 0 0 0 18,19 C18,18 17.2,16.8 16,15.8 Z' fill='none' stroke='%23FF8A1F' stroke-width='1.7' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="icon" type="image/png" href="images/misc/terrapassos-mark.png">
+<link rel="apple-touch-icon" href="images/misc/terrapassos-mark.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Public+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap">
 <script src="https://cdn.tailwindcss.com"></script>
@@ -152,12 +153,12 @@ button.card:active, a.card:active{transform:translateY(0) scale(.99)}
   radial-gradient(900px circle at 12% 10%, rgba(255,138,31,.11), transparent 60%),
   radial-gradient(760px circle at 88% 86%, rgba(122,79,42,.16), transparent 60%),
   radial-gradient(1300px circle at 50% 126%, rgba(58,63,44,.55), transparent 70%)}
-.tp-auth-mark{position:absolute;right:-160px;bottom:-160px;opacity:.16;pointer-events:none}
+.tp-auth-mark{position:absolute;right:-160px;bottom:-160px;width:620px;height:620px;opacity:.16;pointer-events:none;border-radius:0}
 .tp-auth-card{position:relative;z-index:1;max-width:400px;width:100%;padding:30px 28px;border-radius:22px;
   background:rgba(30,33,23,.72);border:1px solid rgba(255,170,80,.18);
   backdrop-filter:blur(22px) saturate(1.4);-webkit-backdrop-filter:blur(22px) saturate(1.4);
   box-shadow:inset 0 1px 0 rgba(255,180,100,.14), 0 26px 64px -20px rgba(0,0,0,.7)}
-.tp-auth-logo{margin-bottom:14px;filter:drop-shadow(0 0 12px rgba(255,138,31,.5))}
+.tp-auth-logo{display:block;width:56px;height:56px;margin-bottom:14px;border-radius:14px;filter:drop-shadow(0 0 12px rgba(255,138,31,.5))}
 .tp-auth-word{font-family:'Fredoka',ui-sans-serif,sans-serif;font-weight:600;font-size:27px;letter-spacing:.01em;color:#F4F1E6;line-height:1.1}
 .tp-auth-sub{font-size:11.5px;color:#AFA688;letter-spacing:.05em;text-transform:uppercase;margin-top:5px;margin-bottom:26px}
 .tp-auth-h1{font-family:'Fredoka',ui-sans-serif,sans-serif;font-weight:600;font-size:19px;color:#F4F1E6;margin:0 0 16px}
@@ -471,28 +472,10 @@ button.pill:active{transform:scale(.96)}
 <!-- Ecrã de login — visível enquanto não há sessão válida -->
 <div id="authScreen" class="tp-auth min-h-screen flex items-center justify-center p-4">
   <div class="tp-auth-glow" aria-hidden="true"></div>
-  <div class="tp-auth-mark" aria-hidden="true">
-    <svg width="620" height="620" viewBox="0 0 32 32" fill="none">
-      <path d="M16,3 C10,8 6,14 6,19 A10,10 0 0 0 26,19 C26,14 22,8 16,3 Z" fill="none" stroke="#5C4530" stroke-width="1.8" stroke-linecap="round"/>
-      <path d="M16,5.6 C11,9.8 7.6,14.8 7.6,19 A8.4,8.4 0 0 0 24.4,19 C24.4,14.8 21,9.8 16,5.6 Z" fill="none" stroke="#7A4F2A" stroke-width="1.8" stroke-linecap="round"/>
-      <path d="M16,8.1 C11.9,11.5 9.2,15.6 9.2,19 A6.8,6.8 0 0 0 22.8,19 C22.8,15.6 20.1,11.5 16,8.1 Z" fill="none" stroke="#9C5A24" stroke-width="1.8" stroke-linecap="round"/>
-      <path d="M16,10.7 C12.9,13.3 10.8,16.4 10.8,19 A5.2,5.2 0 0 0 21.2,19 C21.2,16.4 19.1,13.3 16,10.7 Z" fill="none" stroke="#C2661E" stroke-width="1.8" stroke-linecap="round"/>
-      <path d="M16,13.2 C13.8,15 12.4,17.2 12.4,19 A3.6,3.6 0 0 0 19.6,19 C19.6,17.2 18.2,15 16,13.2 Z" fill="none" stroke="#E87318" stroke-width="1.8" stroke-linecap="round"/>
-      <path d="M16,15.8 C14.8,16.8 14,18 14,19 A2,2 0 0 0 18,19 C18,18 17.2,16.8 16,15.8 Z" fill="none" stroke="#FF8A1F" stroke-width="1.8" stroke-linecap="round"/>
-    </svg>
-  </div>
+  <img class="tp-auth-mark" aria-hidden="true" src="images/misc/terrapassos-mark.png" alt="">
 
   <div class="tp-auth-card">
-    <div class="tp-auth-logo">
-      <svg width="52" height="52" viewBox="0 0 32 32" fill="none">
-        <path d="M16,3 C10,8 6,14 6,19 A10,10 0 0 0 26,19 C26,14 22,8 16,3 Z" fill="none" stroke="#5C4530" stroke-width="1.8" stroke-linecap="round"/>
-        <path d="M16,5.6 C11,9.8 7.6,14.8 7.6,19 A8.4,8.4 0 0 0 24.4,19 C24.4,14.8 21,9.8 16,5.6 Z" fill="none" stroke="#7A4F2A" stroke-width="1.8" stroke-linecap="round"/>
-        <path d="M16,8.1 C11.9,11.5 9.2,15.6 9.2,19 A6.8,6.8 0 0 0 22.8,19 C22.8,15.6 20.1,11.5 16,8.1 Z" fill="none" stroke="#9C5A24" stroke-width="1.8" stroke-linecap="round"/>
-        <path d="M16,10.7 C12.9,13.3 10.8,16.4 10.8,19 A5.2,5.2 0 0 0 21.2,19 C21.2,16.4 19.1,13.3 16,10.7 Z" fill="none" stroke="#C2661E" stroke-width="1.8" stroke-linecap="round"/>
-        <path d="M16,13.2 C13.8,15 12.4,17.2 12.4,19 A3.6,3.6 0 0 0 19.6,19 C19.6,17.2 18.2,15 16,13.2 Z" fill="none" stroke="#E87318" stroke-width="1.8" stroke-linecap="round"/>
-        <path d="M16,15.8 C14.8,16.8 14,18 14,19 A2,2 0 0 0 18,19 C18,18 17.2,16.8 16,15.8 Z" fill="none" stroke="#FF8A1F" stroke-width="1.8" stroke-linecap="round"/>
-      </svg>
-    </div>
+    <img class="tp-auth-logo" src="images/misc/terrapassos-mark.png" alt="TerraPassos" width="56" height="56">
     <div class="tp-auth-word">TerraPassos</div>
     <div class="tp-auth-sub">Gestão Agrícola Integrada &amp; Agrofloresta</div>
 
@@ -1436,6 +1419,9 @@ const LOCAL_IMAGES = {
     // Guarda aqui a foto real da estufa (a que partilhaste) em C:\Users\tcc.GT\Documents\QuintaViva\images\misc\estufa-banner.jpg
     // para que o banner do Módulo Estufa deixe de depender da internet.
     'estufa-banner': 'images/misc/estufa-banner.jpg',
+    // Logótipo oficial TerraPassos (impressão digital/contorno topográfico em cobre) — imagem
+    // fornecida diretamente, em vez do desenho SVG simplificado que tínhamos antes.
+    'logo-mark': 'images/misc/terrapassos-mark.png',
   },
 };
 (function migrateToLocalImages(){
@@ -3484,9 +3470,9 @@ function renderBrandBlocks(){
     if(desktop) desktop.innerHTML = logoImg;
     if(mobile) mobile.innerHTML = logoImg;
   } else {
-    const mark = terraMarkSVG(32);
+    const mark = `<img src="${LOCAL_IMAGES.misc['logo-mark']}" alt="TerraPassos" width="32" height="32" style="border-radius:8px;flex:none" onerror="this.outerHTML=terraMarkSVG(32)">`;
     if(desktop) desktop.innerHTML = `${mark}<div><div class="display font-semibold leading-none" style="font-size:17px">TerraPassos</div><div class="text-[11px]" style="color:var(--ink-faint)">Gestão Agrícola Integrada &amp; Agrofloresta</div></div>`;
-    if(mobile) mobile.innerHTML = `<div class="flex items-center gap-2">${terraMarkSVG(26)}<div class="display font-semibold" style="font-size:17px">TerraPassos</div></div>`;
+    if(mobile) mobile.innerHTML = `<div class="flex items-center gap-2"><img src="${LOCAL_IMAGES.misc['logo-mark']}" alt="TerraPassos" width="26" height="26" style="border-radius:7px;flex:none" onerror="this.outerHTML=terraMarkSVG(26)"><div class="display font-semibold" style="font-size:17px">TerraPassos</div></div>`;
   }
 }
 function switchTab(id){
@@ -8920,14 +8906,13 @@ function buildEstufaHistoryReportHTML(periodLabel, inPeriod){
    ========================================================================= */
 function setupPWA(){
   try{
-    const svgMarkup = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='#15170F'/>${TP_MARK_RINGS.map(([d,c])=>`<path d='${d}' fill='none' stroke='${c}' stroke-width='1.7' stroke-linecap='round'/>`).join('')}</svg>`;
     const img = new Image();
     img.onload = () => {
       const toPngDataURL = (size, padded) => {
         const canvas = document.createElement('canvas');
         canvas.width = size; canvas.height = size;
         const ctx = canvas.getContext('2d');
-        if(padded){ ctx.fillStyle = '#F5F7EE'; ctx.fillRect(0,0,size,size); const pad=size*0.18; ctx.drawImage(img, pad, pad, size-pad*2, size-pad*2); }
+        if(padded){ ctx.fillStyle = '#15170F'; ctx.fillRect(0,0,size,size); const pad=size*0.16; ctx.drawImage(img, pad, pad, size-pad*2, size-pad*2); }
         else ctx.drawImage(img, 0, 0, size, size);
         return canvas.toDataURL('image/png');
       };
@@ -8948,8 +8933,8 @@ function setupPWA(){
         scope: './',
         display: 'standalone',
         orientation: 'any',
-        background_color: '#F5F7EE',
-        theme_color: '#2F7A3D',
+        background_color: '#15170F',
+        theme_color: '#15170F',
         icons: [
           {src: icon192, sizes:'192x192', type:'image/png', purpose:'any'},
           {src: icon512, sizes:'512x512', type:'image/png', purpose:'any'},
@@ -8962,7 +8947,8 @@ function setupPWA(){
       manifestLink.href = 'data:application/manifest+json;base64,' + manifestB64;
       document.head.appendChild(manifestLink);
     };
-    img.src = 'data:image/svg+xml;base64,' + btoa(svgMarkup);
+    img.onerror = () => console.warn('Não foi possível carregar o logótipo para os ícones da PWA');
+    img.src = LOCAL_IMAGES.misc['logo-mark'];
   }catch(e){ console.warn('Não foi possível preparar os ícones da PWA', e); }
 
   // Service worker opcional (só funciona em http(s)/localhost — em file:// é ignorado sem quebrar nada).
