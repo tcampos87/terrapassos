@@ -288,9 +288,9 @@ button.pill:active{transform:scale(.96)}
 .bar-track{background:var(--surface-2);border-radius:999px;overflow:hidden;height:8px}
 .bar-fill{height:100%;border-radius:999px;background:var(--green-600)}
 
-.area-poly{cursor:pointer;transition:stroke-width .15s}
-.area-poly:hover{stroke-width:.75!important}
-.area-poly.selected{stroke-width:.9!important}
+.area-poly{cursor:pointer;transition:stroke-width .15s ease,fill-opacity .15s ease}
+.area-poly:hover{stroke-width:.75!important;fill-opacity:.66!important}
+.area-poly.selected{stroke-width:.95!important;fill-opacity:.72!important}
 
 [hidden]{display:none!important}
 
@@ -3400,10 +3400,10 @@ const ICONS = {
 };
 const TABS = [
   {id:'dashboard', label:'Visão Geral', sub:'Resumo da quinta, tempo e ações do dia'},
+  {id:'areas', label:'Áreas / Mapa', sub:'Mapa aéreo, zonas e estado de cada área'},
   {id:'tarefas', label:'Tarefas', sub:'Quadro Kanban — atribui e acompanha o trabalho da equipa'},
   {id:'culturas', label:'Culturas', sub:'Catálogo, calendário de plantio e rotação'},
   {id:'diagnostico', label:'Diagnóstico de Pragas', navLabel:'Diagnóstico', sub:'Tira uma foto, descreve os sintomas e compara com a base de pragas de cada cultura'},
-  {id:'areas', label:'Áreas / Mapa', sub:'Mapa aéreo, zonas e estado de cada área'},
   {id:'estufa', label:'Estufa', sub:'Sementeiras, mudas e transplante'},
   {id:'insumos', label:'Fertilizantes', navLabel:'Fertilizantes', sub:'Biblioteca de fertilizantes, biológicos e químicos'},
   {id:'herbicidas', label:'Herbicidas', sub:'Catálogo de controlo de ervas daninhas, biológicos e químicos'},
@@ -4160,48 +4160,40 @@ function renderDashboard(){
 
   el.innerHTML = `
     ${renderForecastCard()}
+
     <div class="card p-5 mb-4">
-      ${secHead('teal','grid','Histórico (últimos 3 anos)', `<div class="flex items-center gap-2">
-          ${histFresh? `<span class="pill pill-green">🌍 Dados reais — ${DB.location.name.split(',')[0]}</span>` : historicalWeatherState==='loading'? `<span class="pill pill-blue">A obter dados reais…</span>` : `<span class="pill pill-neutral">Dados ilustrativos</span>`}
-          <span class="pill pill-blue">${MONTHS[now.getMonth()]} ${now.getDate()}</span>
-          <button class="btn btn-ghost btn-sm" onclick="ensureHistoricalWeather(true)">↻ Atualizar</button>
-        </div>`)}
-      <div class="overflow-x-auto">
-        ${climateChartSVG(weathers)}
-      </div>
-      <div class="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-[11px]" style="color:var(--ink-faint)">
-        <span class="flex items-center gap-1.5"><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--orange-600)"></i>Máxima ${weathers[0].year}</span>
-        <span class="flex items-center gap-1.5"><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--blue-600)"></i>Mínima ${weathers[0].year}</span>
-        <span class="flex items-center gap-1.5"><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--blue-600);opacity:.5"></i>Precipitação ${weathers[0].year}</span>
-        ${weathers.length>1? `<span class="flex items-center gap-1.5"><i style="display:inline-block;width:10px;height:2px;background:var(--ink-faint)"></i>Anos anteriores (${weathers.slice(1).map(w=>w.year).join(', ')})</span>` : ''}
-      </div>
-      <details class="mt-3">
-        <summary class="text-xs font-semibold cursor-pointer select-none" style="color:var(--ink-soft)">Ver tabela detalhada (valores exatos por mês)</summary>
-        <div class="overflow-x-auto mt-2">
-          <table class="w-full" style="border-collapse:collapse">
-            <thead><tr class="text-xs text-left" style="color:var(--ink-faint)">
-              <th class="pb-2 pr-3 font-semibold">Ano</th>
-              ${weathers[0].months.map(m=>`<th class="pb-2 px-2 text-center font-semibold">${m.label}</th>`).join('')}
-            </tr></thead>
-            <tbody>
-              ${weathers.map(({year,months})=>`
-                <tr style="border-top:1px solid var(--border)">
-                  <td class="py-2 pr-3 text-sm font-semibold" style="color:var(--ink-soft)">${year}</td>
-                  ${months.map(m=>`
-                    <td class="px-2 py-2 text-center">
-                      ${m.agg? `
-                      <div class="mono text-xs">${m.agg.tmin}°–${m.agg.tmax}°C</div>
-                      <div class="text-[10px] mono" style="color:${m.agg.rainTotal>0?'var(--blue-600)':'var(--ink-faint)'}">${m.agg.rainTotal>0? m.agg.rainTotal+' mm':'seco'}</div>
-                      <div class="text-[10px] mono" style="color:var(--ink-faint)">${m.agg.humidity!=null? m.agg.humidity+'% hum.':'—'}</div>
-                      ` : `<div class="text-xs" style="color:var(--ink-faint)">—</div>`}
-                    </td>`).join('')}
-                </tr>`).join('')}
-            </tbody>
-          </table>
-        </div>
-      </details>
-      <p class="text-[11px] mt-3 mb-0" style="color:var(--ink-faint)">${histFresh? 'Dados reais medidos (reanálise ERA5) via Open-Meteo Historical Weather API — funciona para qualquer localização de Portugal ou do Brasil escolhida em "Mudar local".' : historicalWeatherState==='loading'? 'A obter o histórico real dos últimos 3 anos para esta localização…' : 'Dados ilustrativos — sem ligação à internet para obter o histórico real; liga-te e atualiza para ver dados medidos.'}</p>
+      ${secHead('blue','target','Colheitas previstas', null, 'Próximos 30 dias')}
+      ${upcoming.length===0? `<div class="empty-box">Sem colheitas previstas no próximo mês.</div>` :
+      `<div class="flex flex-col gap-2">${upcoming.map(p=>{
+        const area = DB.areas.find(a=>a.id===p.areaId); const crop = cropById(p.cropId);
+        const urg = p.daysLeft<=3? 'var(--red-600)' : p.daysLeft<=10? 'var(--orange-500)' : 'var(--green-500)';
+        return `<div class="list-tile" style="align-items:stretch;border-left:4px solid var(--${CAT_COLORS[crop.cat]}-600)">
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-sm font-semibold truncate">${crop.name} <span class="font-normal" style="color:var(--ink-faint)">· ${area? area.name:'—'}</span></span>
+              <span class="text-sm font-semibold mono flex-none" style="color:${urg}">${p.daysLeft===0?'hoje':p.daysLeft+'d'}</span>
+            </div>
+            <div class="urg-bar"><i style="width:${Math.max(6,100-p.daysLeft/30*100)}%;background:${urg}"></i></div>
+          </div>
+        </div>`;
+      }).join('')}</div>`}
     </div>
+
+    <div class="card p-5 mb-4">
+      ${secHead('green','grid','Áreas em produção hoje', `<span class="pill pill-green">${producaoRows.length} ativa${producaoRows.length===1?'':'s'}</span>`)}
+      ${producaoRows.length===0? `<div class="empty-box">Nenhuma área com cultura ativa neste momento.<button class="btn btn-outline btn-sm" onclick="switchTab('areas')">Ir a Áreas / Mapa</button></div>` :
+      `<div class="grid-crop-tiles">
+        ${producaoRows.map(r=>{ const url = DB.cropImageCache[r.crop.id];
+        return `<div class="crop-tile" style="background:linear-gradient(150deg, var(--${CAT_COLORS[r.crop.cat]}-600), var(--${CAT_COLORS[r.crop.cat]}-600))" role="link" tabindex="0" onclick="switchTab('areas');setTimeout(()=>selectArea('${r.area.id}'),50)" onkeydown="if(event.key==='Enter'){switchTab('areas');setTimeout(()=>selectArea('${r.area.id}'),50)}">
+            <span class="kbx-ph" style="font-size:44px">${CAT_EMOJI[r.crop.cat]||'🌿'}</span>
+            ${url? `<img class="tile-img-el" src="${url}" alt="" loading="lazy" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" onerror="this.remove()">` : ''}
+            <span class="tile-shade"></span>
+            <span class="tile-badge">${r.planting.status}</span>
+            <span class="crop-tile-cap"><b>${r.area.name}</b><span class="text-[11px]" style="opacity:.92">${r.crop.name}</span></span>
+          </div>`; }).join('')}
+      </div>`}
+    </div>
+
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
       <div class="card p-5">
         ${secHead('green','sprout','Hoje na quinta')}
@@ -4226,8 +4218,6 @@ function renderDashboard(){
           </div>`).join('')}</div>`}
       </div>
     </div>
-
-    ${renderLunarCard()}
 
     <div class="card p-5 mb-4">
       ${secHead('yellow','alert','Alertas — previsão × tarefas')}
@@ -4257,38 +4247,7 @@ function renderDashboard(){
           </div>`).join('')}</div>`}
       </div>`; })() : ''}
 
-    <div class="card p-5 mb-4">
-      ${secHead('green','grid','Áreas em produção hoje', `<span class="pill pill-green">${producaoRows.length} ativa${producaoRows.length===1?'':'s'}</span>`)}
-      ${producaoRows.length===0? `<div class="empty-box">Nenhuma área com cultura ativa neste momento.<button class="btn btn-outline btn-sm" onclick="switchTab('areas')">Ir a Áreas / Mapa</button></div>` :
-      `<div class="grid-crop-tiles">
-        ${producaoRows.map(r=>{ const url = DB.cropImageCache[r.crop.id];
-        return `<div class="crop-tile" style="background:linear-gradient(150deg, var(--${CAT_COLORS[r.crop.cat]}-600), var(--${CAT_COLORS[r.crop.cat]}-600))" role="link" tabindex="0" onclick="switchTab('areas');setTimeout(()=>selectArea('${r.area.id}'),50)" onkeydown="if(event.key==='Enter'){switchTab('areas');setTimeout(()=>selectArea('${r.area.id}'),50)}">
-            <span class="kbx-ph" style="font-size:44px">${CAT_EMOJI[r.crop.cat]||'🌿'}</span>
-            ${url? `<img class="tile-img-el" src="${url}" alt="" loading="lazy" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" onerror="this.remove()">` : ''}
-            <span class="tile-shade"></span>
-            <span class="tile-badge">${r.planting.status}</span>
-            <span class="crop-tile-cap"><b>${r.area.name}</b><span class="text-[11px]" style="opacity:.92">${r.crop.name}</span></span>
-          </div>`; }).join('')}
-      </div>`}
-    </div>
-
-    <div class="card p-5 mb-4">
-      ${secHead('blue','target','Colheitas previstas', null, 'Próximos 30 dias')}
-      ${upcoming.length===0? `<div class="empty-box">Sem colheitas previstas no próximo mês.</div>` :
-      `<div class="flex flex-col gap-2">${upcoming.map(p=>{
-        const area = DB.areas.find(a=>a.id===p.areaId); const crop = cropById(p.cropId);
-        const urg = p.daysLeft<=3? 'var(--red-600)' : p.daysLeft<=10? 'var(--orange-500)' : 'var(--green-500)';
-        return `<div class="list-tile" style="align-items:stretch;border-left:4px solid var(--${CAT_COLORS[crop.cat]}-600)">
-          <div class="min-w-0 flex-1">
-            <div class="flex items-center justify-between gap-2">
-              <span class="text-sm font-semibold truncate">${crop.name} <span class="font-normal" style="color:var(--ink-faint)">· ${area? area.name:'—'}</span></span>
-              <span class="text-sm font-semibold mono flex-none" style="color:${urg}">${p.daysLeft===0?'hoje':p.daysLeft+'d'}</span>
-            </div>
-            <div class="urg-bar"><i style="width:${Math.max(6,100-p.daysLeft/30*100)}%;background:${urg}"></i></div>
-          </div>
-        </div>`;
-      }).join('')}</div>`}
-    </div>
+    ${renderLunarCard()}
 
     <div class="card p-5 mb-4">
       ${secHead('purple','calplus','Próximas plantações', `<div class="relative">
@@ -4366,6 +4325,49 @@ function renderDashboard(){
           </div>`).join('')}
       </div>`}
       <button class="btn btn-outline btn-sm mt-4" onclick="switchTab('agrofloresta')">Ver guildas completas →</button>
+    </div>
+
+    <div class="card p-5 mb-4">
+      ${secHead('teal','grid','Histórico (últimos 3 anos)', `<div class="flex items-center gap-2">
+          ${histFresh? `<span class="pill pill-green">🌍 Dados reais — ${DB.location.name.split(',')[0]}</span>` : historicalWeatherState==='loading'? `<span class="pill pill-blue">A obter dados reais…</span>` : `<span class="pill pill-neutral">Dados ilustrativos</span>`}
+          <span class="pill pill-blue">${MONTHS[now.getMonth()]} ${now.getDate()}</span>
+          <button class="btn btn-ghost btn-sm" onclick="ensureHistoricalWeather(true)">↻ Atualizar</button>
+        </div>`)}
+      <div class="overflow-x-auto">
+        ${climateChartSVG(weathers)}
+      </div>
+      <div class="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-[11px]" style="color:var(--ink-faint)">
+        <span class="flex items-center gap-1.5"><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--orange-600)"></i>Máxima ${weathers[0].year}</span>
+        <span class="flex items-center gap-1.5"><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--blue-600)"></i>Mínima ${weathers[0].year}</span>
+        <span class="flex items-center gap-1.5"><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--blue-600);opacity:.5"></i>Precipitação ${weathers[0].year}</span>
+        ${weathers.length>1? `<span class="flex items-center gap-1.5"><i style="display:inline-block;width:10px;height:2px;background:var(--ink-faint)"></i>Anos anteriores (${weathers.slice(1).map(w=>w.year).join(', ')})</span>` : ''}
+      </div>
+      <details class="mt-3">
+        <summary class="text-xs font-semibold cursor-pointer select-none" style="color:var(--ink-soft)">Ver tabela detalhada (valores exatos por mês)</summary>
+        <div class="overflow-x-auto mt-2">
+          <table class="w-full" style="border-collapse:collapse">
+            <thead><tr class="text-xs text-left" style="color:var(--ink-faint)">
+              <th class="pb-2 pr-3 font-semibold">Ano</th>
+              ${weathers[0].months.map(m=>`<th class="pb-2 px-2 text-center font-semibold">${m.label}</th>`).join('')}
+            </tr></thead>
+            <tbody>
+              ${weathers.map(({year,months})=>`
+                <tr style="border-top:1px solid var(--border)">
+                  <td class="py-2 pr-3 text-sm font-semibold" style="color:var(--ink-soft)">${year}</td>
+                  ${months.map(m=>`
+                    <td class="px-2 py-2 text-center">
+                      ${m.agg? `
+                      <div class="mono text-xs">${m.agg.tmin}°–${m.agg.tmax}°C</div>
+                      <div class="text-[10px] mono" style="color:${m.agg.rainTotal>0?'var(--blue-600)':'var(--ink-faint)'}">${m.agg.rainTotal>0? m.agg.rainTotal+' mm':'seco'}</div>
+                      <div class="text-[10px] mono" style="color:var(--ink-faint)">${m.agg.humidity!=null? m.agg.humidity+'% hum.':'—'}</div>
+                      ` : `<div class="text-xs" style="color:var(--ink-faint)">—</div>`}
+                    </td>`).join('')}
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+      </details>
+      <p class="text-[11px] mt-3 mb-0" style="color:var(--ink-faint)">${histFresh? 'Dados reais medidos (reanálise ERA5) via Open-Meteo Historical Weather API — funciona para qualquer localização de Portugal ou do Brasil escolhida em "Mudar local".' : historicalWeatherState==='loading'? 'A obter o histórico real dos últimos 3 anos para esta localização…' : 'Dados ilustrativos — sem ligação à internet para obter o histórico real; liga-te e atualiza para ver dados medidos.'}</p>
     </div>
   `;
   ensureCropImages([...producaoRows.map(r=>r.crop), ...agroTips.map(t=>t.crop)]);
@@ -4838,22 +4840,36 @@ function handleImageUpload(ev){
 function renderMapImage(){
   const c = document.getElementById('mapContainer');
   if(!c || !DB.propertyImage) return;
+  // "Vitrificação": em vez de blocos de cor opacos a tapar a foto, cada área fica com
+  // preenchimento translúcido (deixa ver o terreno por baixo), contorno mais brilhante,
+  // sombra suave a dar sensação de placa flutuante, e a etiqueta ganha um "chip" de vidro
+  // em vez do antigo contorno branco à volta do texto.
   const polys = DB.areas.map(a=>{
     const pts = a.points.map(p=>`${p.x*100},${p.y*100}`).join(' ');
     const planting = DB.plantings.find(pl=>pl.id===a.plantingId);
     const fillColor = planting? (STATUS_COLORS[planting.status]||STATUS_COLOR_EMPTY) : STATUS_COLOR_EMPTY;
-    return `<polygon class="area-poly ${a.id===selectedAreaId?'selected':''}" points="${pts}" fill="${fillColor}" stroke="${a.color}" stroke-width="${a.id===selectedAreaId?'0.7':'0.45'}" stroke-linejoin="round" onclick="selectArea('${a.id}')" style="pointer-events:${drawingMode?'none':'auto'}"/>`;
+    const sel = a.id===selectedAreaId;
+    return `<polygon class="area-poly ${sel?'selected':''}" points="${pts}" fill="${fillColor}" fill-opacity="${sel?0.7:0.52}" stroke="${a.color}" stroke-width="${sel?'0.85':'0.5'}" stroke-opacity="0.95" stroke-linejoin="round" filter="url(#areaGlass)" onclick="selectArea('${a.id}')" style="pointer-events:${drawingMode?'none':'auto'}"/>`;
   }).join('');
   const labels = DB.areas.map(a=>{
     const cx = a.points.reduce((s,p)=>s+p.x,0)/a.points.length*100;
     const cy = a.points.reduce((s,p)=>s+p.y,0)/a.points.length*100;
-    return `<text x="${cx}" y="${cy}" font-size="2.1" text-anchor="middle" fill="#1B2018" font-weight="600" font-family="'Fredoka',ui-sans-serif,sans-serif" letter-spacing=".01em" style="paint-order:stroke;stroke:#fff;stroke-width:.32px;stroke-linejoin:round;pointer-events:none">${a.name}</text>`;
+    const w = Math.min(30, Math.max(11, a.name.length*1.32+2.6));
+    return `<g style="pointer-events:none">
+      <rect x="${(cx-w/2).toFixed(2)}" y="${(cy-1.7).toFixed(2)}" width="${w.toFixed(2)}" height="3.4" rx="1.7" fill="rgba(10,12,8,.44)" stroke="rgba(255,255,255,.28)" stroke-width="0.09"/>
+      <text x="${cx}" y="${(cy+0.38).toFixed(2)}" font-size="1.85" text-anchor="middle" fill="#fff" font-weight="600" font-family="'Fredoka',ui-sans-serif,sans-serif" letter-spacing=".01em">${a.name}</text>
+    </g>`;
   }).join('');
   const drawPoly = drawPoints.length? `<polyline points="${drawPoints.map(p=>`${p.x*100},${p.y*100}`).join(' ')}" fill="none" stroke="var(--orange-500)" stroke-width="0.4" stroke-dasharray="1 0.8" stroke-linecap="round"/>` +
     drawPoints.map(p=>`<circle cx="${p.x*100}" cy="${p.y*100}" r="0.6" fill="var(--orange-500)"/>`).join('') : '';
   c.innerHTML = `
     <img src="${DB.propertyImage}" class="absolute inset-0 w-full h-full object-cover" draggable="false">
     <svg class="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none" style="cursor:${drawingMode?'crosshair':'default'}" onclick="mapClick(event)">
+      <defs>
+        <filter id="areaGlass" x="-30%" y="-30%" width="160%" height="160%">
+          <feDropShadow dx="0" dy="0.4" stdDeviation="0.55" flood-color="#000" flood-opacity="0.4"/>
+        </filter>
+      </defs>
       ${polys}${labels}${drawPoly}
     </svg>`;
 }
