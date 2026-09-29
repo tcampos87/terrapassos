@@ -843,9 +843,105 @@ function migrateBatchesToCoops(db){
   }
   orphans.forEach(b=>{ b.coopId = defaultCoop.id; });
 }
+/* =========================================================================
+   SINCRONIZAÇÃO COM A NUVEM (Firestore) — migração total dos módulos.
+   Em vez de reescrever cada função que hoje faz "DB.x.push(...); saveDB();"
+   por todo o ficheiro, esta camada aproveita que saveDB() já é chamada a
+   seguir a QUALQUER alteração: sempre que uma conta de cliente (com farmId)
+   está ativa, saveDB() compara o estado atual de cada coleção com o último
+   estado conhecido da nuvem e envia só as diferenças (criados/alterados/
+   apagados) para farms/{farmId}/{coleção}. As leituras são em tempo real
+   (onSnapshot) e escrevem diretamente em DB.x — por isso todos os módulos
+   já existentes continuam a funcionar sem qualquer alteração ao código
+   deles, tanto a ler como a mostrar dados.
+   ========================================================================= */
+const CLOUD_COLLECTIONS = ['areas','plantings','chickenBatches','coops','eggLogs','healthLogs','vaccineLogs',
+  'deathLogs','salesLogs','cleaningLogs','transactions','tasks','pestDiagnoses','stockMovements',
+  'warehouseItems','inputApplications','herbicideApplications','estufaAreas','estufaPlantings','seedlings'];
+const CLOUD_SETTINGS_FIELDS = ['currency','location','propertyImage','customCrops','brandLogo'];
+let cloudSyncActive = false;
+let cloudUnsubs = [];
+let lastCloudSnapshot = {}; // {colecao: [...cópias profundas do último estado recebido da nuvem]}
+function farmCol(name){ return fbDb.collection('farms').doc(authProfile.farmId).collection(name); }
+function deepCopy(v){ return v==null? v : JSON.parse(JSON.stringify(v)); }
+function startCloudSync(){
+  stopCloudSync();
+  if(!authProfile || !authProfile.farmId) return; // proprietário não tem farm própria — fica em modo local
+  cloudSyncActive = true;
+  CLOUD_COLLECTIONS.forEach(name=>{
+    const unsub = farmCol(name).onSnapshot(snap=>{
+      const docs = snap.docs.map(d=>d.data());
+      lastCloudSnapshot[name] = deepCopy(docs);
+      DB[name] = docs;
+      if(appInitialized) renderTab(currentTab);
+    }, err=>console.error('Sincronização falhou para "'+name+'"', err));
+    cloudUnsubs.push(unsub);
+  });
+  const unsubStock = farmCol('meta').doc('stockLevels').onSnapshot(doc=>{
+    const data = doc.exists? doc.data() : {};
+    lastCloudSnapshot.stockLevels = deepCopy(data);
+    DB.stockLevels = data;
+    if(appInitialized) renderTab(currentTab);
+  }, err=>console.error('Sincronização falhou para "stockLevels"', err));
+  cloudUnsubs.push(unsubStock);
+  const unsubSettings = farmCol('meta').doc('settings').onSnapshot(doc=>{
+    const data = doc.exists? doc.data() : {};
+    lastCloudSnapshot.settings = deepCopy(data);
+    CLOUD_SETTINGS_FIELDS.forEach(f=>{ if(data[f]!==undefined) DB[f] = data[f]; });
+    if(appInitialized) renderTab(currentTab);
+  }, err=>console.error('Sincronização falhou para "settings"', err));
+  cloudUnsubs.push(unsubSettings);
+}
+function stopCloudSync(){
+  cloudUnsubs.forEach(u=>{ try{ u(); }catch(e){} });
+  cloudUnsubs = [];
+  cloudSyncActive = false;
+  lastCloudSnapshot = {};
+}
+async function runBatchedWrites(ops){
+  // Firestore permite no máx. 500 operações por batch — divide em grupos por segurança.
+  for(let i=0;i<ops.length;i+=400){
+    const batch = fbDb.batch();
+    ops.slice(i,i+400).forEach(op=>op(batch));
+    await batch.commit();
+  }
+}
+async function syncCloudCollection(name){
+  const arr = DB[name]||[];
+  const known = lastCloudSnapshot[name]||[];
+  const knownById = new Map(known.map(x=>[x.id,x]));
+  const nowIds = new Set(arr.map(x=>x.id));
+  const ops = [];
+  known.forEach(old=>{ if(!nowIds.has(old.id)) ops.push(batch=>batch.delete(farmCol(name).doc(old.id))); });
+  arr.forEach(item=>{
+    if(!item.id) item.id = farmCol(name).doc().id;
+    const old = knownById.get(item.id);
+    if(!old || JSON.stringify(old)!==JSON.stringify(item)) ops.push(batch=>batch.set(farmCol(name).doc(item.id), item));
+  });
+  if(!ops.length) return;
+  lastCloudSnapshot[name] = deepCopy(arr); // otimista — a próxima leitura em tempo real confirma/corrige
+  try{ await runBatchedWrites(ops); }
+  catch(e){ console.error('Falha ao gravar "'+name+'" na nuvem', e); }
+}
+async function syncCloudSingleton(docId, data){
+  const known = lastCloudSnapshot[docId] || {};
+  if(JSON.stringify(known)===JSON.stringify(data||{})) return;
+  lastCloudSnapshot[docId] = deepCopy(data||{});
+  try{ await farmCol('meta').doc(docId).set(data||{}); }
+  catch(e){ console.error('Falha ao gravar "'+docId+'" na nuvem', e); }
+}
+function syncToCloud(){
+  if(!cloudSyncActive) return;
+  CLOUD_COLLECTIONS.forEach(name=>syncCloudCollection(name));
+  syncCloudSingleton('stockLevels', DB.stockLevels);
+  const settings = {}; CLOUD_SETTINGS_FIELDS.forEach(f=>settings[f]=DB[f]);
+  syncCloudSingleton('settings', settings);
+}
+
 function saveDB(){
   try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(DB)); }
   catch(e){ console.error('Falha ao guardar (armazenamento cheio?)', e); alert('Não foi possível guardar — o armazenamento local pode estar cheio (ex: imagem muito grande).'); }
+  syncToCloud();
 }
 function activeUser(){ return DB.users.find(u=>u.id===DB.activeUserId) || DB.users[0]; }
 
@@ -8711,7 +8807,7 @@ function init(){
 
 /* Porta de entrada única da app: nada corre (nem init()) sem sessão válida. */
 fbAuth.onAuthStateChanged(async (user) => {
-  if(!user){ authUser=null; authProfile=null; appInitialized=false; showAuthScreen(); return; }
+  if(!user){ stopCloudSync(); authUser=null; authProfile=null; appInitialized=false; showAuthScreen(); return; }
   try{
     const doc = await fbDb.collection('users').doc(user.uid).get();
     if(!doc.exists || doc.data().active===false){
@@ -8721,6 +8817,7 @@ fbAuth.onAuthStateChanged(async (user) => {
     }
     authUser = user;
     authProfile = doc.data();
+    startCloudSync(); // farms de clientes ficam a sincronizar em tempo real; o Proprietário (sem farmId) fica em modo local
     showApp();
     if(!appInitialized){ appInitialized = true; init(); }
     else { renderNav(); renderTopbar(); }
