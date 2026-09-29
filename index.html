@@ -3369,10 +3369,15 @@ async function ownerToggleClientActive(uidToToggle, makeActive){
 function renderTopbar(){
   const u = activeUser();
   document.getElementById('dateBadge').innerHTML = `<span class="dot" style="background:var(--green-600)"></span> ${new Date().toLocaleDateString('pt-PT',{weekday:'long', day:'2-digit', month:'long'})}`;
-  document.getElementById('userBtn').innerHTML = `<span style="width:20px;height:20px;border-radius:50%;background:${u.color};display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700">${u.name[0].toUpperCase()}</span><span>${u.name}</span> <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>`;
+  // O botão de topo mostra sempre a CONTA com que entraste (Firebase) — nunca o perfil local
+  // de atribuição, para não haver confusão entre "quem está autenticado" e "quem fez o quê".
+  const authInitial = authProfile? (authProfile.name||authProfile.email||'?')[0].toUpperCase() : '?';
+  const authLabel = authProfile? (authProfile.name || authProfile.email) : '—';
+  document.getElementById('userBtn').innerHTML = `<span style="width:20px;height:20px;border-radius:50%;background:var(--green-600);display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700">${authInitial}</span><span>${authLabel}</span> <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>`;
   const menu = document.getElementById('userMenu');
   menu.innerHTML = `
-    <div class="label px-2 pt-1">Utilizador ativo</div>
+    <div class="label px-2 pt-1">Perfil local (atribuição de registos)</div>
+    <div class="px-2 pb-1.5 text-[10.5px]" style="color:var(--ink-faint)">Quem fez o quê neste aparelho — não é a conta de login.</div>
     ${DB.users.map(u2=>`<button class="w-full flex items-center gap-2 px-2 py-2 rounded-lg text-left text-sm ${u2.id===DB.activeUserId?'':''}" style="background:${u2.id===DB.activeUserId?'var(--surface-2)':'transparent'}" onclick="setActiveUser('${u2.id}')">
         <span style="width:20px;height:20px;border-radius:50%;background:${u2.color};display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700">${u2.name[0].toUpperCase()}</span>
         <span class="flex-1 min-w-0 truncate">${u2.name}</span>
