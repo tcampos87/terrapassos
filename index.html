@@ -101,22 +101,22 @@
   --elev-3: 0 16px 40px -12px rgba(27,32,24,.24), 0 4px 12px -4px rgba(27,32,24,.1);
   --glass-bg: rgba(255,255,255,.66); --glass-border: rgba(255,255,255,.6); --acrylic: rgba(237,238,236,.78); --glass-sheen: rgba(255,255,255,.5);
 }
-/* ---- TerraPassos — tema de assinatura da plataforma (matte anthracite + verde-oliva + cobre neon) ---- */
+/* ---- TerraPassos — tema de assinatura da plataforma (preto quase puro + branco + laranja neon + verde) ---- */
 :root[data-theme="terrapassos"]{
-  --bg:#15170F; --surface:#1E2117; --surface-2:#262A1C; --border:#3A3F2C;
-  --ink:#F1EEE3; --ink-soft:#C9C4AE; --ink-faint:#8B8770;
-  --green-900:#FFD9B0; --green-700:#FFAE66; --green-600:#FF8A1F; --green-500:#F2924A; --green-100:#3A2814;
-  --orange-600:#C97A2E; --orange-500:#D98A3C; --orange-100:#3D2B16;
+  --bg:#0B0B09; --surface:#141412; --surface-2:#1D1D19; --border:#312F27;
+  --ink:#F8F7F2; --ink-soft:#C9C6BA; --ink-faint:#87847A;
+  --green-900:#C9F5D3; --green-700:#6FE28C; --green-600:#3ECB63; --green-500:#34B056; --green-100:#12301B;
+  --orange-600:#FF8A1F; --orange-500:#F2924A; --orange-100:#3A2410;
   --red-600:#E2695C; --red-100:#3A211D; --yellow-600:#E0A83D; --yellow-100:#372B10;
   --blue-600:#7FA9DC; --blue-100:#1E2A3A;
   --purple-600:#B3A0E8; --purple-100:#2A2340;
   --pink-600:#E293BC; --pink-100:#3A2130;
   --teal-600:#5FC2B7; --teal-100:#1B3733;
-  --shadow: 0 1px 2px rgba(0,0,0,.35), 0 8px 24px -12px rgba(0,0,0,.55);
-  --elev-1: 0 1px 2px rgba(0,0,0,.3), 0 1px 1px rgba(0,0,0,.22);
-  --elev-2: 0 6px 16px -6px rgba(0,0,0,.45), 0 2px 6px -2px rgba(0,0,0,.32);
-  --elev-3: 0 18px 44px -12px rgba(0,0,0,.6), 0 4px 14px -4px rgba(0,0,0,.4);
-  --glass-bg: rgba(30,33,23,.68); --glass-border: rgba(255,170,80,.16); --acrylic: rgba(21,23,15,.82); --glass-sheen: rgba(255,180,100,.12);
+  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+  --elev-1: 0 1px 2px rgba(0,0,0,.35), 0 1px 1px rgba(0,0,0,.25);
+  --elev-2: 0 6px 16px -6px rgba(0,0,0,.5), 0 2px 6px -2px rgba(0,0,0,.35);
+  --elev-3: 0 18px 44px -12px rgba(0,0,0,.65), 0 4px 14px -4px rgba(0,0,0,.45);
+  --glass-bg: rgba(20,20,18,.7); --glass-border: rgba(255,170,80,.16); --acrylic: rgba(11,11,9,.84); --glass-sheen: rgba(255,180,100,.1);
 }
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:'Public Sans',ui-sans-serif,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
@@ -146,34 +146,35 @@ button.card:active, a.card:active{transform:translateY(0) scale(.99)}
   radial-gradient(620px circle at 94% 14%, color-mix(in srgb, var(--teal-600) 16%, transparent), transparent 60%),
   radial-gradient(720px circle at 22% 98%, color-mix(in srgb, var(--orange-500) 13%, transparent), transparent 60%)}
 .min-h-screen.flex{position:relative;z-index:1}
-/* ---- Ecrã de login TerraPassos — assinatura visual fixa da marca (antracite + oliva + cobre neon),
+/* ---- Ecrã de login TerraPassos — assinatura visual fixa da marca (preto + branco + laranja neon + verde),
    igual em qualquer tema escolhido dentro da app; é a "porta de entrada" da plataforma. ---- */
-.tp-auth{position:relative;overflow:hidden;background:#100F0A}
+.tp-auth{position:relative;overflow:hidden;background:#070706}
 .tp-auth-glow{position:absolute;inset:0;pointer-events:none;background:
-  radial-gradient(900px circle at 12% 10%, rgba(255,138,31,.11), transparent 60%),
-  radial-gradient(760px circle at 88% 86%, rgba(122,79,42,.16), transparent 60%),
-  radial-gradient(1300px circle at 50% 126%, rgba(58,63,44,.55), transparent 70%)}
+  radial-gradient(900px circle at 12% 10%, rgba(255,138,31,.12), transparent 60%),
+  radial-gradient(700px circle at 90% 12%, rgba(62,203,99,.09), transparent 60%),
+  radial-gradient(760px circle at 88% 86%, rgba(62,203,99,.1), transparent 60%),
+  radial-gradient(1300px circle at 50% 126%, rgba(40,40,36,.6), transparent 70%)}
 .tp-auth-mark{position:absolute;right:-160px;bottom:-160px;width:620px;height:620px;opacity:.16;pointer-events:none;border-radius:0}
 .tp-auth-card{position:relative;z-index:1;max-width:400px;width:100%;padding:30px 28px;border-radius:22px;
-  background:rgba(30,33,23,.72);border:1px solid rgba(255,170,80,.18);
+  background:rgba(18,18,16,.74);border:1px solid rgba(255,170,80,.18);
   backdrop-filter:blur(22px) saturate(1.4);-webkit-backdrop-filter:blur(22px) saturate(1.4);
-  box-shadow:inset 0 1px 0 rgba(255,180,100,.14), 0 26px 64px -20px rgba(0,0,0,.7)}
+  box-shadow:inset 0 1px 0 rgba(255,180,100,.14), 0 26px 64px -20px rgba(0,0,0,.75)}
 .tp-auth-logo{display:block;width:56px;height:56px;margin-bottom:14px;border-radius:14px;filter:drop-shadow(0 0 12px rgba(255,138,31,.5))}
 .tp-auth-word{font-family:'Fredoka',ui-sans-serif,sans-serif;font-weight:600;font-size:27px;letter-spacing:.01em;color:#F4F1E6;line-height:1.1}
-.tp-auth-sub{font-size:11.5px;color:#AFA688;letter-spacing:.05em;text-transform:uppercase;margin-top:5px;margin-bottom:26px}
+.tp-auth-sub{font-size:11.5px;color:#A8A59C;letter-spacing:.05em;text-transform:uppercase;margin-top:5px;margin-bottom:26px}
 .tp-auth-h1{font-family:'Fredoka',ui-sans-serif,sans-serif;font-weight:600;font-size:19px;color:#F4F1E6;margin:0 0 16px}
 .tp-auth-error{font-size:12.5px;margin-bottom:14px;padding:9px 12px;border-radius:10px;color:#FFB199;background:rgba(226,105,92,.16)}
-.tp-auth-label{display:block;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#8B8770;margin-bottom:6px}
-.tp-auth-input{width:100%;box-sizing:border-box;padding:12px 14px;margin-bottom:16px;border-radius:12px;border:1px solid #3A3F2C;background:#1A1C14;color:#F4F1E6;font-size:14.5px;font-family:inherit;outline:none;transition:border-color .15s ease,box-shadow .15s ease}
-.tp-auth-input::placeholder{color:#5F5C4C}
+.tp-auth-label{display:block;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#8B887C;margin-bottom:6px}
+.tp-auth-input{width:100%;box-sizing:border-box;padding:12px 14px;margin-bottom:16px;border-radius:12px;border:1px solid #302E28;background:#161513;color:#F4F1E6;font-size:14.5px;font-family:inherit;outline:none;transition:border-color .15s ease,box-shadow .15s ease}
+.tp-auth-input::placeholder{color:#5C594F}
 .tp-auth-input:focus{border-color:#E2751A;box-shadow:0 0 0 3.5px rgba(226,117,26,.22)}
 .tp-auth-btn{width:100%;padding:13px;border:none;border-radius:12px;background:linear-gradient(135deg,#FF9A38,#E2601A);color:#1A1200;font-weight:700;font-size:14.5px;letter-spacing:.01em;cursor:pointer;box-shadow:0 10px 26px -8px rgba(255,138,31,.55);transition:filter .15s ease,transform .1s ease}
 .tp-auth-btn:hover{filter:brightness(1.06)}
 .tp-auth-btn:active{transform:scale(.98)}
 .tp-auth-btn:disabled{opacity:.6;cursor:default}
-.tp-auth-link{display:block;width:100%;padding:10px;margin-top:8px;border:none;background:transparent;color:#C9C4AE;font-size:12.5px;font-family:inherit;cursor:pointer;text-align:center}
+.tp-auth-link{display:block;width:100%;padding:10px;margin-top:8px;border:none;background:transparent;color:#C4C1B6;font-size:12.5px;font-family:inherit;cursor:pointer;text-align:center}
 .tp-auth-link:hover{color:#F4F1E6}
-.tp-auth-note{font-size:10.5px;color:#6E6B57;margin:20px 0 0;line-height:1.55}
+.tp-auth-note{font-size:10.5px;color:#6B685E;margin:20px 0 0;line-height:1.55}
 @media(max-width:480px){.tp-auth-card{padding:26px 22px;border-radius:18px}.tp-auth-mark{right:-220px;bottom:-220px}}
 .field{width:100%;border:1px solid var(--border);background:var(--surface);border-radius:var(--r-sm);padding:9px 13px;font-size:14px;outline:none;transition:border-color var(--dur-1) var(--ease),box-shadow var(--dur-1) var(--ease)}
 .field:focus{border-color:var(--green-500);box-shadow:0 0 0 3.5px color-mix(in srgb, var(--green-500) 20%, transparent)}
@@ -476,7 +477,7 @@ button.pill:active{transform:scale(.96)}
 
   <div class="tp-auth-card">
     <img class="tp-auth-logo" src="images/misc/terrapassos-mark.png" alt="TerraPassos" width="56" height="56">
-    <div class="tp-auth-word">TerraPassos</div>
+    <div class="tp-auth-word"><span style="color:#FF8A1F">Terra</span><span style="color:#F4F1E6">Passos</span></div>
     <div class="tp-auth-sub">Gestão Agrícola Integrada &amp; Agrofloresta</div>
 
     <h1 class="tp-auth-h1">Entrar</h1>
@@ -3471,8 +3472,14 @@ function renderBrandBlocks(){
     if(mobile) mobile.innerHTML = logoImg;
   } else {
     const mark = `<img src="${LOCAL_IMAGES.misc['logo-mark']}" alt="TerraPassos" width="32" height="32" style="border-radius:8px;flex:none" onerror="this.outerHTML=terraMarkSVG(32)">`;
-    if(desktop) desktop.innerHTML = `${mark}<div><div class="display font-semibold leading-none" style="font-size:17px">TerraPassos</div><div class="text-[11px]" style="color:var(--ink-faint)">Gestão Agrícola Integrada &amp; Agrofloresta</div></div>`;
-    if(mobile) mobile.innerHTML = `<div class="flex items-center gap-2"><img src="${LOCAL_IMAGES.misc['logo-mark']}" alt="TerraPassos" width="26" height="26" style="border-radius:7px;flex:none" onerror="this.outerHTML=terraMarkSVG(26)"><div class="display font-semibold" style="font-size:17px">TerraPassos</div></div>`;
+    // No tema TerraPassos, o nome ganha o tratamento a duas cores da identidade nova: "Terra" em
+    // laranja neon, "Passos" na cor de texto do tema (branco no escuro) — nos restantes temas
+    // mantém-se o nome numa cor só, como sempre foi.
+    const word = currentTheme==='terrapassos'
+      ? `<span style="color:var(--orange-600)">Terra</span><span style="color:var(--ink)">Passos</span>`
+      : `TerraPassos`;
+    if(desktop) desktop.innerHTML = `${mark}<div><div class="display font-semibold leading-none" style="font-size:17px">${word}</div><div class="text-[11px]" style="color:var(--ink-faint)">Gestão Agrícola Integrada &amp; Agrofloresta</div></div>`;
+    if(mobile) mobile.innerHTML = `<div class="flex items-center gap-2"><img src="${LOCAL_IMAGES.misc['logo-mark']}" alt="TerraPassos" width="26" height="26" style="border-radius:7px;flex:none" onerror="this.outerHTML=terraMarkSVG(26)"><div class="display font-semibold" style="font-size:17px">${word}</div></div>`;
   }
 }
 function switchTab(id){
@@ -3673,7 +3680,7 @@ function setActiveUser(id){
    TEMAS — paleta de cores da interface
    ========================================================================= */
 const THEMES = [
-  {id:'terrapassos', label:'TerraPassos — Antracite, Oliva e Cobre', badge:'Novo', swatches:['#15170F','#FF8A1F','#C97A2E']},
+  {id:'terrapassos', label:'TerraPassos — Preto, Verde e Laranja Neon', badge:'Novo', swatches:['#0B0B09','#3ECB63','#FF8A1F']},
   {id:'verde', label:'Branco, Verde e Laranja', swatches:['#F5F7EE','#2F7A3D','#D9660A']},
   {id:'azul', label:'Branco, Azul e Laranja', swatches:['#F5F8FB','#2E6FA8','#D9660A']},
   {id:'cinza', label:'Cinza, Verde e Laranja', swatches:['#EDEEEC','#2F7A3D','#D9660A']},
@@ -3686,6 +3693,7 @@ function applyTheme(theme){
   const attr = theme==='preto'? 'dark' : theme==='verde'? 'light' : theme;
   document.documentElement.setAttribute('data-theme', attr);
   renderThemeMenu();
+  renderBrandBlocks();
 }
 function toggleThemeMenu(){ const m=document.getElementById('themeMenu'); m.hidden=!m.hidden; if(!m.hidden) renderThemeMenu(); }
 function renderThemeMenu(){
