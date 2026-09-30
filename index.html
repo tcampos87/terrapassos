@@ -584,6 +584,7 @@ button.pill:active{transform:scale(.96)}
       <div id="panel-diagnostico" class="tab-panel"></div>
       <div id="panel-areas" class="tab-panel"></div>
       <div id="panel-galinhas" class="tab-panel"></div>
+      <div id="panel-pecuaria" class="tab-panel"></div>
       <div id="panel-ambiente" class="tab-panel"></div>
       <div id="panel-financas" class="tab-panel"></div>
       <div id="panel-analises" class="tab-panel"></div>
@@ -862,6 +863,12 @@ function defaultDB(){
     accounts: [], // {id,name,type:'banco'|'caixa'|'cartao',openingBalance,createdAt}
     employees: [], // {id,name,role,payType:'hora'|'dia',rate,active,createdAt}
     timeLogs: [], // {id,employeeId,date,hours,costCenterKind,costCenterId,note,cost,transactionId,userId,createdAt}
+    livestockAnimals: [], // {id,species,breed,name,tag,sex:'F'|'M',birthDate,motherId,fatherId,lotId,status:'ativo'|'vendido'|'morto'|'abatido',statusHistory:[{status,date,note,userId,saleValue}],photo,quarantined,createdAt}
+    livestockLots: [], // {id,name,species,environmentId,purpose,createdAt}
+    livestockEnvironments: [], // {id,name,capacity,notes,createdAt}
+    livestockWeightLogs: [], // {id,animalId,date,weightKg,userId}
+    livestockHealthLogs: [], // {id,animalId,date,type:'tratamento'|'doenca'|'vermifugacao',description,userId}
+    livestockVaccineLogs: [], // {id,animalId,date,vaccine,nextDueDate,withdrawalDays,userId}
   };
 }
 let DB = loadDB();
@@ -962,7 +969,8 @@ function migrateBatchesToCoops(db){
 const CLOUD_COLLECTIONS = ['areas','plantings','chickenBatches','coops','eggLogs','healthLogs','vaccineLogs',
   'deathLogs','salesLogs','cleaningLogs','transactions','tasks','pestDiagnoses','stockMovements',
   'warehouseItems','inputApplications','herbicideApplications','estufaAreas','estufaPlantings','seedlings','users',
-  'accounts','employees','timeLogs'];
+  'accounts','employees','timeLogs',
+  'livestockAnimals','livestockLots','livestockEnvironments','livestockWeightLogs','livestockHealthLogs','livestockVaccineLogs'];
 // Moeda/localização/culturas/utilizador ativo — campos pequenos, sempre seguros para um único documento.
 const CLOUD_SETTINGS_FIELDS = ['currency','location','customCrops','activeUserId'];
 // propertyImage/brandLogo são imagens em base64 e podem, sozinhas, aproximar-se do limite de
@@ -3789,6 +3797,7 @@ const ICONS = {
   diagnostico:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M20 20l-4.8-4.8"/><path d="M10.5 7.5v6M7.5 10.5h6"/></svg>',
   areas:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3Z"/><path d="M9 3v15M15 6v15"/></svg>',
   galinhas:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 20c0-5 2-9 6-9s6 4 6 9"/><circle cx="15" cy="7" r="3"/><path d="M18 6l3-1-2 3"/><path d="M4 20h16"/></svg>',
+  pecuaria:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13.5" r="6"/><path d="M6.5 10 3 6M17.5 10l3.5-4"/><circle cx="9.3" cy="13" r=".55" fill="currentColor" stroke="none"/><circle cx="14.7" cy="13" r=".55" fill="currentColor" stroke="none"/><path d="M9.3 17c1 .9 4.4.9 5.4 0"/></svg>',
   ambiente:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 17a4 4 0 010-8 5 5 0 019.6-1.5A4.5 4.5 0 0119 17H6Z"/></svg>',
   financas:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="13" rx="2"/><path d="M2 10h20"/><circle cx="16" cy="14.5" r="1.6" fill="currentColor" stroke="none"/></svg>',
   conhecimento:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2Z"/><path d="M9 7h7M9 11h5"/></svg>',
@@ -3814,6 +3823,7 @@ const TABS = [
   {id:'armazem', label:'Armazém', sub:'Stock de tudo o que guardas na quinta — sementes, ferramentas, embalagens, produção e mais'},
   {id:'agrofloresta', label:'AgroFloresta', sub:'Sugestão de consórcios de culturas com boa simbiose, por época do ano'},
   {id:'galinhas', label:'Galinhas', sub:'Lotes, ovos, saúde, vacinas e vendas'},
+  {id:'pecuaria', label:'Pecuária', sub:'Registo individual dos animais, lotes, ambientes, saúde, vacinas e peso'},
   {id:'ambiente', label:'Ambiente', sub:'Sensores e limpeza'},
   {id:'financas', label:'Finanças', sub:'Fluxo de caixa, despesas e receitas'},
   {id:'analises', label:'Análises', sub:'Comparação ano-a-ano e tendências dos últimos 12 meses'},
@@ -3962,6 +3972,7 @@ function renderTab(id){
   if(id==='diagnostico') renderDiagnostico();
   if(id==='areas') renderAreas();
   if(id==='galinhas') renderGalinhas();
+  if(id==='pecuaria') renderPecuaria();
   if(id==='ambiente') renderAmbiente();
   if(id==='financas') renderFinancas();
   if(id==='analises') renderAnalises();
@@ -6181,6 +6192,540 @@ function addSaleLog(){
 }
 
 /* =========================================================================
+   PECUÁRIA — registo individual de gado (bovinos, v1), lotes, ambientes
+   (pastagens/currais), saúde/vacinas e peso/crescimento.
+   ========================================================================= */
+const LIVESTOCK_SPECIES = [
+  {id:'bovino', label:'Bovino', icon:'🐄'},
+];
+const LIVESTOCK_BREEDS = {
+  bovino: ['Holstein Frísia','Jersey','Angus','Hereford','Limousine','Charolês','Nelore','Mertolenga','Alentejana','Barrosã','Maronesa','Mirandesa','Cruzada','Outra'],
+};
+const LIVESTOCK_STATUS_LABELS = {ativo:'Ativo', vendido:'Vendido', morto:'Morto', abatido:'Abatido'};
+const LIVESTOCK_STATUS_COLORS = {ativo:'var(--green-600)', vendido:'var(--blue-600)', morto:'var(--red-600)', abatido:'var(--orange-600)'};
+const BOVINE_VACCINE_PROTOCOL = [
+  {name:'Clostridioses (Carbúnculo sintomático / Enterotoxemia)', when:'2 doses no 1º ano (reforço 4-6 semanas depois), depois reforço anual'},
+  {name:'IBR / BVD (viroses respiratórias e reprodutivas)', when:'Conforme plano veterinário — geralmente anual'},
+  {name:'Brucelose', when:'Fêmeas dos 3 aos 8 meses, dose única (conforme legislação local)'},
+  {name:'Febre Aftosa', when:'Obrigatória nalgumas regiões (ex.: Brasil) — confirma com a autoridade veterinária local'},
+  {name:'Vermifugação', when:'A cada 3-4 meses, ou conforme carga parasitária avaliada'},
+];
+function speciesLabel(id){ return (LIVESTOCK_SPECIES.find(s=>s.id===id)||{}).label || id; }
+function speciesIcon(id){ return (LIVESTOCK_SPECIES.find(s=>s.id===id)||{}).icon || '🐾'; }
+function livestockAnimalById(id){ return DB.livestockAnimals.find(a=>a.id===id); }
+function lotAnimals(lotId){ return DB.livestockAnimals.filter(a=>a.lotId===lotId && a.status==='ativo'); }
+function environmentLots(envId){ return DB.livestockLots.filter(l=>l.environmentId===envId); }
+function animalAgeLabel(birthDate){
+  if(!birthDate) return '—';
+  const days = daysBetween(birthDate, todayISO());
+  if(days<60) return `${days} dias`;
+  const months = Math.floor(days/30.4);
+  if(months<24) return `${months} meses`;
+  return `${Math.floor(months/12)} anos`;
+}
+function animalWeights(animalId){ return DB.livestockWeightLogs.filter(w=>w.animalId===animalId).sort((a,b)=>a.date.localeCompare(b.date)); }
+function animalCurrentWeight(animalId){ const w = animalWeights(animalId); return w.length? w[w.length-1].weightKg : null; }
+function animalGMD(animalId){
+  const w = animalWeights(animalId);
+  if(w.length<2) return null;
+  const first = w[0], last = w[w.length-1];
+  const days = daysBetween(first.date, last.date);
+  if(days<=0) return null;
+  return Math.round(((last.weightKg-first.weightKg)/days)*1000)/1000;
+}
+function animalStatusPillHTML(status){
+  const color = LIVESTOCK_STATUS_COLORS[status]||'var(--ink-faint)';
+  return `<span class="pill" style="background:${color};color:${contrastTextColor(color)}">${LIVESTOCK_STATUS_LABELS[status]||status}</span>`;
+}
+
+let pecuariaView = 'geral'; // 'geral' | 'animais' | 'lotes' | 'ambientes' | 'saude' | 'peso'
+function setPecuariaView(v){ pecuariaView=v; renderPecuaria(); }
+function renderPecuaria(){
+  const el = document.getElementById('panel-pecuaria');
+  if(!el) return;
+  el.innerHTML = `
+    <div class="flex items-center justify-between gap-2 mb-4 flex-wrap">
+      <div class="seg" style="flex-wrap:wrap">
+        <button class="seg-btn ${pecuariaView==='geral'?'on':''}" onclick="setPecuariaView('geral')">Visão Geral</button>
+        <button class="seg-btn ${pecuariaView==='animais'?'on':''}" onclick="setPecuariaView('animais')">Animais</button>
+        <button class="seg-btn ${pecuariaView==='lotes'?'on':''}" onclick="setPecuariaView('lotes')">Lotes</button>
+        <button class="seg-btn ${pecuariaView==='ambientes'?'on':''}" onclick="setPecuariaView('ambientes')">Ambientes</button>
+        <button class="seg-btn ${pecuariaView==='saude'?'on':''}" onclick="setPecuariaView('saude')">Saúde &amp; Vacinas</button>
+        <button class="seg-btn ${pecuariaView==='peso'?'on':''}" onclick="setPecuariaView('peso')">Peso</button>
+      </div>
+    </div>
+    <div id="pecuariaBody"></div>
+  `;
+  const body = document.getElementById('pecuariaBody');
+  if(pecuariaView==='geral') body.innerHTML = renderPecuariaGeralHTML();
+  else if(pecuariaView==='animais') body.innerHTML = renderPecuariaAnimaisHTML();
+  else if(pecuariaView==='lotes') body.innerHTML = renderPecuariaLotesHTML();
+  else if(pecuariaView==='ambientes') body.innerHTML = renderPecuariaAmbientesHTML();
+  else if(pecuariaView==='saude') body.innerHTML = renderPecuariaSaudeHTML();
+  else if(pecuariaView==='peso') body.innerHTML = renderPecuariaPesoHTML();
+}
+
+function renderPecuariaGeralHTML(){
+  const ativos = DB.livestockAnimals.filter(a=>a.status==='ativo');
+  const buckets = weekBuckets(12);
+  const avgWeightSeries = buckets.map(b=>{
+    const logs = DB.livestockWeightLogs.filter(w=>w.date>=b.start && w.date<=b.end);
+    if(!logs.length) return null;
+    return Math.round((logs.reduce((s,l)=>s+l.weightKg,0)/logs.length)*10)/10;
+  });
+  const filled = avgWeightSeries.map((v,i)=>v!=null?v: (avgWeightSeries.slice(0,i).reverse().find(x=>x!=null) ?? 0));
+  const gmds = ativos.map(a=>animalGMD(a.id)).filter(v=>v!=null);
+  const avgGMD = gmds.length? Math.round((gmds.reduce((s,v)=>s+v,0)/gmds.length)*1000)/1000 : null;
+  const vendidosAno = DB.livestockAnimals.filter(a=>a.status==='vendido' && a.statusHistory.some(h=>h.status==='vendido' && h.date.slice(0,4)===todayISO().slice(0,4))).length;
+  return `
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+      <div class="stat-tile"><div><div class="text-xl font-bold mono leading-none">${DB.livestockLots.length}</div><div class="text-[11px] mt-1" style="color:var(--ink-soft)">lotes</div></div></div>
+      <div class="stat-tile" style="background:var(--green-100)"><div><div class="text-xl font-bold mono leading-none" style="color:var(--green-700)">${ativos.length}</div><div class="text-[11px] mt-1" style="color:var(--ink-soft)">animais ativos</div></div></div>
+      <div class="stat-tile" style="background:var(--orange-100)"><div><div class="text-xl font-bold mono leading-none" style="color:var(--orange-600)">${avgGMD!=null? avgGMD+' kg/d' : '—'}</div><div class="text-[11px] mt-1" style="color:var(--ink-soft)">GMD médio</div></div></div>
+      <div class="stat-tile" style="background:var(--blue-100)"><div><div class="text-xl font-bold mono leading-none" style="color:var(--blue-600)">${vendidosAno}</div><div class="text-[11px] mt-1" style="color:var(--ink-soft)">vendidos este ano</div></div></div>
+    </div>
+    <div class="card p-5 mb-5">
+      ${secHead('green','chart','Peso médio do efetivo', null, 'Média das pesagens registadas, por semana (últimos 3 meses)')}
+      ${!gmds.length && !filled.some(v=>v>0)? `<p class="text-sm m-0" style="color:var(--ink-faint)">Ainda sem pesagens suficientes para traçar a evolução — regista pesos em "Peso".</p>` :
+      `<div class="overflow-x-auto">${multiLineChartSVG([{label:'Peso médio (kg)', color:'var(--green-600)', values:filled}], buckets.map(b=>b.label))}</div>`}
+    </div>
+    <div class="card p-5">
+      ${secHead('red','alert','Lembretes de vacinação', null, 'Próximas doses agendadas (30 dias)')}
+      ${(()=>{
+        const upcoming = DB.livestockVaccineLogs.filter(v=>v.nextDueDate && daysBetween(todayISO(),v.nextDueDate)>=0 && daysBetween(todayISO(),v.nextDueDate)<=30)
+          .sort((a,b)=>a.nextDueDate.localeCompare(b.nextDueDate));
+        if(!upcoming.length) return `<p class="text-sm m-0" style="color:var(--ink-faint)">Sem doses agendadas nos próximos 30 dias.</p>`;
+        return `<div class="flex flex-col gap-2">${upcoming.map(v=>{
+          const a = livestockAnimalById(v.animalId);
+          return `<div class="list-tile justify-between gap-2">
+            <div class="min-w-0"><div class="text-sm font-semibold truncate">${v.vaccine}</div><div class="text-xs" style="color:var(--ink-soft)">${a?(a.name||a.tag):'—'} · vence ${fmtDate(v.nextDueDate)}</div></div>
+          </div>`;
+        }).join('')}</div>`;
+      })()}
+    </div>
+  `;
+}
+
+let pecuariaAnimalFilter = {species:'all', lot:'all', status:'ativo'};
+function setPecuariaAnimalFilter(field, val){ pecuariaAnimalFilter[field]=val; renderPecuaria(); }
+function renderPecuariaAnimaisHTML(){
+  let list = DB.livestockAnimals.slice();
+  if(pecuariaAnimalFilter.species!=='all') list = list.filter(a=>a.species===pecuariaAnimalFilter.species);
+  if(pecuariaAnimalFilter.lot!=='all') list = list.filter(a=>a.lotId===pecuariaAnimalFilter.lot);
+  if(pecuariaAnimalFilter.status!=='all') list = list.filter(a=>a.status===pecuariaAnimalFilter.status);
+  list.sort((a,b)=>(a.tag||'').localeCompare(b.tag||''));
+  return `
+    <div class="flex items-center justify-between gap-2 mb-4 flex-wrap">
+      <div class="flex gap-2 flex-wrap">
+        <select class="field" style="width:auto;font-size:12px" onchange="setPecuariaAnimalFilter('species', this.value)">
+          <option value="all">Espécie: todas</option>
+          ${LIVESTOCK_SPECIES.map(s=>`<option value="${s.id}" ${pecuariaAnimalFilter.species===s.id?'selected':''}>${s.icon} ${s.label}</option>`).join('')}
+        </select>
+        <select class="field" style="width:auto;font-size:12px" onchange="setPecuariaAnimalFilter('lot', this.value)">
+          <option value="all">Lote: todos</option>
+          ${DB.livestockLots.map(l=>`<option value="${l.id}" ${pecuariaAnimalFilter.lot===l.id?'selected':''}>${l.name}</option>`).join('')}
+        </select>
+        <select class="field" style="width:auto;font-size:12px" onchange="setPecuariaAnimalFilter('status', this.value)">
+          <option value="ativo" ${pecuariaAnimalFilter.status==='ativo'?'selected':''}>Estado: ativos</option>
+          <option value="all" ${pecuariaAnimalFilter.status==='all'?'selected':''}>Estado: todos</option>
+          <option value="vendido" ${pecuariaAnimalFilter.status==='vendido'?'selected':''}>Vendidos</option>
+          <option value="morto" ${pecuariaAnimalFilter.status==='morto'?'selected':''}>Mortos</option>
+          <option value="abatido" ${pecuariaAnimalFilter.status==='abatido'?'selected':''}>Abatidos</option>
+        </select>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="promptNewAnimal()">+ Novo animal</button>
+    </div>
+    ${!list.length? `<div class="empty-box">Nenhum animal encontrado com estes filtros.<button class="btn btn-outline btn-sm" onclick="promptNewAnimal()">+ Novo animal</button></div>` : `
+    <div class="card p-4">
+      <div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr class="text-xs text-left" style="color:var(--ink-faint)">
+        <th class="pb-2">Brinco</th><th class="pb-2">Nome</th><th class="pb-2">Espécie / Raça</th><th class="pb-2">Sexo</th><th class="pb-2">Idade</th><th class="pb-2">Lote</th><th class="pb-2">Peso atual</th><th class="pb-2">Estado</th>
+      </tr></thead><tbody>
+        ${list.map(a=>{
+          const lot = DB.livestockLots.find(l=>l.id===a.lotId);
+          const w = animalCurrentWeight(a.id);
+          return `<tr style="border-top:1px solid var(--border);cursor:pointer" onclick="openAnimalDetail('${a.id}')">
+            <td class="py-2 mono font-semibold">${a.tag||'—'}</td>
+            <td class="py-2">${a.name||'—'}</td>
+            <td class="py-2 text-xs" style="color:var(--ink-soft)">${speciesIcon(a.species)} ${speciesLabel(a.species)} · ${a.breed||'—'}</td>
+            <td class="py-2 text-xs">${a.sex==='F'?'Fêmea':'Macho'}</td>
+            <td class="py-2 text-xs mono" style="color:var(--ink-faint)">${animalAgeLabel(a.birthDate)}</td>
+            <td class="py-2 text-xs">${lot?lot.name:'—'}</td>
+            <td class="py-2 text-xs mono">${w!=null? w+' kg' : '—'}</td>
+            <td class="py-2">${animalStatusPillHTML(a.status)}</td>
+          </tr>`;
+        }).join('')}
+      </tbody></table></div>
+    </div>`}
+  `;
+}
+function promptNewAnimal(){
+  openModal(`
+    <h3 class="display font-semibold mb-3" style="font-size:17px">Novo animal</h3>
+    <div class="grid grid-cols-2 gap-2 mb-2">
+      <div><label class="label">Espécie</label><select class="field" id="anSpecies" onchange="updateAnBreedOptions()">${LIVESTOCK_SPECIES.map(s=>`<option value="${s.id}">${s.icon} ${s.label}</option>`).join('')}</select></div>
+      <div><label class="label">Raça</label><select class="field" id="anBreed"></select></div>
+    </div>
+    <div class="grid grid-cols-2 gap-2 mb-2">
+      <div><label class="label">Brinco / identificação</label><input class="field" id="anTag" placeholder="Ex: PT 123456789"></div>
+      <div><label class="label">Nome (opcional)</label><input class="field" id="anName" placeholder="Ex: Estrela"></div>
+    </div>
+    <div class="grid grid-cols-2 gap-2 mb-2">
+      <div><label class="label">Sexo</label><select class="field" id="anSex"><option value="F">Fêmea</option><option value="M">Macho</option></select></div>
+      <div><label class="label">Data de nascimento</label><input type="date" class="field" id="anBirth" value="${todayISO()}"></div>
+    </div>
+    <div class="grid grid-cols-2 gap-2 mb-2">
+      <div><label class="label">Mãe (opcional)</label><select class="field" id="anMother"><option value="">— desconhecida —</option>${DB.livestockAnimals.filter(a=>a.sex==='F').map(a=>`<option value="${a.id}">${a.tag||a.name}</option>`).join('')}</select></div>
+      <div><label class="label">Pai (opcional)</label><select class="field" id="anFather"><option value="">— desconhecido —</option>${DB.livestockAnimals.filter(a=>a.sex==='M').map(a=>`<option value="${a.id}">${a.tag||a.name}</option>`).join('')}</select></div>
+    </div>
+    <label class="label">Lote (opcional)</label>
+    <select class="field mb-2" id="anLot"><option value="">— sem lote —</option>${DB.livestockLots.map(l=>`<option value="${l.id}">${l.name}</option>`).join('')}</select>
+    <label class="label">Peso inicial em kg (opcional)</label>
+    <input type="number" min="0" step="0.1" class="field mb-3" id="anWeight" placeholder="Ex: 35">
+    <div class="flex gap-2 justify-end">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmNewAnimal()">Criar</button>
+    </div>`);
+  setTimeout(()=>{ updateAnBreedOptions(); document.getElementById('anTag')?.focus(); },50);
+}
+function updateAnBreedOptions(){
+  const speciesSel = document.getElementById('anSpecies');
+  const breedSel = document.getElementById('anBreed');
+  if(!speciesSel || !breedSel) return;
+  const breeds = LIVESTOCK_BREEDS[speciesSel.value]||[];
+  breedSel.innerHTML = breeds.map(b=>`<option value="${b}">${b}</option>`).join('');
+}
+function confirmNewAnimal(){
+  const tag = document.getElementById('anTag').value.trim();
+  const name = document.getElementById('anName').value.trim();
+  if(!tag && !name){ alert('Indica pelo menos o brinco/identificação ou um nome.'); return; }
+  const species = document.getElementById('anSpecies').value;
+  const breed = document.getElementById('anBreed').value;
+  const sex = document.getElementById('anSex').value;
+  const birthDate = document.getElementById('anBirth').value||todayISO();
+  const motherId = document.getElementById('anMother').value||null;
+  const fatherId = document.getElementById('anFather').value||null;
+  const lotId = document.getElementById('anLot').value||null;
+  const weight = parseFloat(document.getElementById('anWeight').value)||null;
+  const id = uid();
+  DB.livestockAnimals.push({id, species, breed, name, tag, sex, birthDate, motherId, fatherId, lotId,
+    status:'ativo', statusHistory:[{status:'ativo', date:todayISO(), note:'Animal registado', userId:DB.activeUserId}],
+    photo:null, quarantined:false, createdAt:todayISO()});
+  if(weight) DB.livestockWeightLogs.push({id:uid(), animalId:id, date:birthDate<=todayISO()?todayISO():birthDate, weightKg:weight, userId:DB.activeUserId});
+  saveDB(); closeModal(); renderPecuaria();
+}
+function openAnimalDetail(id){
+  const a = livestockAnimalById(id);
+  if(!a) return;
+  const lot = DB.livestockLots.find(l=>l.id===a.lotId);
+  const mother = a.motherId? livestockAnimalById(a.motherId) : null;
+  const father = a.fatherId? livestockAnimalById(a.fatherId) : null;
+  const weights = animalWeights(a.id);
+  const gmd = animalGMD(a.id);
+  const health = DB.livestockHealthLogs.filter(h=>h.animalId===a.id).sort((x,y)=>y.date.localeCompare(x.date));
+  const vaccines = DB.livestockVaccineLogs.filter(v=>v.animalId===a.id).sort((x,y)=>y.date.localeCompare(x.date));
+  openModal(`
+    <div class="flex items-start justify-between gap-2 mb-1">
+      <h3 class="display font-semibold m-0" style="font-size:19px">${speciesIcon(a.species)} ${a.name||a.tag||'Animal'}</h3>
+      ${animalStatusPillHTML(a.status)}
+    </div>
+    <div class="text-xs mb-4" style="color:var(--ink-faint)">${a.tag?'Brinco '+a.tag+' · ':''}${speciesLabel(a.species)} · ${a.breed||'—'} · ${a.sex==='F'?'Fêmea':'Macho'} · ${animalAgeLabel(a.birthDate)}</div>
+    <div class="grid grid-cols-2 gap-3 mb-4 text-sm">
+      <div><span class="label">Lote</span>${lot?lot.name:'— sem lote —'}</div>
+      <div><span class="label">Peso atual</span>${weights.length? weights[weights.length-1].weightKg+' kg' : '—'}</div>
+      <div><span class="label">Mãe</span>${mother? (mother.name||mother.tag) : '—'}</div>
+      <div><span class="label">Pai</span>${father? (father.name||father.tag) : '—'}</div>
+      <div><span class="label">GMD (ganho médio diário)</span>${gmd!=null? gmd+' kg/dia' : '—'}</div>
+      <div><span class="label">Nascimento</span>${fmtDate(a.birthDate)}</div>
+    </div>
+    ${weights.length>1? `<div class="mb-4"><span class="label">Curva de peso</span><div class="overflow-x-auto">${multiLineChartSVG([{label:'Peso (kg)', color:'var(--green-600)', values:weights.map(w=>w.weightKg)}], weights.map(w=>fmtDate(w.date).slice(0,6)))}</div></div>` : ''}
+    ${a.status==='ativo'? `<div class="flex gap-2 mb-4 flex-wrap">
+      <button class="btn btn-outline btn-sm" onclick="promptLogWeight('${a.id}')">+ Pesagem</button>
+      <button class="btn btn-outline btn-sm" onclick="promptLogHealth('${a.id}')">+ Saúde</button>
+      <button class="btn btn-outline btn-sm" onclick="promptLogVaccine('${a.id}')">+ Vacina</button>
+      <button class="btn btn-accent btn-sm" onclick="promptAnimalStatusChange('${a.id}','vendido')">Vender</button>
+      <button class="btn btn-danger btn-sm" onclick="promptAnimalStatusChange('${a.id}','morto')">Registar morte</button>
+      <button class="btn btn-ghost btn-sm" onclick="promptAnimalStatusChange('${a.id}','abatido')">Registar abate</button>
+    </div>` : ''}
+    ${health.length||vaccines.length? `<details class="text-xs mb-3" style="color:var(--ink-soft)">
+      <summary class="cursor-pointer font-semibold">Saúde e vacinas (${health.length+vaccines.length})</summary>
+      <div class="flex flex-col gap-1 mt-2">
+        ${vaccines.map(v=>`<div>${fmtDate(v.date)} — <b>💉 ${v.vaccine}</b>${v.nextDueDate?` · próxima dose ${fmtDate(v.nextDueDate)}`:''}</div>`).join('')}
+        ${health.map(h=>`<div>${fmtDate(h.date)} — <b>${h.type==='vermifugacao'?'🪱 Vermifugação':h.type==='doenca'?'🤒 Doença':'💊 Tratamento'}</b>${h.description?' · '+h.description:''}</div>`).join('')}
+      </div>
+    </details>` : ''}
+    <details class="text-xs" style="color:var(--ink-soft)">
+      <summary class="cursor-pointer font-semibold">Histórico (${a.statusHistory.length})</summary>
+      <div class="flex flex-col gap-1 mt-2">
+        ${a.statusHistory.slice().reverse().map(h=>`<div>${fmtDate(h.date)} — <b>${LIVESTOCK_STATUS_LABELS[h.status]||h.status}</b>${h.note?' · '+h.note:''}${h.saleValue?' · '+fmtMoney(h.saleValue):''}</div>`).join('')}
+      </div>
+    </details>
+    <div class="flex justify-end mt-4"><button class="btn btn-ghost" onclick="closeModal()">Fechar</button></div>
+  `, true);
+}
+function promptAnimalStatusChange(id, status){
+  const a = livestockAnimalById(id);
+  if(!a) return;
+  if(status==='vendido'){
+    openModal(`
+      <h3 class="display font-semibold mb-3" style="font-size:17px">Vender ${a.name||a.tag}</h3>
+      <label class="label">Data</label><input type="date" class="field mb-2" id="stDate" value="${todayISO()}">
+      <label class="label">Valor de venda (${CURRENCY_SYMBOLS[DB.currency]})</label><input type="number" min="0" step="0.01" class="field mb-2" id="stValue">
+      <label class="label">Nota (opcional)</label><input class="field mb-3" id="stNote" placeholder="Ex: comprador, peso na venda...">
+      <div class="flex gap-2 justify-end">
+        <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="confirmAnimalStatusChange('${id}','vendido')">Confirmar venda</button>
+      </div>`);
+  } else {
+    openModal(`
+      <h3 class="display font-semibold mb-3" style="font-size:17px">${status==='morto'?'Registar morte':'Registar abate'} — ${a.name||a.tag}</h3>
+      <label class="label">Data</label><input type="date" class="field mb-2" id="stDate" value="${todayISO()}">
+      <label class="label">Causa / nota</label><input class="field mb-3" id="stNote" placeholder="${status==='morto'?'Ex: doença, causa desconhecida...':'Ex: peso ao abate...'}">
+      <div class="flex gap-2 justify-end">
+        <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+        <button class="btn btn-danger" onclick="confirmAnimalStatusChange('${id}','${status}')">Confirmar</button>
+      </div>`);
+  }
+}
+function confirmAnimalStatusChange(id, status){
+  const a = livestockAnimalById(id);
+  if(!a) return;
+  const date = document.getElementById('stDate').value||todayISO();
+  const note = document.getElementById('stNote').value.trim();
+  const entry = {status, date, note, userId:DB.activeUserId};
+  if(status==='vendido'){
+    const value = parseFloat(document.getElementById('stValue').value)||0;
+    entry.saleValue = value;
+    if(value>0){
+      const lot = DB.livestockLots.find(l=>l.id===a.lotId);
+      DB.transactions.push({id:uid(), type:'receita', category:'Venda de Gado', amount:value, date, note:`${a.name||a.tag}${lot?' — '+lot.name:''}`,
+        userId:DB.activeUserId, status:'pago', paidDate:date, costCenterKind:'pecuaria', costCenterId:a.lotId||null});
+    }
+  }
+  a.status = status;
+  a.statusHistory.push(entry);
+  saveDB(); closeModal(); renderPecuaria();
+}
+function promptLogWeight(animalId){
+  openModal(`
+    <h3 class="display font-semibold mb-3" style="font-size:17px">Registar pesagem</h3>
+    <label class="label">Data</label><input type="date" class="field mb-2" id="wDate" value="${todayISO()}">
+    <label class="label">Peso (kg)</label><input type="number" min="0" step="0.1" class="field mb-3" id="wKg" placeholder="Ex: 180">
+    <div class="flex gap-2 justify-end">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmLogWeight('${animalId}')">Registar</button>
+    </div>`);
+  setTimeout(()=>document.getElementById('wKg')?.focus(),50);
+}
+function confirmLogWeight(animalId){
+  const date = document.getElementById('wDate').value||todayISO();
+  const weightKg = parseFloat(document.getElementById('wKg').value)||0;
+  if(weightKg<=0){ alert('Indica um peso maior que zero.'); return; }
+  DB.livestockWeightLogs.push({id:uid(), animalId, date, weightKg, userId:DB.activeUserId});
+  saveDB(); closeModal(); openAnimalDetail(animalId);
+}
+function promptLogHealth(animalId){
+  openModal(`
+    <h3 class="display font-semibold mb-3" style="font-size:17px">Registar saúde</h3>
+    <label class="label">Tipo</label>
+    <select class="field mb-2" id="hType"><option value="tratamento">💊 Tratamento</option><option value="doenca">🤒 Doença</option><option value="vermifugacao">🪱 Vermifugação</option></select>
+    <label class="label">Data</label><input type="date" class="field mb-2" id="hDate" value="${todayISO()}">
+    <label class="label">Descrição</label><input class="field mb-3" id="hDesc" placeholder="Ex: claudicação na pata traseira, tratada com...">
+    <div class="flex gap-2 justify-end">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmLogHealth('${animalId}')">Registar</button>
+    </div>`);
+}
+function confirmLogHealth(animalId){
+  const type = document.getElementById('hType').value;
+  const date = document.getElementById('hDate').value||todayISO();
+  const description = document.getElementById('hDesc').value.trim();
+  DB.livestockHealthLogs.push({id:uid(), animalId, date, type, description, userId:DB.activeUserId});
+  saveDB(); closeModal(); openAnimalDetail(animalId);
+}
+function promptLogVaccine(animalId){
+  openModal(`
+    <h3 class="display font-semibold mb-3" style="font-size:17px">Registar vacina</h3>
+    <label class="label">Vacina</label>
+    <select class="field mb-2" id="vName" onchange="toggleBrandOther(this,'vNameOther')">${BOVINE_VACCINE_PROTOCOL.map(p=>`<option value="${p.name}">${p.name}</option>`).join('')}<option value="__outra__">Outra (escrever)</option></select>
+    <input class="field mb-2" id="vNameOther" placeholder="Nome da vacina" style="display:none">
+    <label class="label">Data</label><input type="date" class="field mb-2" id="vDate" value="${todayISO()}">
+    <label class="label">Próxima dose (opcional)</label><input type="date" class="field mb-3" id="vNext">
+    <div class="flex gap-2 justify-end">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmLogVaccine('${animalId}')">Registar</button>
+    </div>`);
+}
+function confirmLogVaccine(animalId){
+  const sel = document.getElementById('vName').value;
+  const vaccine = sel==='__outra__'? document.getElementById('vNameOther').value.trim() : sel;
+  if(!vaccine){ alert('Indica o nome da vacina.'); return; }
+  const date = document.getElementById('vDate').value||todayISO();
+  const nextDueDate = document.getElementById('vNext').value||null;
+  DB.livestockVaccineLogs.push({id:uid(), animalId, date, vaccine, nextDueDate, userId:DB.activeUserId});
+  saveDB(); closeModal(); openAnimalDetail(animalId);
+}
+
+function renderPecuariaLotesHTML(){
+  return `
+    <div class="flex justify-end mb-4"><button class="btn btn-primary btn-sm" onclick="promptNewLot()">+ Novo lote</button></div>
+    ${!DB.livestockLots.length? `<div class="empty-box">Ainda não tens lotes registados.<button class="btn btn-outline btn-sm" onclick="promptNewLot()">+ Novo lote</button></div>` : `
+    <div class="grid-crops">
+      ${DB.livestockLots.map(l=>{
+        const animals = lotAnimals(l.id);
+        const env = DB.livestockEnvironments.find(e=>e.id===l.environmentId);
+        return `<div class="card p-4">
+          <div class="flex items-center justify-between gap-2 mb-2">
+            <span class="font-semibold display" style="font-size:15px">${l.name}</span>
+            <button class="text-xs" style="color:var(--red-600)" onclick="deleteLot('${l.id}')">remover</button>
+          </div>
+          <div class="text-xs mb-1" style="color:var(--ink-faint)">${speciesLabel(l.species)} · ${l.purpose||'—'}</div>
+          <div class="text-xs mb-2" style="color:var(--ink-faint)">📍 ${env?env.name:'sem ambiente'}</div>
+          <div class="text-2xl font-bold mono">${animals.length}<span class="text-xs font-normal" style="color:var(--ink-faint)"> animais</span></div>
+        </div>`;
+      }).join('')}
+    </div>`}
+  `;
+}
+function promptNewLot(){
+  openModal(`
+    <h3 class="display font-semibold mb-3" style="font-size:17px">Novo lote</h3>
+    <label class="label">Nome</label><input class="field mb-2" id="lotName" placeholder="Ex: Lote de Engorda 1">
+    <div class="grid grid-cols-2 gap-2 mb-2">
+      <div><label class="label">Espécie</label><select class="field" id="lotSpecies">${LIVESTOCK_SPECIES.map(s=>`<option value="${s.id}">${s.icon} ${s.label}</option>`).join('')}</select></div>
+      <div><label class="label">Finalidade</label><select class="field" id="lotPurpose"><option value="engorda">Engorda</option><option value="reproducao">Reprodução</option><option value="leite">Leite</option><option value="recria">Recria</option></select></div>
+    </div>
+    <label class="label">Ambiente (opcional)</label>
+    <select class="field mb-3" id="lotEnv"><option value="">— sem ambiente —</option>${DB.livestockEnvironments.map(e=>`<option value="${e.id}">${e.name}</option>`).join('')}</select>
+    <div class="flex gap-2 justify-end">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmNewLot()">Criar</button>
+    </div>`);
+  setTimeout(()=>document.getElementById('lotName')?.focus(),50);
+}
+function confirmNewLot(){
+  const name = document.getElementById('lotName').value.trim();
+  if(!name){ alert('Indica um nome para o lote.'); return; }
+  const species = document.getElementById('lotSpecies').value;
+  const purpose = document.getElementById('lotPurpose').value;
+  const environmentId = document.getElementById('lotEnv').value||null;
+  DB.livestockLots.push({id:uid(), name, species, environmentId, purpose, createdAt:todayISO()});
+  saveDB(); closeModal(); renderPecuaria();
+}
+function deleteLot(id){
+  if(!confirm('Remover este lote? Os animais ficam sem lote atribuído.')) return;
+  DB.livestockLots = DB.livestockLots.filter(l=>l.id!==id);
+  DB.livestockAnimals.forEach(a=>{ if(a.lotId===id) a.lotId=null; });
+  saveDB(); renderPecuaria();
+}
+function renderPecuariaAmbientesHTML(){
+  return `
+    <div class="flex justify-end mb-4"><button class="btn btn-primary btn-sm" onclick="promptNewEnvironment()">+ Novo ambiente</button></div>
+    ${!DB.livestockEnvironments.length? `<div class="empty-box">Ainda não tens ambientes registados (pastagens, currais, estábulos...).<button class="btn btn-outline btn-sm" onclick="promptNewEnvironment()">+ Novo ambiente</button></div>` : `
+    <div class="grid-crops">
+      ${DB.livestockEnvironments.map(e=>{
+        const lots = environmentLots(e.id);
+        const total = lots.reduce((s,l)=>s+lotAnimals(l.id).length,0);
+        return `<div class="card p-4">
+          <div class="flex items-center justify-between gap-2 mb-2">
+            <span class="font-semibold display" style="font-size:15px">${e.name}</span>
+            <button class="text-xs" style="color:var(--red-600)" onclick="deleteEnvironment('${e.id}')">remover</button>
+          </div>
+          <div class="text-xs mb-2" style="color:var(--ink-faint)">${e.capacity?`Capacidade: ${e.capacity} animais`:'Sem limite de capacidade definido'}</div>
+          <div class="text-2xl font-bold mono">${total}<span class="text-xs font-normal" style="color:var(--ink-faint)"> animais · ${lots.length} lote${lots.length===1?'':'s'}</span></div>
+          ${e.notes? `<div class="text-xs mt-2" style="color:var(--ink-soft)">${e.notes}</div>` : ''}
+        </div>`;
+      }).join('')}
+    </div>`}
+  `;
+}
+function promptNewEnvironment(){
+  openModal(`
+    <h3 class="display font-semibold mb-3" style="font-size:17px">Novo ambiente</h3>
+    <label class="label">Nome</label><input class="field mb-2" id="envName" placeholder="Ex: Pastagem Norte, Curral 2, Estábulo...">
+    <label class="label">Capacidade (opcional, nº de animais)</label>
+    <input type="number" min="0" step="1" class="field mb-2" id="envCapacity">
+    <label class="label">Notas (opcional)</label>
+    <input class="field mb-3" id="envNotes" placeholder="Ex: rotação com Pastagem Sul a cada 3 semanas">
+    <div class="flex gap-2 justify-end">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmNewEnvironment()">Criar</button>
+    </div>`);
+  setTimeout(()=>document.getElementById('envName')?.focus(),50);
+}
+function confirmNewEnvironment(){
+  const name = document.getElementById('envName').value.trim();
+  if(!name){ alert('Indica um nome para o ambiente.'); return; }
+  const capacity = parseFloat(document.getElementById('envCapacity').value)||null;
+  const notes = document.getElementById('envNotes').value.trim();
+  DB.livestockEnvironments.push({id:uid(), name, capacity, notes, createdAt:todayISO()});
+  saveDB(); closeModal(); renderPecuaria();
+}
+function deleteEnvironment(id){
+  if(!confirm('Remover este ambiente? Os lotes ligados a ele ficam sem ambiente atribuído.')) return;
+  DB.livestockEnvironments = DB.livestockEnvironments.filter(e=>e.id!==id);
+  DB.livestockLots.forEach(l=>{ if(l.environmentId===id) l.environmentId=null; });
+  saveDB(); renderPecuaria();
+}
+function renderPecuariaSaudeHTML(){
+  const recentHealth = DB.livestockHealthLogs.slice().sort((a,b)=>b.date.localeCompare(a.date)).slice(0,15);
+  const recentVaccines = DB.livestockVaccineLogs.slice().sort((a,b)=>b.date.localeCompare(a.date)).slice(0,15);
+  return `
+    <div class="card p-4 mb-4" style="background:var(--yellow-100);color:var(--yellow-600)">
+      <div class="text-xs">⚠️ Protocolo de referência geral — as obrigações legais de vacinação variam por país/região (Portugal vs. Brasil) e evoluem ao longo do tempo. Consulta sempre um médico veterinário licenciado e a autoridade sanitária local antes de definir o calendário vacinal do teu efetivo.</div>
+    </div>
+    <div class="card p-4 mb-4">
+      ${secHead('green','leaf','Protocolo de referência — Bovinos')}
+      <div class="flex flex-col gap-2">
+        ${BOVINE_VACCINE_PROTOCOL.map(p=>`<div class="list-tile" style="align-items:flex-start"><div class="min-w-0"><div class="text-sm font-semibold">${p.name}</div><div class="text-xs" style="color:var(--ink-soft)">${p.when}</div></div></div>`).join('')}
+      </div>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="card p-4">
+        ${secHead('blue','history','Vacinas recentes')}
+        ${!recentVaccines.length? `<p class="text-sm m-0" style="color:var(--ink-faint)">Ainda sem vacinas registadas.</p>` :
+        `<div class="flex flex-col gap-2">${recentVaccines.map(v=>{
+          const a = livestockAnimalById(v.animalId);
+          return `<div class="list-tile justify-between gap-2"><div class="min-w-0"><div class="text-sm font-semibold truncate">💉 ${v.vaccine}</div><div class="text-xs" style="color:var(--ink-soft)">${a?(a.name||a.tag):'—'} · ${fmtDate(v.date)}</div></div></div>`;
+        }).join('')}</div>`}
+      </div>
+      <div class="card p-4">
+        ${secHead('red','alert','Saúde recente')}
+        ${!recentHealth.length? `<p class="text-sm m-0" style="color:var(--ink-faint)">Ainda sem registos de saúde.</p>` :
+        `<div class="flex flex-col gap-2">${recentHealth.map(h=>{
+          const a = livestockAnimalById(h.animalId);
+          return `<div class="list-tile justify-between gap-2"><div class="min-w-0"><div class="text-sm font-semibold truncate">${h.type==='vermifugacao'?'🪱 Vermifugação':h.type==='doenca'?'🤒 Doença':'💊 Tratamento'}</div><div class="text-xs" style="color:var(--ink-soft)">${a?(a.name||a.tag):'—'} · ${fmtDate(h.date)}${h.description?' · '+h.description:''}</div></div></div>`;
+        }).join('')}</div>`}
+      </div>
+    </div>
+  `;
+}
+function renderPecuariaPesoHTML(){
+  const ativos = DB.livestockAnimals.filter(a=>a.status==='ativo');
+  return `
+    <div class="card p-4">
+      ${secHead('green','chart','Peso e crescimento por animal', null, 'Último peso registado e ganho médio diário (GMD) — clica num animal para ver a curva completa')}
+      ${!ativos.length? `<p class="text-sm m-0" style="color:var(--ink-faint)">Ainda sem animais ativos registados.</p>` : `
+      <div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr class="text-xs text-left" style="color:var(--ink-faint)">
+        <th class="pb-2">Animal</th><th class="pb-2">Lote</th><th class="pb-2 text-right">Último peso</th><th class="pb-2 text-right">GMD</th><th class="pb-2"></th>
+      </tr></thead><tbody>
+        ${ativos.map(a=>{
+          const w = animalCurrentWeight(a.id);
+          const gmd = animalGMD(a.id);
+          const lot = DB.livestockLots.find(l=>l.id===a.lotId);
+          return `<tr style="border-top:1px solid var(--border)">
+            <td class="py-2">${a.name||a.tag||'—'}</td>
+            <td class="py-2 text-xs" style="color:var(--ink-soft)">${lot?lot.name:'—'}</td>
+            <td class="py-2 text-right mono">${w!=null? w+' kg' : '—'}</td>
+            <td class="py-2 text-right mono text-xs" style="color:${gmd==null?'var(--ink-faint)':gmd>=0?'var(--green-700)':'var(--red-600)'}">${gmd!=null? gmd+' kg/d' : '—'}</td>
+            <td class="py-2 text-right"><button class="btn btn-ghost btn-sm" onclick="promptLogWeight('${a.id}')">+ Pesar</button></td>
+          </tr>`;
+        }).join('')}
+      </tbody></table></div>`}
+    </div>
+  `;
+}
+
+/* =========================================================================
    AMBIENTE
    ========================================================================= */
 function mockSensor(base, spread, minute){ return Math.round((base + Math.sin(minute/7)*spread + (seededRand(minute*13)-0.5)*spread*0.6)*10)/10; }
@@ -6323,11 +6868,13 @@ const COST_CENTER_KINDS = [
   {id:'area', label:'Área (Culturas)'},
   {id:'estufa', label:'Estufa'},
   {id:'galinhas', label:'Galinhas'},
+  {id:'pecuaria', label:'Pecuária'},
 ];
 function costCenterOptions(kind){
   if(kind==='area') return DB.areas.map(a=>({id:a.id,name:a.name}));
   if(kind==='estufa') return DB.estufaAreas.map(a=>({id:a.id,name:a.name}));
   if(kind==='galinhas') return DB.coops.map(c=>({id:c.id,name:c.name}));
+  if(kind==='pecuaria') return DB.livestockLots.map(l=>({id:l.id,name:l.name}));
   return [];
 }
 function costCenterSelectHTML(id, selected){
@@ -6337,6 +6884,7 @@ function costCenterSelectHTML(id, selected){
     ${DB.areas.length? `<optgroup label="Áreas">${DB.areas.map(a=>`<option value="area:${a.id}" ${sel==='area:'+a.id?'selected':''}>${a.name}</option>`).join('')}</optgroup>` : ''}
     ${DB.estufaAreas.length? `<optgroup label="Estufa">${DB.estufaAreas.map(a=>`<option value="estufa:${a.id}" ${sel==='estufa:'+a.id?'selected':''}>${a.name}</option>`).join('')}</optgroup>` : ''}
     ${DB.coops.length? `<optgroup label="Galinhas">${DB.coops.map(c=>`<option value="galinhas:${c.id}" ${sel==='galinhas:'+c.id?'selected':''}>${c.name}</option>`).join('')}</optgroup>` : ''}
+    ${DB.livestockLots.length? `<optgroup label="Pecuária">${DB.livestockLots.map(l=>`<option value="pecuaria:${l.id}" ${sel==='pecuaria:'+l.id?'selected':''}>${l.name}</option>`).join('')}</optgroup>` : ''}
   </select>`;
 }
 function parseCostCenterVal(val){
@@ -6563,6 +7111,7 @@ function renderFinancasCentrosHTML(){
   DB.areas.forEach(a=>centers.push({kind:'area',id:a.id,label:`Área — ${a.name}`}));
   DB.estufaAreas.forEach(a=>centers.push({kind:'estufa',id:a.id,label:`Estufa — ${a.name}`}));
   DB.coops.forEach(c=>centers.push({kind:'galinhas',id:c.id,label:`Galinhas — ${c.name}`}));
+  DB.livestockLots.forEach(l=>centers.push({kind:'pecuaria',id:l.id,label:`Pecuária — ${l.name}`}));
   const rows = centers.map(c=>{
     const txs = DB.transactions.filter(t=>txIsPago(t) && (t.costCenterKind||'geral')===c.kind && (c.kind==='geral' || t.costCenterId===c.id));
     const r = txs.filter(t=>t.type==='receita').reduce((s,t)=>s+t.amount,0);
