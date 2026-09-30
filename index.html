@@ -882,6 +882,7 @@ function defaultDB(){
     livestockWeightLogs: [], // {id,animalId,date,weightKg,userId}
     livestockHealthLogs: [], // {id,animalId,date,type:'tratamento'|'doenca'|'vermifugacao',description,userId}
     livestockVaccineLogs: [], // {id,animalId,date,vaccine,nextDueDate,withdrawalDays,userId}
+    livestockBreedings: [], // {id,femaleId,maleId,sireLabel,method,date,expectedCalvingDate,status:'aguardando'|'confirmada'|'negativa'|'parto'|'aborto',pregnancyCheckDate,calvingDate,calfId,calfOutcome,calfSex,calfWeight,notes,userId,createdAt}
     animalImageCache: {}, // {animalCatalogId: url|null} — fotos reais do catálogo do módulo Animais
     breedImageCache: {}, // {breedId: url|null} — fotos reais de cada raça, dentro do catálogo de Animais
     dashboardOrder: null, // [cardId,...] — ordem dos cards da Visão Geral escolhida pelo utilizador; null = ordem por defeito
@@ -988,7 +989,7 @@ const CLOUD_COLLECTIONS = ['areas','plantings','chickenBatches','coops','eggLogs
   'deathLogs','salesLogs','cleaningLogs','transactions','tasks','pestDiagnoses','stockMovements',
   'warehouseItems','inputApplications','herbicideApplications','estufaAreas','estufaPlantings','seedlings','users',
   'accounts','employees','timeLogs',
-  'livestockAnimals','livestockLots','livestockEnvironments','livestockWeightLogs','livestockHealthLogs','livestockVaccineLogs'];
+  'livestockAnimals','livestockLots','livestockEnvironments','livestockWeightLogs','livestockHealthLogs','livestockVaccineLogs','livestockBreedings'];
 // Moeda/localização/culturas/utilizador ativo — campos pequenos, sempre seguros para um único documento.
 const CLOUD_SETTINGS_FIELDS = ['currency','location','customCrops','activeUserId'];
 // propertyImage/brandLogo são imagens em base64 e podem, sozinhas, aproximar-se do limite de
@@ -3688,7 +3689,7 @@ function confirmRemoveDemoData(){
 }
 function removeDemoData(){
   const collections = ['areas','plantings','chickenBatches','coops','eggLogs','healthLogs','vaccineLogs','deathLogs','salesLogs','cleaningLogs','transactions','tasks','pestDiagnoses','inputApplications','herbicideApplications','stockMovements','estufaAreas','estufaPlantings','warehouseItems',
-    'accounts','employees','timeLogs','livestockAnimals','livestockLots','livestockEnvironments','livestockWeightLogs','livestockHealthLogs','livestockVaccineLogs'];
+    'accounts','employees','timeLogs','livestockAnimals','livestockLots','livestockEnvironments','livestockWeightLogs','livestockHealthLogs','livestockVaccineLogs','livestockBreedings'];
   collections.forEach(k=>{ if(Array.isArray(DB[k])) DB[k] = DB[k].filter(r=>!r.demo); });
   DB.areas.forEach(a=>{ if(a.plantingId && !DB.plantings.some(p=>p.id===a.plantingId)) a.plantingId=null; });
   DB.estufaAreas.forEach(a=>{ if(a.plantingId && !DB.estufaPlantings.some(p=>p.id===a.plantingId)) a.plantingId=null; });
@@ -6604,6 +6605,7 @@ function renderPecuaria(){
         <button class="seg-btn ${pecuariaView==='lotes'?'on':''}" onclick="setPecuariaView('lotes')">Lotes</button>
         <button class="seg-btn ${pecuariaView==='ambientes'?'on':''}" onclick="setPecuariaView('ambientes')">Ambientes</button>
         <button class="seg-btn ${pecuariaView==='saude'?'on':''}" onclick="setPecuariaView('saude')">Saúde &amp; Vacinas</button>
+        <button class="seg-btn ${pecuariaView==='reproducao'?'on':''}" onclick="setPecuariaView('reproducao')">Reprodução</button>
         <button class="seg-btn ${pecuariaView==='peso'?'on':''}" onclick="setPecuariaView('peso')">Peso</button>
       </div>
       <button class="btn btn-outline btn-sm" onclick="confirmSeedPecuariaDemo()">🎲 150 animais (1 ano)</button>
@@ -6616,6 +6618,7 @@ function renderPecuaria(){
   else if(pecuariaView==='lotes') body.innerHTML = renderPecuariaLotesHTML();
   else if(pecuariaView==='ambientes') body.innerHTML = renderPecuariaAmbientesHTML();
   else if(pecuariaView==='saude') body.innerHTML = renderPecuariaSaudeHTML();
+  else if(pecuariaView==='reproducao') body.innerHTML = renderPecuariaReproducaoHTML();
   else if(pecuariaView==='peso') body.innerHTML = renderPecuariaPesoHTML();
 }
 
@@ -6722,6 +6725,43 @@ function seedPecuariaDemoYear(){
     a.statusHistory.push({status:'morto', date, note:'Causa desconhecida', userId:activeUserId});
   });
 
+  // ---------- Reprodução: aproveita a genealogia já gerada para partos coerentes,
+  // mais um conjunto de cobrições em diferentes fases (a aguardar, confirmadas, negativas, aborto) ----------
+  const adultFemales = animals.filter(a=>a.sex==='F' && daysBetween(a.birthDate,today)>500);
+  const adultMales = animals.filter(a=>a.sex==='M' && daysBetween(a.birthDate,today)>500);
+  const semenLabels = ['Sémen Angus','Sémen Nelore','Sémen Girolando','Sémen Brahman'];
+
+  animals.forEach(a=>{
+    if(!a.motherId) return;
+    const mother = animals.find(x=>x.id===a.motherId);
+    if(!mother) return;
+    const calvingDate = a.birthDate;
+    const date = addDays(calvingDate, -GESTATION_DAYS.bovino);
+    const useMale = Math.random()<0.5 && adultMales.length;
+    const weightLog = DB.livestockWeightLogs.find(w=>w.animalId===a.id);
+    DB.livestockBreedings.push({id:uid(), femaleId:mother.id, maleId: useMale? pick(adultMales).id : null,
+      sireLabel: useMale? '' : pick(semenLabels), method: useMale?'natural':'ia', date, expectedCalvingDate:calvingDate,
+      status:'parto', pregnancyCheckDate: addDays(date, rndInt(30,60)), calvingDate, calfId:a.id,
+      calfOutcome:'vivo', calfSex:a.sex, calfWeight: weightLog? weightLog.weightKg : null,
+      notes:'', userId:activeUserId, createdAt:date, demo:true});
+  });
+
+  const extraBreedingsCount = rndInt(15,22);
+  for(let i=0;i<extraBreedingsCount && adultFemales.length;i++){
+    const female = pick(adultFemales);
+    const roll = Math.random();
+    let date, status, pregnancyCheckDate=null, calvingDate=null, calfOutcome=null;
+    if(roll<0.35){ date = addDays(today, -rndInt(195,270)); status='confirmada'; pregnancyCheckDate = addDays(date, rndInt(30,60)); }
+    else if(roll<0.55){ date = addDays(today, -rndInt(0,25)); status='aguardando'; }
+    else if(roll<0.75){ date = addDays(today, -rndInt(60,300)); status='negativa'; pregnancyCheckDate = addDays(date, rndInt(30,60)); }
+    else { date = addDays(today, -rndInt(60,300)); status='aborto'; calvingDate = addDays(date, rndInt(60,150)); calfOutcome='aborto'; }
+    const useMale = Math.random()<0.5 && adultMales.length;
+    DB.livestockBreedings.push({id:uid(), femaleId:female.id, maleId: useMale? pick(adultMales).id : null,
+      sireLabel: useMale? '' : pick(semenLabels), method: useMale?'natural':'ia', date,
+      expectedCalvingDate: addDays(date, GESTATION_DAYS.bovino), status, pregnancyCheckDate, calvingDate, calfId:null,
+      calfOutcome, calfSex:null, calfWeight:null, notes:'', userId:activeUserId, createdAt:date, demo:true});
+  }
+
   saveDB();
 }
 function pecuariaHeadcountAt(dateStr){
@@ -6782,6 +6822,21 @@ function renderPecuariaGeralHTML(){
           <div class="flex justify-between text-xs mb-1"><span>${l.name}</span><span class="mono font-semibold">${l.count}</span></div>
           <div style="height:9px;border-radius:5px;background:var(--surface-2);overflow:hidden"><div style="height:100%;width:${Math.round(l.count/maxLot*100)}%;background:var(--orange-600);border-radius:5px"></div></div>
         </div>`).join('')}</div>`}
+    </div>
+    <div class="card p-5 mb-5">
+      ${secHead('purple','calplus','Partos previstos', null, 'Gestações confirmadas, próximos 30 dias — ver mais em "Reprodução"')}
+      ${(()=>{
+        const upcoming = upcomingCalvings(30);
+        if(!upcoming.length) return `<p class="text-sm m-0" style="color:var(--ink-faint)">Sem partos previstos nos próximos 30 dias.</p>`;
+        return `<div class="flex flex-col gap-2">${upcoming.map(b=>{
+          const female = livestockAnimalById(b.femaleId);
+          const days = daysBetween(todayISO(), b.expectedCalvingDate);
+          return `<button class="list-tile justify-between gap-2 w-full text-left" onclick="switchTab('pecuaria');setTimeout(()=>{setPecuariaView('reproducao');setTimeout(()=>openBreedingDetail('${b.id}'),50)},50)">
+            <div class="min-w-0"><div class="text-sm font-semibold truncate">${female?(female.name||female.tag):'—'}</div><div class="text-xs" style="color:var(--ink-soft)">previsto para ${fmtDate(b.expectedCalvingDate)}</div></div>
+            <span class="pill ${days<=7?'pill-red':'pill-blue'} flex-none">${days===0?'hoje':days+'d'}</span>
+          </button>`;
+        }).join('')}</div>`;
+      })()}
     </div>
     <div class="card p-5">
       ${secHead('red','alert','Lembretes de vacinação', null, 'Próximas doses agendadas (30 dias)')}
@@ -6979,12 +7034,14 @@ function openAnimalDetail(id){
       <div><span class="label">Pai</span>${father? (father.name||father.tag) : '—'}</div>
       <div><span class="label">GMD (ganho médio diário)</span>${gmd!=null? gmd+' kg/dia' : '—'}</div>
       <div><span class="label">Nascimento</span>${fmtDate(a.birthDate)}</div>
+      ${a.weaningDate? `<div><span class="label">Desmame</span>${fmtDate(a.weaningDate)}${a.weaningWeight?' · '+a.weaningWeight+' kg':''}</div>` : ''}
     </div>
     ${weights.length>1? `<div class="mb-4"><span class="label">Curva de peso</span><div class="overflow-x-auto">${multiLineChartSVG([{label:'Peso (kg)', color:'var(--green-600)', values:weights.map(w=>w.weightKg)}], weights.map(w=>fmtDate(w.date).slice(0,6)))}</div></div>` : ''}
     ${a.status==='ativo'? `<div class="flex gap-2 mb-4 flex-wrap">
       <button class="btn btn-outline btn-sm" onclick="promptLogWeight('${a.id}')">+ Pesagem</button>
       <button class="btn btn-outline btn-sm" onclick="promptLogHealth('${a.id}')">+ Saúde</button>
       <button class="btn btn-outline btn-sm" onclick="promptLogVaccine('${a.id}')">+ Vacina</button>
+      ${a.motherId && !a.weaningDate? `<button class="btn btn-outline btn-sm" onclick="promptRegisterWeaning('${a.id}')">+ Desmame</button>` : ''}
       <button class="btn btn-accent btn-sm" onclick="promptAnimalStatusChange('${a.id}','vendido')">Vender</button>
       <button class="btn btn-danger btn-sm" onclick="promptAnimalStatusChange('${a.id}','morto')">Registar morte</button>
       <button class="btn btn-ghost btn-sm" onclick="promptAnimalStatusChange('${a.id}','abatido')">Registar abate</button>
@@ -7299,6 +7356,271 @@ function renderPecuariaSaudeHTML(){
       </div>
     </div>
   `;
+}
+/* ---- Reprodução — cobrições/IA, diagnóstico de gestação, partos e desmame ---- */
+const GESTATION_DAYS = {bovino:283, suino:114, ovino:152, caprino:150, equino:340, coelho:31};
+function avgCalvingIntervalDays(){
+  const byFemale = {};
+  DB.livestockBreedings.filter(b=>b.status==='parto' && b.calvingDate).forEach(b=>{
+    (byFemale[b.femaleId]=byFemale[b.femaleId]||[]).push(b.calvingDate);
+  });
+  let diffs = [];
+  Object.values(byFemale).forEach(dates=>{
+    dates = dates.slice().sort();
+    for(let i=1;i<dates.length;i++) diffs.push(daysBetween(dates[i-1],dates[i]));
+  });
+  if(!diffs.length) return null;
+  return Math.round(diffs.reduce((s,d)=>s+d,0)/diffs.length);
+}
+function upcomingCalvings(days){
+  const today = todayISO();
+  return DB.livestockBreedings.filter(b=>b.status==='confirmada' && b.expectedCalvingDate && daysBetween(today,b.expectedCalvingDate)>=0 && daysBetween(today,b.expectedCalvingDate)<=days)
+    .sort((a,b)=>a.expectedCalvingDate.localeCompare(b.expectedCalvingDate));
+}
+function breedingStatusPillHTML(status){
+  const map = {
+    aguardando:{label:'A aguardar diagnóstico', color:'var(--ink-faint)'},
+    confirmada:{label:'Gestação confirmada', color:'var(--green-600)'},
+    negativa:{label:'Negativa', color:'var(--red-600)'},
+    parto:{label:'Parto concluído', color:'var(--blue-600)'},
+    aborto:{label:'Aborto', color:'var(--red-600)'},
+  };
+  const m = map[status]||{label:status, color:'var(--ink-faint)'};
+  return `<span class="pill" style="background:${m.color};color:${contrastTextColor(m.color)}">${m.label}</span>`;
+}
+function renderPecuariaReproducaoHTML(){
+  const breedings = DB.livestockBreedings.slice().sort((a,b)=>b.date.localeCompare(a.date));
+  const resolved = breedings.filter(b=>b.status!=='aguardando');
+  const confirmedOrBorn = resolved.filter(b=>b.status==='confirmada'||b.status==='parto');
+  const rate = resolved.length? Math.round(confirmedOrBorn.length/resolved.length*100) : null;
+  const interval = avgCalvingIntervalDays();
+  const upcoming = upcomingCalvings(60);
+  const pending = breedings.filter(b=>b.status==='aguardando');
+  return `
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+      <div class="stat-tile"><div><div class="text-xl font-bold mono leading-none">${breedings.length}</div><div class="text-[11px] mt-1" style="color:var(--ink-soft)">cobrições/IA registadas</div></div></div>
+      <div class="stat-tile" style="background:var(--green-100)"><div><div class="text-xl font-bold mono leading-none" style="color:var(--green-700)">${rate!=null?rate+'%':'—'}</div><div class="text-[11px] mt-1" style="color:var(--ink-soft)">taxa de prenhez</div></div></div>
+      <div class="stat-tile" style="background:var(--orange-100)"><div><div class="text-xl font-bold mono leading-none" style="color:var(--orange-600)">${interval!=null?interval+' dias':'—'}</div><div class="text-[11px] mt-1" style="color:var(--ink-soft)">intervalo entre partos</div></div></div>
+      <div class="stat-tile" style="background:var(--blue-100)"><div><div class="text-xl font-bold mono leading-none" style="color:var(--blue-600)">${upcoming.length}</div><div class="text-[11px] mt-1" style="color:var(--ink-soft)">partos previstos (60d)</div></div></div>
+    </div>
+    <div class="flex justify-end mb-4"><button class="btn btn-primary btn-sm" onclick="promptNewBreeding()">+ Nova cobrição / IA</button></div>
+    ${upcoming.length? `<div class="card p-4 mb-4">
+      ${secHead('blue','calplus','Partos previstos', null, 'Próximos 60 dias')}
+      <div class="flex flex-col gap-2">${upcoming.map(b=>{
+        const female = livestockAnimalById(b.femaleId);
+        const days = daysBetween(todayISO(), b.expectedCalvingDate);
+        return `<button class="list-tile justify-between gap-2 w-full text-left" onclick="openBreedingDetail('${b.id}')">
+          <div class="min-w-0"><div class="text-sm font-semibold truncate">${female?(female.name||female.tag):'—'}</div><div class="text-xs" style="color:var(--ink-soft)">previsto para ${fmtDate(b.expectedCalvingDate)}</div></div>
+          <span class="pill ${days<=7?'pill-red':'pill-blue'} flex-none">${days===0?'hoje':days+'d'}</span>
+        </button>`;
+      }).join('')}</div>
+    </div>` : ''}
+    <div class="card p-4">
+      ${secHead('orange','grid','Registos de reprodução', pending.length? `<span class="pill pill-orange">${pending.length} a aguardar diagnóstico</span>` : null)}
+      ${!breedings.length? `<p class="text-sm m-0" style="color:var(--ink-faint)">Ainda sem cobrições/inseminações registadas.</p>` : `
+      <div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr class="text-xs text-left" style="color:var(--ink-faint)">
+        <th class="pb-2">Fêmea</th><th class="pb-2">Macho / Sémen</th><th class="pb-2">Data</th><th class="pb-2">Método</th><th class="pb-2">Parto previsto</th><th class="pb-2">Estado</th>
+      </tr></thead><tbody>
+        ${breedings.map(b=>{
+          const female = livestockAnimalById(b.femaleId);
+          const male = b.maleId? livestockAnimalById(b.maleId) : null;
+          return `<tr style="border-top:1px solid var(--border);cursor:pointer" onclick="openBreedingDetail('${b.id}')">
+            <td class="py-2">${female?(female.name||female.tag):'—'}</td>
+            <td class="py-2 text-xs" style="color:var(--ink-soft)">${male?(male.name||male.tag):(b.sireLabel||'—')}</td>
+            <td class="py-2 mono text-xs">${fmtDate(b.date)}</td>
+            <td class="py-2 text-xs">${b.method==='ia'?'Inseminação':'Monta natural'}</td>
+            <td class="py-2 mono text-xs" style="color:var(--ink-faint)">${b.expectedCalvingDate?fmtDate(b.expectedCalvingDate):'—'}</td>
+            <td class="py-2">${breedingStatusPillHTML(b.status)}</td>
+          </tr>`;
+        }).join('')}
+      </tbody></table></div>`}
+    </div>
+  `;
+}
+function toggleBreedingMaleField(){
+  const method = document.getElementById('brMethod').value;
+  const box = document.getElementById('brMaleFieldBox');
+  const males = DB.livestockAnimals.filter(a=>a.status==='ativo' && a.sex==='M');
+  if(method==='ia'){
+    box.innerHTML = `<label class="label">Touro / Sémen (identificação, opcional)</label><input class="field mb-2" id="brSireLabel" placeholder="Ex: Touro XPTO 123 ou fornecedor de sémen">`;
+  } else {
+    box.innerHTML = `<label class="label">Macho</label><select class="field mb-2" id="brMale">${males.length? males.map(a=>`<option value="${a.id}">${a.name||a.tag}</option>`).join('') : `<option value="">— sem machos ativos registados —</option>`}</select>`;
+  }
+}
+function promptNewBreeding(){
+  const females = DB.livestockAnimals.filter(a=>a.status==='ativo' && a.sex==='F');
+  const males = DB.livestockAnimals.filter(a=>a.status==='ativo' && a.sex==='M');
+  if(!females.length){ alert('Regista primeiro pelo menos uma fêmea ativa em Animais.'); return; }
+  openModal(`
+    <h3 class="display font-semibold mb-3" style="font-size:17px">Nova cobrição / inseminação</h3>
+    <label class="label">Fêmea</label>
+    <select class="field mb-2" id="brFemale">${females.map(a=>`<option value="${a.id}">${a.name||a.tag}</option>`).join('')}</select>
+    <label class="label">Método</label>
+    <select class="field mb-2" id="brMethod" onchange="toggleBreedingMaleField()">
+      <option value="natural">Monta natural</option>
+      <option value="ia">Inseminação artificial</option>
+    </select>
+    <div id="brMaleFieldBox">
+      <label class="label">Macho</label>
+      <select class="field mb-2" id="brMale">${males.length? males.map(a=>`<option value="${a.id}">${a.name||a.tag}</option>`).join('') : `<option value="">— sem machos ativos registados —</option>`}</select>
+    </div>
+    <label class="label">Data</label>
+    <input type="date" class="field mb-2" id="brDate" value="${todayISO()}">
+    <label class="label">Notas (opcional)</label>
+    <input class="field mb-3" id="brNotes" placeholder="opcional">
+    <div class="flex gap-2 justify-end">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmNewBreeding()">Registar</button>
+    </div>`);
+}
+function confirmNewBreeding(){
+  const femaleId = document.getElementById('brFemale').value;
+  const method = document.getElementById('brMethod').value;
+  const date = document.getElementById('brDate').value||todayISO();
+  const notes = document.getElementById('brNotes').value.trim();
+  const female = livestockAnimalById(femaleId);
+  let maleId=null, sireLabel='';
+  if(method==='ia'){ sireLabel = document.getElementById('brSireLabel')?.value.trim()||''; }
+  else { maleId = document.getElementById('brMale')?.value||null; }
+  const gestation = GESTATION_DAYS[female.species]||283;
+  const expectedCalvingDate = addDays(date, gestation);
+  DB.livestockBreedings.push({id:uid(), femaleId, maleId, sireLabel, method, date, expectedCalvingDate, status:'aguardando', notes, userId:DB.activeUserId, createdAt:todayISO()});
+  saveDB(); closeModal(); renderPecuaria();
+}
+function openBreedingDetail(id){
+  const b = DB.livestockBreedings.find(x=>x.id===id);
+  if(!b) return;
+  const female = livestockAnimalById(b.femaleId);
+  const male = b.maleId? livestockAnimalById(b.maleId) : null;
+  openModal(`
+    <div class="flex items-center justify-between mb-1">
+      <h3 class="display font-semibold m-0" style="font-size:19px">${female?(female.name||female.tag):'—'}</h3>
+      ${breedingStatusPillHTML(b.status)}
+    </div>
+    <div class="text-xs mb-4" style="color:var(--ink-faint)">${b.method==='ia'?'Inseminação artificial':'Monta natural'}${male?' · '+(male.name||male.tag):(b.sireLabel? ' · '+b.sireLabel : '')} · cobrição em ${fmtDate(b.date)}</div>
+    <div class="grid grid-cols-2 gap-3 mb-4 text-sm">
+      <div><span class="label">Parto previsto</span>${b.expectedCalvingDate?fmtDate(b.expectedCalvingDate):'—'}</div>
+      ${b.pregnancyCheckDate? `<div><span class="label">Diagnóstico</span>${fmtDate(b.pregnancyCheckDate)}</div>` : ''}
+      ${b.calvingDate? `<div><span class="label">Data do parto</span>${fmtDate(b.calvingDate)}</div>` : ''}
+      ${b.calfOutcome? `<div><span class="label">Resultado</span>${b.calfOutcome==='vivo'?'Nado vivo':b.calfOutcome==='natimorto'?'Natimorto':'Aborto'}${b.calfSex? ' · '+(b.calfSex==='F'?'Fêmea':'Macho') : ''}${b.calfWeight? ' · '+b.calfWeight+' kg' : ''}</div>` : ''}
+    </div>
+    ${b.notes? `<p class="text-sm mb-4">${b.notes}</p>` : ''}
+    ${b.status==='aguardando'? `<div class="flex gap-2 mb-3 flex-wrap">
+      <button class="btn btn-accent btn-sm" onclick="markPregnancyConfirmed('${b.id}')">✓ Confirmar gestação</button>
+      <button class="btn btn-outline btn-sm" onclick="markPregnancyNegative('${b.id}')">✕ Gestação negativa</button>
+    </div>` : ''}
+    ${b.status==='confirmada'? `<div class="flex gap-2 mb-3 flex-wrap">
+      <button class="btn btn-accent btn-sm" onclick="promptRegisterCalving('${b.id}')">🐄 Registar parto</button>
+      <button class="btn btn-outline btn-sm" onclick="promptRegisterAbortion('${b.id}')">Registar aborto</button>
+    </div>` : ''}
+    ${b.calfId? `<button class="btn btn-outline btn-sm w-full mb-3" onclick="openAnimalDetail('${b.calfId}')">Ver ficha da cria →</button>` : ''}
+    <div class="flex justify-between mt-2">
+      <button class="text-xs" style="color:var(--red-600)" onclick="deleteBreeding('${b.id}')">remover registo</button>
+      <button class="btn btn-ghost" onclick="closeModal()">Fechar</button>
+    </div>
+  `, true);
+}
+function markPregnancyConfirmed(id){
+  const b = DB.livestockBreedings.find(x=>x.id===id); if(!b) return;
+  b.status='confirmada'; b.pregnancyCheckDate=todayISO();
+  saveDB(); openBreedingDetail(id); renderPecuaria();
+}
+function markPregnancyNegative(id){
+  const b = DB.livestockBreedings.find(x=>x.id===id); if(!b) return;
+  b.status='negativa'; b.pregnancyCheckDate=todayISO();
+  saveDB(); openBreedingDetail(id); renderPecuaria();
+}
+function promptRegisterCalving(id){
+  openModal(`
+    <h3 class="display font-semibold mb-3" style="font-size:17px">Registar parto</h3>
+    <label class="label">Data do parto</label><input type="date" class="field mb-2" id="cvDate" value="${todayISO()}">
+    <label class="label">Resultado</label>
+    <select class="field mb-2" id="cvOutcome" onchange="toggleCalvingFields()">
+      <option value="vivo">Nado vivo</option>
+      <option value="natimorto">Natimorto</option>
+    </select>
+    <div id="cvLiveFields">
+      <div class="grid grid-cols-2 gap-2 mb-2">
+        <div><label class="label">Sexo da cria</label><select class="field" id="cvSex"><option value="F">Fêmea</option><option value="M">Macho</option></select></div>
+        <div><label class="label">Peso ao nascer (kg)</label><input type="number" min="0" step="0.1" class="field" id="cvWeight" placeholder="Ex: 35"></div>
+      </div>
+      <label class="label">Brinco da cria (opcional)</label>
+      <input class="field mb-2" id="cvTag" placeholder="Ex: PT 100200">
+    </div>
+    <label class="label">Notas (opcional)</label>
+    <input class="field mb-3" id="cvNotes" placeholder="opcional">
+    <div class="flex gap-2 justify-end">
+      <button class="btn btn-ghost" onclick="openBreedingDetail('${id}')">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmRegisterCalving('${id}')">Registar</button>
+    </div>`);
+}
+function toggleCalvingFields(){
+  const outcome = document.getElementById('cvOutcome').value;
+  document.getElementById('cvLiveFields').style.display = outcome==='vivo'? 'block':'none';
+}
+function confirmRegisterCalving(id){
+  const b = DB.livestockBreedings.find(x=>x.id===id); if(!b) return;
+  const female = livestockAnimalById(b.femaleId);
+  const date = document.getElementById('cvDate').value||todayISO();
+  const outcome = document.getElementById('cvOutcome').value;
+  const notesVal = document.getElementById('cvNotes').value.trim();
+  b.calvingDate = date; b.calfOutcome = outcome; b.status='parto';
+  if(notesVal) b.notes = notesVal;
+  if(outcome==='vivo'){
+    const sex = document.getElementById('cvSex').value;
+    const weight = parseFloat(document.getElementById('cvWeight').value)||null;
+    const tag = document.getElementById('cvTag').value.trim();
+    b.calfSex = sex; b.calfWeight = weight;
+    const calfId = uid();
+    DB.livestockAnimals.push({id:calfId, species:female.species, breed:female.breed, name:'', tag, sex, birthDate:date,
+      motherId:female.id, fatherId:b.maleId||null, lotId:female.lotId,
+      status:'ativo', statusHistory:[{status:'ativo', date, note:'Nascido no efetivo', userId:DB.activeUserId}],
+      photo:null, quarantined:false, createdAt:date});
+    if(weight) DB.livestockWeightLogs.push({id:uid(), animalId:calfId, date, weightKg:weight, userId:DB.activeUserId});
+    b.calfId = calfId;
+  }
+  saveDB(); openBreedingDetail(id); renderPecuaria();
+}
+function promptRegisterAbortion(id){
+  openModal(`
+    <h3 class="display font-semibold mb-3" style="font-size:17px">Registar aborto</h3>
+    <label class="label">Data</label><input type="date" class="field mb-2" id="abDate" value="${todayISO()}">
+    <label class="label">Notas (opcional)</label><input class="field mb-3" id="abNotes" placeholder="Ex: causa suspeita...">
+    <div class="flex gap-2 justify-end">
+      <button class="btn btn-ghost" onclick="openBreedingDetail('${id}')">Cancelar</button>
+      <button class="btn btn-danger" onclick="confirmRegisterAbortion('${id}')">Registar</button>
+    </div>`);
+}
+function confirmRegisterAbortion(id){
+  const b = DB.livestockBreedings.find(x=>x.id===id); if(!b) return;
+  b.calvingDate = document.getElementById('abDate').value||todayISO();
+  b.calfOutcome = 'aborto'; b.status='aborto';
+  const notesVal = document.getElementById('abNotes').value.trim();
+  if(notesVal) b.notes = notesVal;
+  saveDB(); openBreedingDetail(id); renderPecuaria();
+}
+function deleteBreeding(id){
+  if(!confirm('Remover este registo de reprodução? A cria (se já criada) não é apagada.')) return;
+  DB.livestockBreedings = DB.livestockBreedings.filter(x=>x.id!==id);
+  saveDB(); closeModal(); renderPecuaria();
+}
+function promptRegisterWeaning(animalId){
+  openModal(`
+    <h3 class="display font-semibold mb-3" style="font-size:17px">Registar desmame</h3>
+    <label class="label">Data do desmame</label><input type="date" class="field mb-2" id="wnDate" value="${todayISO()}">
+    <label class="label">Peso ao desmame (kg, opcional)</label><input type="number" min="0" step="0.1" class="field mb-3" id="wnWeight" placeholder="Ex: 180">
+    <div class="flex gap-2 justify-end">
+      <button class="btn btn-ghost" onclick="openAnimalDetail('${animalId}')">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmRegisterWeaning('${animalId}')">Registar</button>
+    </div>`);
+}
+function confirmRegisterWeaning(animalId){
+  const a = livestockAnimalById(animalId); if(!a) return;
+  const date = document.getElementById('wnDate').value||todayISO();
+  const weight = parseFloat(document.getElementById('wnWeight').value)||null;
+  a.weaningDate = date; a.weaningWeight = weight;
+  if(weight) DB.livestockWeightLogs.push({id:uid(), animalId, date, weightKg:weight, userId:DB.activeUserId});
+  saveDB(); openAnimalDetail(animalId);
 }
 function renderPecuariaPesoHTML(){
   const ativos = DB.livestockAnimals.filter(a=>a.status==='ativo');
