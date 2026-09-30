@@ -6800,32 +6800,76 @@ function renderPecuariaGeralHTML(){
   `;
 }
 
-let pecuariaAnimalFilter = {species:'all', lot:'all', status:'ativo'};
-function setPecuariaAnimalFilter(field, val){ pecuariaAnimalFilter[field]=val; renderPecuaria(); }
+let pecuariaAnimalFilter = {species:'all', lot:'all', status:'ativo', sex:'all', age:'all', tag:'', weightMin:'', weightMax:''};
+const PECUARIA_FILTER_FOCUS_IDS = {tag:'pecAnimalTagFilter', weightMin:'pecAnimalWeightMin', weightMax:'pecAnimalWeightMax'};
+function setPecuariaAnimalFilter(field, val){
+  pecuariaAnimalFilter[field]=val;
+  renderPecuaria();
+  const id = PECUARIA_FILTER_FOCUS_IDS[field];
+  if(id){
+    const el = document.getElementById(id);
+    if(el){ el.focus(); if(el.type==='text'){ try{ el.setSelectionRange(el.value.length, el.value.length); }catch(e){} } }
+  }
+}
+function clearPecuariaAnimalFilters(){
+  pecuariaAnimalFilter = {species:'all', lot:'all', status:'ativo', sex:'all', age:'all', tag:'', weightMin:'', weightMax:''};
+  renderPecuaria();
+}
+function animalAgeDays(a){ return daysBetween(a.birthDate, todayISO()); }
 function renderPecuariaAnimaisHTML(){
+  const f = pecuariaAnimalFilter;
   let list = DB.livestockAnimals.slice();
-  if(pecuariaAnimalFilter.species!=='all') list = list.filter(a=>a.species===pecuariaAnimalFilter.species);
-  if(pecuariaAnimalFilter.lot!=='all') list = list.filter(a=>a.lotId===pecuariaAnimalFilter.lot);
-  if(pecuariaAnimalFilter.status!=='all') list = list.filter(a=>a.status===pecuariaAnimalFilter.status);
+  if(f.species!=='all') list = list.filter(a=>a.species===f.species);
+  if(f.lot!=='all') list = list.filter(a=>a.lotId===f.lot);
+  if(f.status!=='all') list = list.filter(a=>a.status===f.status);
+  if(f.sex!=='all') list = list.filter(a=>a.sex===f.sex);
+  if(f.age!=='all') list = list.filter(a=>{
+    const d = animalAgeDays(a);
+    if(f.age==='0-6m') return d<=182;
+    if(f.age==='6-12m') return d>182 && d<=365;
+    if(f.age==='1-2a') return d>365 && d<=730;
+    if(f.age==='2a+') return d>730;
+    return true;
+  });
+  if(f.tag.trim()){ const q=f.tag.trim().toLowerCase(); list = list.filter(a=>(a.tag||'').toLowerCase().includes(q) || (a.name||'').toLowerCase().includes(q)); }
+  if(f.weightMin!==''){ const min=parseFloat(f.weightMin); list = list.filter(a=>{ const w=animalCurrentWeight(a.id); return w!=null && w>=min; }); }
+  if(f.weightMax!==''){ const max=parseFloat(f.weightMax); list = list.filter(a=>{ const w=animalCurrentWeight(a.id); return w!=null && w<=max; }); }
   list.sort((a,b)=>(a.tag||'').localeCompare(b.tag||''));
+  const anyFilterActive = f.species!=='all'||f.lot!=='all'||f.status!=='ativo'||f.sex!=='all'||f.age!=='all'||f.tag.trim()||f.weightMin!==''||f.weightMax!=='';
   return `
     <div class="flex items-center justify-between gap-2 mb-4 flex-wrap">
-      <div class="flex gap-2 flex-wrap">
+      <div class="flex gap-2 flex-wrap items-center">
+        <input class="field" id="pecAnimalTagFilter" style="width:140px;font-size:12px" placeholder="🔎 Brinco / nome" value="${f.tag}" oninput="setPecuariaAnimalFilter('tag', this.value)">
         <select class="field" style="width:auto;font-size:12px" onchange="setPecuariaAnimalFilter('species', this.value)">
           <option value="all">Espécie: todas</option>
-          ${LIVESTOCK_SPECIES.map(s=>`<option value="${s.id}" ${pecuariaAnimalFilter.species===s.id?'selected':''}>${s.icon} ${s.label}</option>`).join('')}
+          ${LIVESTOCK_SPECIES.map(s=>`<option value="${s.id}" ${f.species===s.id?'selected':''}>${s.icon} ${s.label}</option>`).join('')}
+        </select>
+        <select class="field" style="width:auto;font-size:12px" onchange="setPecuariaAnimalFilter('sex', this.value)">
+          <option value="all" ${f.sex==='all'?'selected':''}>Sexo: todos</option>
+          <option value="F" ${f.sex==='F'?'selected':''}>Fêmea</option>
+          <option value="M" ${f.sex==='M'?'selected':''}>Macho</option>
+        </select>
+        <select class="field" style="width:auto;font-size:12px" onchange="setPecuariaAnimalFilter('age', this.value)">
+          <option value="all" ${f.age==='all'?'selected':''}>Idade: todas</option>
+          <option value="0-6m" ${f.age==='0-6m'?'selected':''}>0-6 meses</option>
+          <option value="6-12m" ${f.age==='6-12m'?'selected':''}>6-12 meses</option>
+          <option value="1-2a" ${f.age==='1-2a'?'selected':''}>1-2 anos</option>
+          <option value="2a+" ${f.age==='2a+'?'selected':''}>2+ anos</option>
         </select>
         <select class="field" style="width:auto;font-size:12px" onchange="setPecuariaAnimalFilter('lot', this.value)">
           <option value="all">Lote: todos</option>
-          ${DB.livestockLots.map(l=>`<option value="${l.id}" ${pecuariaAnimalFilter.lot===l.id?'selected':''}>${l.name}</option>`).join('')}
+          ${DB.livestockLots.map(l=>`<option value="${l.id}" ${f.lot===l.id?'selected':''}>${l.name}</option>`).join('')}
         </select>
         <select class="field" style="width:auto;font-size:12px" onchange="setPecuariaAnimalFilter('status', this.value)">
-          <option value="ativo" ${pecuariaAnimalFilter.status==='ativo'?'selected':''}>Estado: ativos</option>
-          <option value="all" ${pecuariaAnimalFilter.status==='all'?'selected':''}>Estado: todos</option>
-          <option value="vendido" ${pecuariaAnimalFilter.status==='vendido'?'selected':''}>Vendidos</option>
-          <option value="morto" ${pecuariaAnimalFilter.status==='morto'?'selected':''}>Mortos</option>
-          <option value="abatido" ${pecuariaAnimalFilter.status==='abatido'?'selected':''}>Abatidos</option>
+          <option value="ativo" ${f.status==='ativo'?'selected':''}>Estado: ativos</option>
+          <option value="all" ${f.status==='all'?'selected':''}>Estado: todos</option>
+          <option value="vendido" ${f.status==='vendido'?'selected':''}>Vendidos</option>
+          <option value="morto" ${f.status==='morto'?'selected':''}>Mortos</option>
+          <option value="abatido" ${f.status==='abatido'?'selected':''}>Abatidos</option>
         </select>
+        <input type="number" class="field" id="pecAnimalWeightMin" style="width:90px;font-size:12px" placeholder="Peso mín kg" value="${f.weightMin}" oninput="setPecuariaAnimalFilter('weightMin', this.value)">
+        <input type="number" class="field" id="pecAnimalWeightMax" style="width:90px;font-size:12px" placeholder="Peso máx kg" value="${f.weightMax}" oninput="setPecuariaAnimalFilter('weightMax', this.value)">
+        ${anyFilterActive? `<button class="btn btn-ghost btn-sm" onclick="clearPecuariaAnimalFilters()">Limpar filtros</button>` : ''}
       </div>
       <button class="btn btn-primary btn-sm" onclick="promptNewAnimal()">+ Novo animal</button>
     </div>
@@ -7072,15 +7116,15 @@ function renderPecuariaLotesHTML(){
       ${DB.livestockLots.map(l=>{
         const animals = lotAnimals(l.id);
         const env = DB.livestockEnvironments.find(e=>e.id===l.environmentId);
-        return `<div class="card p-4">
+        return `<button class="card p-4 text-left hoverable" onclick="openLotDetail('${l.id}')">
           <div class="flex items-center justify-between gap-2 mb-2">
             <span class="font-semibold display" style="font-size:15px">${l.name}</span>
-            <button class="text-xs" style="color:var(--red-600)" onclick="deleteLot('${l.id}')">remover</button>
+            <span class="text-xs" style="color:var(--red-600)" onclick="event.stopPropagation();deleteLot('${l.id}')">remover</span>
           </div>
           <div class="text-xs mb-1" style="color:var(--ink-faint)">${speciesLabel(l.species)} · ${l.purpose||'—'}</div>
           <div class="text-xs mb-2" style="color:var(--ink-faint)">📍 ${env?env.name:'sem ambiente'}</div>
           <div class="text-2xl font-bold mono">${animals.length}<span class="text-xs font-normal" style="color:var(--ink-faint)"> animais</span></div>
-        </div>`;
+        </button>`;
       }).join('')}
     </div>`}
   `;
@@ -7114,7 +7158,39 @@ function deleteLot(id){
   if(!confirm('Remover este lote? Os animais ficam sem lote atribuído.')) return;
   DB.livestockLots = DB.livestockLots.filter(l=>l.id!==id);
   DB.livestockAnimals.forEach(a=>{ if(a.lotId===id) a.lotId=null; });
-  saveDB(); renderPecuaria();
+  saveDB(); closeModal(); renderPecuaria();
+}
+function openLotDetail(id){
+  const lot = DB.livestockLots.find(l=>l.id===id);
+  if(!lot) return;
+  const env = DB.livestockEnvironments.find(e=>e.id===lot.environmentId);
+  const animals = DB.livestockAnimals.filter(a=>a.lotId===id).sort((a,b)=>(a.tag||'').localeCompare(b.tag||''));
+  const ativos = animals.filter(a=>a.status==='ativo');
+  openModal(`
+    <div class="flex items-center justify-between mb-1">
+      <h3 class="display font-semibold m-0" style="font-size:19px">${lot.name}</h3>
+      <button class="text-xs" style="color:var(--red-600)" onclick="deleteLot('${lot.id}')">remover lote</button>
+    </div>
+    <div class="text-xs mb-4" style="color:var(--ink-faint)">${speciesLabel(lot.species)} · ${lot.purpose||'—'} · 📍 ${env?env.name:'sem ambiente'}</div>
+    <span class="label">Animais neste lote (${animals.length}, ${ativos.length} ativos)</span>
+    ${!animals.length? `<p class="text-sm m-0" style="color:var(--ink-faint)">Ainda sem animais registados neste lote.</p>` : `
+    <div class="overflow-x-auto mt-1"><table class="w-full text-sm"><thead><tr class="text-xs text-left" style="color:var(--ink-faint)">
+      <th class="pb-2">Brinco</th><th class="pb-2">Nome</th><th class="pb-2">Sexo</th><th class="pb-2">Idade</th><th class="pb-2">Peso</th><th class="pb-2">Estado</th>
+    </tr></thead><tbody>
+      ${animals.map(a=>{
+        const w = animalCurrentWeight(a.id);
+        return `<tr style="border-top:1px solid var(--border);cursor:pointer" onclick="openAnimalDetail('${a.id}')">
+          <td class="py-2 mono font-semibold">${a.tag||'—'}</td>
+          <td class="py-2">${a.name||'—'}</td>
+          <td class="py-2 text-xs">${a.sex==='F'?'Fêmea':'Macho'}</td>
+          <td class="py-2 text-xs mono" style="color:var(--ink-faint)">${animalAgeLabel(a.birthDate)}</td>
+          <td class="py-2 text-xs mono">${w!=null? w+' kg' : '—'}</td>
+          <td class="py-2">${animalStatusPillHTML(a.status)}</td>
+        </tr>`;
+      }).join('')}
+    </tbody></table></div>`}
+    <div class="flex justify-end mt-4"><button class="btn btn-ghost" onclick="closeModal()">Fechar</button></div>
+  `, true);
 }
 function renderPecuariaAmbientesHTML(){
   return `
@@ -7124,15 +7200,15 @@ function renderPecuariaAmbientesHTML(){
       ${DB.livestockEnvironments.map(e=>{
         const lots = environmentLots(e.id);
         const total = lots.reduce((s,l)=>s+lotAnimals(l.id).length,0);
-        return `<div class="card p-4">
+        return `<button class="card p-4 text-left hoverable" onclick="openEnvironmentDetail('${e.id}')">
           <div class="flex items-center justify-between gap-2 mb-2">
             <span class="font-semibold display" style="font-size:15px">${e.name}</span>
-            <button class="text-xs" style="color:var(--red-600)" onclick="deleteEnvironment('${e.id}')">remover</button>
+            <span class="text-xs" style="color:var(--red-600)" onclick="event.stopPropagation();deleteEnvironment('${e.id}')">remover</span>
           </div>
           <div class="text-xs mb-2" style="color:var(--ink-faint)">${e.capacity?`Capacidade: ${e.capacity} animais`:'Sem limite de capacidade definido'}</div>
           <div class="text-2xl font-bold mono">${total}<span class="text-xs font-normal" style="color:var(--ink-faint)"> animais · ${lots.length} lote${lots.length===1?'':'s'}</span></div>
           ${e.notes? `<div class="text-xs mt-2" style="color:var(--ink-soft)">${e.notes}</div>` : ''}
-        </div>`;
+        </button>`;
       }).join('')}
     </div>`}
   `;
@@ -7163,7 +7239,33 @@ function deleteEnvironment(id){
   if(!confirm('Remover este ambiente? Os lotes ligados a ele ficam sem ambiente atribuído.')) return;
   DB.livestockEnvironments = DB.livestockEnvironments.filter(e=>e.id!==id);
   DB.livestockLots.forEach(l=>{ if(l.environmentId===id) l.environmentId=null; });
-  saveDB(); renderPecuaria();
+  saveDB(); closeModal(); renderPecuaria();
+}
+function openEnvironmentDetail(id){
+  const env = DB.livestockEnvironments.find(e=>e.id===id);
+  if(!env) return;
+  const lots = environmentLots(id);
+  const total = lots.reduce((s,l)=>s+lotAnimals(l.id).length,0);
+  openModal(`
+    <div class="flex items-center justify-between mb-1">
+      <h3 class="display font-semibold m-0" style="font-size:19px">${env.name}</h3>
+      <button class="text-xs" style="color:var(--red-600)" onclick="deleteEnvironment('${env.id}')">remover ambiente</button>
+    </div>
+    <div class="text-xs mb-4" style="color:var(--ink-faint)">${env.capacity?`Capacidade: ${env.capacity} animais`:'Sem limite de capacidade definido'} · ${total} animais ativos no total</div>
+    ${env.notes? `<p class="text-sm mb-4">${env.notes}</p>` : ''}
+    <span class="label">Lotes neste ambiente (${lots.length})</span>
+    ${!lots.length? `<p class="text-sm m-0" style="color:var(--ink-faint)">Ainda sem lotes ligados a este ambiente.</p>` : `
+    <div class="flex flex-col gap-2 mt-1">
+      ${lots.map(l=>{
+        const animals = lotAnimals(l.id);
+        return `<button class="list-tile justify-between gap-2 w-full text-left" onclick="openLotDetail('${l.id}')">
+          <div class="min-w-0"><div class="text-sm font-semibold truncate">${l.name}</div><div class="text-xs" style="color:var(--ink-soft)">${l.purpose||'—'}</div></div>
+          <span class="pill pill-orange flex-none">${animals.length} animais</span>
+        </button>`;
+      }).join('')}
+    </div>`}
+    <div class="flex justify-end mt-4"><button class="btn btn-ghost" onclick="closeModal()">Fechar</button></div>
+  `, true);
 }
 function renderPecuariaSaudeHTML(){
   const recentHealth = DB.livestockHealthLogs.slice().sort((a,b)=>b.date.localeCompare(a.date)).slice(0,15);
