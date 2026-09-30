@@ -4271,6 +4271,49 @@ function renderDashboard(){
           </div>`).join('')}</div>`}
       </div>`; })() : ''}
 
+    <div class="card p-5 mb-4">
+      ${secHead('teal','grid','Histórico (últimos 3 anos)', `<div class="flex items-center gap-2">
+          ${histFresh? `<span class="pill pill-green">🌍 Dados reais — ${DB.location.name.split(',')[0]}</span>` : historicalWeatherState==='loading'? `<span class="pill pill-blue">A obter dados reais…</span>` : `<span class="pill pill-neutral">Dados ilustrativos</span>`}
+          <span class="pill pill-blue">${MONTHS[now.getMonth()]} ${now.getDate()}</span>
+          <button class="btn btn-ghost btn-sm" onclick="ensureHistoricalWeather(true)">↻ Atualizar</button>
+        </div>`)}
+      <div class="overflow-x-auto">
+        ${climateChartSVG(weathers)}
+      </div>
+      <div class="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-[11px]" style="color:var(--ink-faint)">
+        <span class="flex items-center gap-1.5"><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--orange-600)"></i>Máxima ${weathers[0].year}</span>
+        <span class="flex items-center gap-1.5"><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--blue-600)"></i>Mínima ${weathers[0].year}</span>
+        <span class="flex items-center gap-1.5"><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--blue-600);opacity:.5"></i>Precipitação ${weathers[0].year}</span>
+        ${weathers.length>1? `<span class="flex items-center gap-1.5"><i style="display:inline-block;width:10px;height:2px;background:var(--ink-faint)"></i>Anos anteriores (${weathers.slice(1).map(w=>w.year).join(', ')})</span>` : ''}
+      </div>
+      <details class="mt-3">
+        <summary class="text-xs font-semibold cursor-pointer select-none" style="color:var(--ink-soft)">Ver tabela detalhada (valores exatos por mês)</summary>
+        <div class="overflow-x-auto mt-2">
+          <table class="w-full" style="border-collapse:collapse">
+            <thead><tr class="text-xs text-left" style="color:var(--ink-faint)">
+              <th class="pb-2 pr-3 font-semibold">Ano</th>
+              ${weathers[0].months.map(m=>`<th class="pb-2 px-2 text-center font-semibold">${m.label}</th>`).join('')}
+            </tr></thead>
+            <tbody>
+              ${weathers.map(({year,months})=>`
+                <tr style="border-top:1px solid var(--border)">
+                  <td class="py-2 pr-3 text-sm font-semibold" style="color:var(--ink-soft)">${year}</td>
+                  ${months.map(m=>`
+                    <td class="px-2 py-2 text-center">
+                      ${m.agg? `
+                      <div class="mono text-xs">${m.agg.tmin}°–${m.agg.tmax}°C</div>
+                      <div class="text-[10px] mono" style="color:${m.agg.rainTotal>0?'var(--blue-600)':'var(--ink-faint)'}">${m.agg.rainTotal>0? m.agg.rainTotal+' mm':'seco'}</div>
+                      <div class="text-[10px] mono" style="color:var(--ink-faint)">${m.agg.humidity!=null? m.agg.humidity+'% hum.':'—'}</div>
+                      ` : `<div class="text-xs" style="color:var(--ink-faint)">—</div>`}
+                    </td>`).join('')}
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+      </details>
+      <p class="text-[11px] mt-3 mb-0" style="color:var(--ink-faint)">${histFresh? 'Dados reais medidos (reanálise ERA5) via Open-Meteo Historical Weather API — funciona para qualquer localização de Portugal ou do Brasil escolhida em "Mudar local".' : historicalWeatherState==='loading'? 'A obter o histórico real dos últimos 3 anos para esta localização…' : 'Dados ilustrativos — sem ligação à internet para obter o histórico real; liga-te e atualiza para ver dados medidos.'}</p>
+    </div>
+
     ${renderLunarCard()}
 
     <div class="card p-5 mb-4">
@@ -4349,49 +4392,6 @@ function renderDashboard(){
           </div>`).join('')}
       </div>`}
       <button class="btn btn-outline btn-sm mt-4" onclick="switchTab('agrofloresta')">Ver guildas completas →</button>
-    </div>
-
-    <div class="card p-5 mb-4">
-      ${secHead('teal','grid','Histórico (últimos 3 anos)', `<div class="flex items-center gap-2">
-          ${histFresh? `<span class="pill pill-green">🌍 Dados reais — ${DB.location.name.split(',')[0]}</span>` : historicalWeatherState==='loading'? `<span class="pill pill-blue">A obter dados reais…</span>` : `<span class="pill pill-neutral">Dados ilustrativos</span>`}
-          <span class="pill pill-blue">${MONTHS[now.getMonth()]} ${now.getDate()}</span>
-          <button class="btn btn-ghost btn-sm" onclick="ensureHistoricalWeather(true)">↻ Atualizar</button>
-        </div>`)}
-      <div class="overflow-x-auto">
-        ${climateChartSVG(weathers)}
-      </div>
-      <div class="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-[11px]" style="color:var(--ink-faint)">
-        <span class="flex items-center gap-1.5"><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--orange-600)"></i>Máxima ${weathers[0].year}</span>
-        <span class="flex items-center gap-1.5"><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--blue-600)"></i>Mínima ${weathers[0].year}</span>
-        <span class="flex items-center gap-1.5"><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--blue-600);opacity:.5"></i>Precipitação ${weathers[0].year}</span>
-        ${weathers.length>1? `<span class="flex items-center gap-1.5"><i style="display:inline-block;width:10px;height:2px;background:var(--ink-faint)"></i>Anos anteriores (${weathers.slice(1).map(w=>w.year).join(', ')})</span>` : ''}
-      </div>
-      <details class="mt-3">
-        <summary class="text-xs font-semibold cursor-pointer select-none" style="color:var(--ink-soft)">Ver tabela detalhada (valores exatos por mês)</summary>
-        <div class="overflow-x-auto mt-2">
-          <table class="w-full" style="border-collapse:collapse">
-            <thead><tr class="text-xs text-left" style="color:var(--ink-faint)">
-              <th class="pb-2 pr-3 font-semibold">Ano</th>
-              ${weathers[0].months.map(m=>`<th class="pb-2 px-2 text-center font-semibold">${m.label}</th>`).join('')}
-            </tr></thead>
-            <tbody>
-              ${weathers.map(({year,months})=>`
-                <tr style="border-top:1px solid var(--border)">
-                  <td class="py-2 pr-3 text-sm font-semibold" style="color:var(--ink-soft)">${year}</td>
-                  ${months.map(m=>`
-                    <td class="px-2 py-2 text-center">
-                      ${m.agg? `
-                      <div class="mono text-xs">${m.agg.tmin}°–${m.agg.tmax}°C</div>
-                      <div class="text-[10px] mono" style="color:${m.agg.rainTotal>0?'var(--blue-600)':'var(--ink-faint)'}">${m.agg.rainTotal>0? m.agg.rainTotal+' mm':'seco'}</div>
-                      <div class="text-[10px] mono" style="color:var(--ink-faint)">${m.agg.humidity!=null? m.agg.humidity+'% hum.':'—'}</div>
-                      ` : `<div class="text-xs" style="color:var(--ink-faint)">—</div>`}
-                    </td>`).join('')}
-                </tr>`).join('')}
-            </tbody>
-          </table>
-        </div>
-      </details>
-      <p class="text-[11px] mt-3 mb-0" style="color:var(--ink-faint)">${histFresh? 'Dados reais medidos (reanálise ERA5) via Open-Meteo Historical Weather API — funciona para qualquer localização de Portugal ou do Brasil escolhida em "Mudar local".' : historicalWeatherState==='loading'? 'A obter o histórico real dos últimos 3 anos para esta localização…' : 'Dados ilustrativos — sem ligação à internet para obter o histórico real; liga-te e atualiza para ver dados medidos.'}</p>
     </div>
   `;
   ensureCropImages([...producaoRows.map(r=>r.crop), ...agroTips.map(t=>t.crop)]);
