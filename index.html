@@ -886,6 +886,7 @@ function defaultDB(){
     breedImageCache: {}, // {breedId: url|null} — fotos reais de cada raça, dentro do catálogo de Animais
     dashboardOrder: null, // [cardId,...] — ordem dos cards da Visão Geral escolhida pelo utilizador; null = ordem por defeito
     dashboardExtra: [], // [cardId,...] — cards opcionais que o utilizador adicionou à Visão Geral
+    dashboardHidden: [], // [cardId,...] — cards por defeito que o utilizador removeu (podem ser readicionados)
   };
 }
 let DB = loadDB();
@@ -4858,6 +4859,12 @@ function climateChartSVG(weathers){
 }
 const DASH_SIX_DOTS_SVG = '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><circle cx="5" cy="3" r="1.4"/><circle cx="11" cy="3" r="1.4"/><circle cx="5" cy="8" r="1.4"/><circle cx="11" cy="8" r="1.4"/><circle cx="5" cy="13" r="1.4"/><circle cx="11" cy="13" r="1.4"/></svg>';
 const DASHBOARD_DEFAULT_ORDER = ['clima','colheitas','producao','hoje-atencao','alertas','stock','historico','lunar','plantacoes','dicas'];
+const DASHBOARD_DEFAULT_LABELS = {
+  clima:'Previsão do tempo', colheitas:'Colheitas previstas', producao:'Áreas em produção hoje',
+  'hoje-atencao':'Hoje na quinta / Precisam de atenção', alertas:'Alertas — previsão × tarefas',
+  stock:'Stock a repor', historico:'Histórico (últimos 3 anos)', lunar:'Calendário Lunar',
+  plantacoes:'Próximas plantações', dicas:'Dicas do Agrónomo',
+};
 const DASHBOARD_OPTIONAL_CARDS = [
   {id:'resumo-financas', label:'Resumo Financeiro'},
   {id:'resumo-pecuaria', label:'Resumo Pecuária'},
@@ -4865,9 +4872,11 @@ const DASHBOARD_OPTIONAL_CARDS = [
 ];
 function dashboardEffectiveOrder(){
   const extra = DB.dashboardExtra||[];
+  const hidden = DB.dashboardHidden||[];
+  const visibleDefaults = DASHBOARD_DEFAULT_ORDER.filter(id=>!hidden.includes(id));
   const saved = DB.dashboardOrder||[];
-  let order = saved.filter(id=>DASHBOARD_DEFAULT_ORDER.includes(id) || extra.includes(id));
-  DASHBOARD_DEFAULT_ORDER.forEach(id=>{ if(!order.includes(id)) order.push(id); });
+  let order = saved.filter(id=>visibleDefaults.includes(id) || extra.includes(id));
+  visibleDefaults.forEach(id=>{ if(!order.includes(id)) order.push(id); });
   extra.forEach(id=>{ if(!order.includes(id)) order.push(id); });
   return order;
 }
@@ -4918,7 +4927,10 @@ function moveDashboardCard(id, dir){
 }
 function promptAddDashboardCard(){
   const extra = DB.dashboardExtra||[];
-  const available = DASHBOARD_OPTIONAL_CARDS.filter(c=>!extra.includes(c.id));
+  const hidden = DB.dashboardHidden||[];
+  const hiddenDefaults = DASHBOARD_DEFAULT_ORDER.filter(id=>hidden.includes(id)).map(id=>({id, label:DASHBOARD_DEFAULT_LABELS[id]}));
+  const availableOptional = DASHBOARD_OPTIONAL_CARDS.filter(c=>!extra.includes(c.id));
+  const available = [...hiddenDefaults, ...availableOptional];
   openModal(`
     <h3 class="display font-semibold mb-3" style="font-size:17px">Adicionar card à Visão Geral</h3>
     ${!available.length? `<p class="text-sm m-0" style="color:var(--ink-faint)">Já tens todos os cards disponíveis na Visão Geral. Podes remover algum (✕ no cabeçalho do card) para voltares a poder adicioná-lo.</p>` :
@@ -4931,26 +4943,34 @@ function promptAddDashboardCard(){
   `);
 }
 function addDashboardCard(id){
-  if(!DB.dashboardExtra) DB.dashboardExtra=[];
-  if(!DB.dashboardExtra.includes(id)) DB.dashboardExtra.push(id);
+  if(DASHBOARD_DEFAULT_ORDER.includes(id)){
+    DB.dashboardHidden = (DB.dashboardHidden||[]).filter(x=>x!==id);
+  } else {
+    if(!DB.dashboardExtra) DB.dashboardExtra=[];
+    if(!DB.dashboardExtra.includes(id)) DB.dashboardExtra.push(id);
+  }
   DB.dashboardOrder = dashboardEffectiveOrder();
   saveDB(); closeModal(); renderDashboard();
 }
-function removeDashboardExtra(id){
-  DB.dashboardExtra = (DB.dashboardExtra||[]).filter(x=>x!==id);
+function removeDashboardCard(id){
+  if(DASHBOARD_DEFAULT_ORDER.includes(id)){
+    if(!DB.dashboardHidden) DB.dashboardHidden=[];
+    if(!DB.dashboardHidden.includes(id)) DB.dashboardHidden.push(id);
+  } else {
+    DB.dashboardExtra = (DB.dashboardExtra||[]).filter(x=>x!==id);
+  }
   saveDB(); renderDashboard();
 }
 function dashCardWrapHTML(id, html, order){
   if(!html) return '';
   const idx = order.indexOf(id);
-  const isExtra = (DB.dashboardExtra||[]).includes(id);
   return `<div class="dash-card-wrap" data-card-id="${id}" draggable="true" ondragstart="dashCardDragStart(event,'${id}')" ondragend="dashCardDragEnd()" ondragover="dashCardDragOver(event,this)" ondragleave="dashCardDragLeave(event,this)" ondrop="dashCardDrop(event,'${id}')">
     <div class="dash-card-bar">
       <span class="dash-card-handle" onmousedown="dashDragArmed=true" title="Arrastar para reordenar">${DASH_SIX_DOTS_SVG}</span>
       <div class="flex items-center gap-0.5">
         <button class="dash-card-move-btn" onclick="moveDashboardCard('${id}',-1)" title="Mover para cima" ${idx<=0?'disabled':''}>▲</button>
         <button class="dash-card-move-btn" onclick="moveDashboardCard('${id}',1)" title="Mover para baixo" ${idx>=order.length-1?'disabled':''}>▼</button>
-        ${isExtra? `<button class="dash-card-remove-btn" onclick="removeDashboardExtra('${id}')" title="Remover card">✕</button>` : ''}
+        <button class="dash-card-remove-btn" onclick="removeDashboardCard('${id}')" title="Remover card">✕</button>
       </div>
     </div>
     ${html}
