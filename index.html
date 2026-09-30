@@ -4769,14 +4769,7 @@ function renderAreas(){
         ${DB.areas.map(a=>{
           const p = DB.plantings.find(pl=>pl.id===a.plantingId);
           const crop = p? cropById(p.cropId): null;
-          const statusColor = p? (STATUS_COLORS[p.status]||STATUS_COLOR_EMPTY) : STATUS_COLOR_EMPTY;
-          return `<button class="card p-4 text-left hoverable" onclick="selectArea('${a.id}')">
-            <div class="flex items-center justify-between mb-2">
-              <span class="font-semibold display" style="font-size:15px">${a.name}</span>
-              <span style="width:14px;height:14px;border-radius:4px;background:${statusColor}" title="${p?p.status:'Sem cultura'}"></span>
-            </div>
-            ${crop? `<span class="pill" style="${catTagStyle(crop.cat)}">${crop.name}</span><div class="text-xs mt-2" style="color:var(--ink-soft)">${p.status}</div>` : `<span class="pill pill-neutral">Sem cultura ativa</span>`}
-          </button>`;
+          return areaStatusCardHTML(a, p, crop);
         }).join('') || `<div class="empty-box">Ainda sem áreas — carrega a imagem acima e desenha a primeira.</div>`}
       </div>
     </div>
@@ -4817,6 +4810,36 @@ function statusPillHTML(status){
   const color = STATUS_COLORS[status] || STATUS_COLOR_EMPTY;
   const label = status==='Colher-concluído'? 'Colhido' : status;
   return `<span class="pill" style="background:${color};color:${contrastTextColor(color)}">${label}</span>`;
+}
+// Etapas do ciclo mostradas na barra de progresso de cada cartão de área (exclui "Pousio", que não é
+// uma fase de progresso mas um estado de descanso à parte).
+const AREA_PROGRESS_STAGES = STATUS_FLOW.filter(s=>s!=='Pousio');
+function areaProgressBarHTML(status){
+  const stages = AREA_PROGRESS_STAGES;
+  let activeIdx = -1, fillColor = null;
+  if(status==='Colheita perdida'){ activeIdx = stages.length-1; fillColor = 'var(--red-600)'; }
+  else if(status){ const idx = stages.indexOf(status==='Colher-concluído'? 'Colher' : status); activeIdx = idx===-1? stages.length-1 : idx; }
+  return `<div class="flex gap-[3px] mt-3">
+    ${stages.map((s,i)=>`<span style="flex:1;height:5px;border-radius:3px;background:${i<=activeIdx? (fillColor||STATUS_COLORS[s]) : 'var(--border)'}" title="${s}"></span>`).join('')}
+  </div>`;
+}
+/* Cartão de área para a grelha "Áreas registadas" — estado em destaque (selo colorido + barra de
+   progresso por etapas do ciclo), em vez do antigo pontinho de cor quase imperceptível. */
+function areaStatusCardHTML(a, p, crop){
+  const status = p? p.status : null;
+  const stripeColor = status? (STATUS_COLORS[status]||STATUS_COLOR_EMPTY) : STATUS_COLOR_EMPTY;
+  const lost = status==='Colheita perdida';
+  return `<button class="card p-0 text-left hoverable overflow-hidden" style="${lost?'border-color:var(--red-600)':''}" onclick="selectArea('${a.id}')">
+    <div style="height:5px;background:${stripeColor}"></div>
+    <div class="p-4">
+      <div class="flex items-center justify-between gap-2 mb-1.5">
+        <span class="font-semibold display truncate" style="font-size:15px">${a.name}</span>
+        ${status? statusPillHTML(status) : `<span class="pill pill-neutral">Sem cultura</span>`}
+      </div>
+      <div class="text-xs truncate" style="color:var(--ink-faint)">${crop? crop.name : 'Nenhuma cultura ativa nesta área'}</div>
+      ${areaProgressBarHTML(status)}
+    </div>
+  </button>`;
 }
 function renderAreaHistoryTable(){
   const rows = DB.plantings.slice().sort((a,b)=>b.plantedDate.localeCompare(a.plantedDate));
