@@ -3559,10 +3559,13 @@ function confirmRemoveDemoData(){
   switchTab('dashboard');
 }
 function removeDemoData(){
-  const collections = ['areas','plantings','chickenBatches','coops','eggLogs','healthLogs','vaccineLogs','deathLogs','salesLogs','cleaningLogs','transactions','tasks','pestDiagnoses','inputApplications','herbicideApplications','stockMovements','estufaAreas','estufaPlantings','warehouseItems'];
+  const collections = ['areas','plantings','chickenBatches','coops','eggLogs','healthLogs','vaccineLogs','deathLogs','salesLogs','cleaningLogs','transactions','tasks','pestDiagnoses','inputApplications','herbicideApplications','stockMovements','estufaAreas','estufaPlantings','warehouseItems',
+    'accounts','employees','timeLogs','livestockAnimals','livestockLots','livestockEnvironments','livestockWeightLogs','livestockHealthLogs','livestockVaccineLogs'];
   collections.forEach(k=>{ if(Array.isArray(DB[k])) DB[k] = DB[k].filter(r=>!r.demo); });
   DB.areas.forEach(a=>{ if(a.plantingId && !DB.plantings.some(p=>p.id===a.plantingId)) a.plantingId=null; });
   DB.estufaAreas.forEach(a=>{ if(a.plantingId && !DB.estufaPlantings.some(p=>p.id===a.plantingId)) a.plantingId=null; });
+  DB.livestockLots.forEach(l=>{ if(l.environmentId && !DB.livestockEnvironments.some(e=>e.id===l.environmentId)) l.environmentId=null; });
+  DB.livestockAnimals.forEach(a=>{ if(a.lotId && !DB.livestockLots.some(l=>l.id===a.lotId)) a.lotId=null; });
   Object.keys(DB.stockLevels||{}).forEach(k=>{ if(DB.stockLevels[k] && DB.stockLevels[k].demo) delete DB.stockLevels[k]; });
   saveDB();
 }
@@ -6298,6 +6301,7 @@ function renderPecuaria(){
         <button class="seg-btn ${pecuariaView==='saude'?'on':''}" onclick="setPecuariaView('saude')">Saúde &amp; Vacinas</button>
         <button class="seg-btn ${pecuariaView==='peso'?'on':''}" onclick="setPecuariaView('peso')">Peso</button>
       </div>
+      <button class="btn btn-outline btn-sm" onclick="confirmSeedPecuariaDemo()">🎲 150 animais (1 ano)</button>
     </div>
     <div id="pecuariaBody"></div>
   `;
@@ -6310,6 +6314,119 @@ function renderPecuaria(){
   else if(pecuariaView==='peso') body.innerHTML = renderPecuariaPesoHTML();
 }
 
+/* ---- 150 animais de exemplo com 1 ano de histórico de maneio ---- */
+function confirmSeedPecuariaDemo(){
+  if(!confirm('Isto acrescenta 150 animais de exemplo à Pecuária — com lotes, ambientes e um ano de histórico de maneio (pesagens, saúde, vacinas e vendas). Os teus dados atuais não são apagados. Continuar?')) return;
+  seedPecuariaDemoYear();
+  alert('Pronto! Foram acrescentados 150 animais de exemplo com um ano de histórico. Podes removê-los a qualquer momento em Configurações → Remover dados de exemplo.');
+  renderPecuaria();
+}
+function seedPecuariaDemoYear(){
+  const rnd = (min,max) => min + Math.random()*(max-min);
+  const rndInt = (min,max) => Math.floor(rnd(min,max+1));
+  const pick = arr => arr[Math.floor(Math.random()*arr.length)];
+  const today = todayISO();
+  const yearAgo = addDays(today, -365);
+  const activeUserId = DB.activeUserId;
+
+  const envDefs = ['Pastagem Norte','Pastagem Sul','Pastagem Leste','Curral de Maternidade','Estábulo'];
+  const envs = envDefs.map(name=>{
+    const e = {id:uid(), name, capacity:rndInt(30,60), notes:'', createdAt:yearAgo, demo:true};
+    DB.livestockEnvironments.push(e); return e;
+  });
+
+  const lotDefs = [
+    {name:'Lote de Engorda 1', purpose:'engorda'},
+    {name:'Lote de Engorda 2', purpose:'engorda'},
+    {name:'Lote de Recria', purpose:'recria'},
+    {name:'Lote Reprodutor', purpose:'reproducao'},
+    {name:'Lote Leiteiro', purpose:'leite'},
+    {name:'Lote de Maternidade', purpose:'reproducao'},
+  ];
+  const lots = lotDefs.map(def=>{
+    const l = {id:uid(), name:def.name, species:'bovino', environmentId:pick(envs).id, purpose:def.purpose, createdAt:yearAgo, demo:true};
+    DB.livestockLots.push(l); return l;
+  });
+
+  const allBreeds = Object.values(LIVESTOCK_BREEDS.bovino).flat().filter(b=>b!=='Outra');
+  const targetTotal = 150, soldCount = 15, deadCount = 5;
+
+  const animals = [];
+  for(let i=0;i<targetTotal;i++){
+    const sex = Math.random()<0.85? 'F':'M';
+    const breed = pick(allBreeds);
+    const lot = pick(lots);
+    const birthDate = addDays(today, -rndInt(30, 1500));
+    const tag = 'PT ' + String(100000+i).padStart(6,'0');
+    const id = uid();
+    const a = {id, species:'bovino', breed, name:'', tag, sex, birthDate, motherId:null, fatherId:null, lotId:lot.id,
+      status:'ativo', statusHistory:[{status:'ativo', date:birthDate, note:'Animal registado', userId:activeUserId}],
+      photo:null, quarantined:false, createdAt:birthDate, demo:true};
+    animals.push(a);
+    DB.livestockAnimals.push(a);
+  }
+
+  const females = animals.filter(a=>a.sex==='F');
+  animals.forEach(a=>{
+    if(Math.random()<0.4){
+      const candidates = females.filter(f=>f.id!==a.id && daysBetween(f.birthDate,a.birthDate) > 400);
+      if(candidates.length) a.motherId = pick(candidates).id;
+    }
+  });
+
+  animals.forEach(a=>{
+    const ageAtStart = Math.max(0, daysBetween(a.birthDate, yearAgo));
+    let weight = Math.max(25, 30 + Math.min(ageAtStart,700)*0.9 + rnd(-15,15));
+    let cursor = daysBetween(a.birthDate, yearAgo) > 0 ? yearAgo : a.birthDate;
+    const numLogs = rndInt(3,6);
+    for(let i=0;i<numLogs;i++){
+      cursor = addDays(cursor, rndInt(25,70));
+      if(daysBetween(cursor, today) < 0) break;
+      weight = Math.max(25, weight + rnd(8,22));
+      DB.livestockWeightLogs.push({id:uid(), animalId:a.id, date:cursor, weightKg:Math.round(weight*10)/10, userId:activeUserId, demo:true});
+    }
+  });
+
+  const vaccineNames = BOVINE_VACCINE_PROTOCOL.map(p=>p.name);
+  animals.forEach(a=>{
+    if(Math.random()<0.75){
+      const vCount = rndInt(1,3);
+      for(let i=0;i<vCount;i++){
+        const date = addDays(yearAgo, rndInt(0,360));
+        DB.livestockVaccineLogs.push({id:uid(), animalId:a.id, date, vaccine:pick(vaccineNames),
+          nextDueDate: Math.random()<0.3? addDays(date, rndInt(30,200)) : null, userId:activeUserId, demo:true});
+      }
+    }
+    if(Math.random()<0.4){
+      const date = addDays(yearAgo, rndInt(0,360));
+      DB.livestockHealthLogs.push({id:uid(), animalId:a.id, date, type:pick(['tratamento','doenca','vermifugacao']), description:'', userId:activeUserId, demo:true});
+    }
+  });
+
+  animals.slice(0, soldCount).forEach(a=>{
+    const date = addDays(yearAgo, rndInt(30,360));
+    const value = Math.round(rnd(600,1400));
+    a.status = 'vendido';
+    a.statusHistory.push({status:'vendido', date, note:'Venda registada', userId:activeUserId, saleValue:value});
+    DB.transactions.push({id:uid(), type:'receita', category:'Venda de Gado', amount:value, date, note:`${a.tag} — venda`,
+      userId:activeUserId, status:'pago', paidDate:date, costCenterKind:'pecuaria', costCenterId:a.lotId, demo:true});
+  });
+  animals.slice(soldCount, soldCount+deadCount).forEach(a=>{
+    const date = addDays(yearAgo, rndInt(30,360));
+    a.status = 'morto';
+    a.statusHistory.push({status:'morto', date, note:'Causa desconhecida', userId:activeUserId});
+  });
+
+  saveDB();
+}
+function pecuariaHeadcountAt(dateStr){
+  return DB.livestockAnimals.filter(a=>{
+    if(a.birthDate>dateStr) return false;
+    const exitEntry = a.statusHistory.find(h=>h.status!=='ativo');
+    if(exitEntry && exitEntry.date<=dateStr) return false;
+    return true;
+  }).length;
+}
 function renderPecuariaGeralHTML(){
   const ativos = DB.livestockAnimals.filter(a=>a.status==='ativo');
   const buckets = weekBuckets(12);
@@ -6322,6 +6439,20 @@ function renderPecuariaGeralHTML(){
   const gmds = ativos.map(a=>animalGMD(a.id)).filter(v=>v!=null);
   const avgGMD = gmds.length? Math.round((gmds.reduce((s,v)=>s+v,0)/gmds.length)*1000)/1000 : null;
   const vendidosAno = DB.livestockAnimals.filter(a=>a.status==='vendido' && a.statusHistory.some(h=>h.status==='vendido' && h.date.slice(0,4)===todayISO().slice(0,4))).length;
+
+  const herdSeries = buckets.map(b=>({
+    ativos: pecuariaHeadcountAt(b.end),
+    vendas: DB.livestockAnimals.filter(a=>a.statusHistory.some(h=>h.status==='vendido' && h.date>=b.start && h.date<=b.end)).length,
+    mortes: DB.livestockAnimals.filter(a=>a.statusHistory.some(h=>(h.status==='morto'||h.status==='abatido') && h.date>=b.start && h.date<=b.end)).length,
+  }));
+  const herdChartSeries = [
+    {label:'Ativos', color:'var(--green-600)', values:herdSeries.map(h=>h.ativos)},
+    {label:'Vendas', color:'var(--blue-600)', values:herdSeries.map(h=>h.vendas)},
+    {label:'Mortes', color:'var(--red-600)', values:herdSeries.map(h=>h.mortes)},
+  ];
+  const lotCounts = DB.livestockLots.map(l=>({name:l.name, count:lotAnimals(l.id).length})).sort((a,b)=>b.count-a.count);
+  const maxLot = Math.max(1,...lotCounts.map(l=>l.count));
+
   return `
     <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
       <div class="stat-tile"><div><div class="text-xl font-bold mono leading-none">${DB.livestockLots.length}</div><div class="text-[11px] mt-1" style="color:var(--ink-soft)">lotes</div></div></div>
@@ -6330,9 +6461,22 @@ function renderPecuariaGeralHTML(){
       <div class="stat-tile" style="background:var(--blue-100)"><div><div class="text-xl font-bold mono leading-none" style="color:var(--blue-600)">${vendidosAno}</div><div class="text-[11px] mt-1" style="color:var(--ink-soft)">vendidos este ano</div></div></div>
     </div>
     <div class="card p-5 mb-5">
+      ${secHead('blue','chart','Evolução do efetivo', null, 'Animais ativos, vendas e mortes, por semana (últimos 3 meses)')}
+      <div class="overflow-x-auto">${multiLineChartSVG(herdChartSeries, buckets.map(b=>b.label))}</div>
+    </div>
+    <div class="card p-5 mb-5">
       ${secHead('green','chart','Peso médio do efetivo', null, 'Média das pesagens registadas, por semana (últimos 3 meses)')}
       ${!gmds.length && !filled.some(v=>v>0)? `<p class="text-sm m-0" style="color:var(--ink-faint)">Ainda sem pesagens suficientes para traçar a evolução — regista pesos em "Peso".</p>` :
       `<div class="overflow-x-auto">${multiLineChartSVG([{label:'Peso médio (kg)', color:'var(--green-600)', values:filled}], buckets.map(b=>b.label))}</div>`}
+    </div>
+    <div class="card p-5 mb-5">
+      ${secHead('orange','grid','Distribuição por lote', null, 'Número de animais ativos em cada lote')}
+      ${!lotCounts.length? `<p class="text-sm m-0" style="color:var(--ink-faint)">Ainda sem lotes registados.</p>` :
+      `<div class="flex flex-col gap-2.5">${lotCounts.map(l=>`
+        <div>
+          <div class="flex justify-between text-xs mb-1"><span>${l.name}</span><span class="mono font-semibold">${l.count}</span></div>
+          <div style="height:9px;border-radius:5px;background:var(--surface-2);overflow:hidden"><div style="height:100%;width:${Math.round(l.count/maxLot*100)}%;background:var(--orange-600);border-radius:5px"></div></div>
+        </div>`).join('')}</div>`}
     </div>
     <div class="card p-5">
       ${secHead('red','alert','Lembretes de vacinação', null, 'Próximas doses agendadas (30 dias)')}
