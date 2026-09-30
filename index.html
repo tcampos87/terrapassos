@@ -10,7 +10,7 @@
 <link rel="icon" type="image/png" href="images/misc/terrapassos-mark.png">
 <link rel="apple-touch-icon" href="images/misc/terrapassos-mark.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Public+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Public+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap">
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
 :root{
@@ -120,7 +120,7 @@
 }
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:'Public Sans',ui-sans-serif,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
-h1,h2,h3,.display{font-family:'Fredoka',ui-sans-serif,sans-serif;text-wrap:balance}
+h1,h2,h3,.display{font-family:'Sora',ui-sans-serif,sans-serif;text-wrap:balance}
 .mono, .num{font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums}
 ::selection{background:var(--green-100)}
 a{color:inherit}
@@ -156,11 +156,11 @@ button.card:active, a.card:active{transform:translateY(0) scale(.99)}
 .tp-auth-left-content{position:relative;z-index:1;flex:1;display:flex;flex-direction:column;justify-content:space-between;padding:44px 40px;box-sizing:border-box}
 .tp-auth-left-top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .tp-auth-left-brand{display:flex;align-items:center;gap:10px}
-.tp-auth-left-word{font-family:'Fredoka',ui-sans-serif,sans-serif;font-weight:600;font-size:19px}
+.tp-auth-left-word{font-family:'Sora',ui-sans-serif,sans-serif;font-weight:600;font-size:19px}
 .tp-auth-pill{display:inline-flex;align-items:center;gap:7px;padding:5px 12px;border-radius:999px;background:rgba(62,203,99,.14);border:1px solid rgba(62,203,99,.3);color:#7FE29B;font-size:10.5px;font-weight:700;letter-spacing:.06em}
 .tp-auth-pill i{width:6px;height:6px;border-radius:50%;background:#4CD97A;display:block;box-shadow:0 0 6px #4CD97A}
 .tp-auth-left-mid{max-width:480px}
-.tp-auth-left-h1{font-family:'Fredoka',ui-sans-serif,sans-serif;font-weight:600;font-size:32px;line-height:1.18;color:#F8F7F2;margin:0 0 16px;text-wrap:balance}
+.tp-auth-left-h1{font-family:'Sora',ui-sans-serif,sans-serif;font-weight:600;font-size:32px;line-height:1.18;color:#F8F7F2;margin:0 0 16px;text-wrap:balance}
 .tp-auth-accent{color:#FF8A1F}
 .tp-auth-left-sub{font-size:14px;line-height:1.65;color:#C4C1B6;margin:0 0 26px}
 .tp-auth-features{display:grid;grid-template-columns:1fr 1fr;gap:11px}
@@ -172,8 +172,8 @@ button.card:active, a.card:active{transform:translateY(0) scale(.99)}
 .tp-auth-right{flex:1 1 48%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;position:relative}
 .tp-auth-card{width:100%;max-width:380px}
 .tp-auth-mobile-brand{display:none;align-items:center;gap:9px;margin-bottom:22px}
-.tp-auth-mobile-brand span{font-family:'Fredoka',ui-sans-serif,sans-serif;font-weight:600;font-size:19px}
-.tp-auth-h1{font-family:'Fredoka',ui-sans-serif,sans-serif;font-weight:600;font-size:23px;color:#F8F7F2;margin:0 0 6px}
+.tp-auth-mobile-brand span{font-family:'Sora',ui-sans-serif,sans-serif;font-weight:600;font-size:19px}
+.tp-auth-h1{font-family:'Sora',ui-sans-serif,sans-serif;font-weight:600;font-size:23px;color:#F8F7F2;margin:0 0 6px}
 .tp-auth-intro{font-size:13px;color:#A8A59C;line-height:1.5;margin:0 0 22px}
 .tp-auth-error{font-size:12.5px;margin-bottom:14px;padding:9px 12px;border-radius:10px;color:#FFB199;background:rgba(226,105,92,.16)}
 .tp-auth-label{display:block;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#8B887C;margin-bottom:6px}
@@ -256,7 +256,7 @@ button.pill:active{transform:scale(.96)}
 .crop-tile{position:relative;border-radius:var(--r-lg);overflow:hidden;aspect-ratio:4/3;cursor:pointer;box-shadow:var(--elev-1);transition:box-shadow var(--dur-2) var(--ease),transform var(--dur-2) var(--ease)}
 @media(hover:hover){.crop-tile:hover{box-shadow:var(--elev-2);transform:translateY(-2px)}}
 .crop-tile-cap{position:absolute;left:0;right:0;bottom:0;z-index:1;padding:10px 12px;color:#fff}
-.crop-tile-cap b{display:block;font-family:'Fredoka',sans-serif;font-size:14.5px;font-weight:600;text-shadow:0 1px 4px rgba(0,0,0,.4)}
+.crop-tile-cap b{display:block;font-family:'Sora',sans-serif;font-size:14.5px;font-weight:600;text-shadow:0 1px 4px rgba(0,0,0,.4)}
 
 .tab-panel{display:none}
 .tab-panel.active{display:block;animation:viewIn .38s var(--ease-out)}
@@ -299,10 +299,10 @@ button.pill:active{transform:scale(.96)}
   body *{visibility:hidden}
   #printReport, #printReport *{visibility:visible}
   #printReport{display:block;position:absolute;top:0;left:0;width:100%;padding:0;color:#111;background:#fff}
-  #printReport h1{font-family:'Fredoka',sans-serif;font-size:20px;margin:0 0 2px}
-  #printReport h2{font-family:'Fredoka',sans-serif;font-size:14px;margin:0 0 3px;color:#2F7A3D;font-weight:600}
+  #printReport h1{font-family:'Sora',sans-serif;font-size:20px;margin:0 0 2px}
+  #printReport h2{font-family:'Sora',sans-serif;font-size:14px;margin:0 0 3px;color:#2F7A3D;font-weight:600}
   #printReport .rep-meta{font-size:10px;color:#666;margin:0 0 16px}
-  #printReport h3{font-family:'Fredoka',sans-serif;font-size:12.5px;margin:16px 0 6px;color:#2F7A3D;border-top:1px solid #ddd;padding-top:10px;font-weight:600}
+  #printReport h3{font-family:'Sora',sans-serif;font-size:12.5px;margin:16px 0 6px;color:#2F7A3D;border-top:1px solid #ddd;padding-top:10px;font-weight:600}
   #printReport h3:first-of-type{border-top:none;padding-top:0}
   #printReport table{width:100%;border-collapse:collapse;font-size:10.5px;margin-bottom:4px}
   #printReport th{text-align:left;border-bottom:1px solid #999;padding:4px 6px;font-size:9px;text-transform:uppercase;color:#555;letter-spacing:.02em}
@@ -320,7 +320,7 @@ button.pill:active{transform:scale(.96)}
 .kb-body ul{margin:0 0 14px;padding-left:20px;display:flex;flex-direction:column;gap:6px}
 .kb-body li{line-height:1.55}
 .kb-body strong{color:var(--green-700)}
-.kb-body h4{font-family:'Fredoka',sans-serif;font-size:15.5px;font-weight:600;color:var(--green-700);margin:22px 0 8px;padding-top:14px;border-top:1px solid var(--border)}
+.kb-body h4{font-family:'Sora',sans-serif;font-size:15.5px;font-weight:600;color:var(--green-700);margin:22px 0 8px;padding-top:14px;border-top:1px solid var(--border)}
 .kb-body h4:first-child{margin-top:0;padding-top:0;border-top:none}
 .kb-body table{width:100%;border-collapse:collapse;margin:4px 0 16px;font-size:13.5px}
 .kb-body th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:var(--ink-faint);padding:0 10px 6px 0;border-bottom:1px solid var(--border)}
@@ -369,7 +369,7 @@ button.pill:active{transform:scale(.96)}
 .kbx-fav:hover{transform:scale(1.15)}
 .kbx-fav.on{color:#FF6B81}
 .kbx-cap{position:absolute;left:12px;right:12px;bottom:10px;display:flex;flex-direction:column;gap:3px}
-.kbx-t{font-family:'Fredoka',sans-serif;font-weight:600;font-size:15px;line-height:1.2;text-shadow:0 1px 6px rgba(0,0,0,.55);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.kbx-t{font-family:'Sora',sans-serif;font-weight:600;font-size:15px;line-height:1.2;text-shadow:0 1px 6px rgba(0,0,0,.55);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 .kbx-m{font-size:11px;opacity:.88}
 @media(max-width:640px){.kbx-card{width:212px}.kbx-grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}.kbx-t{font-size:13.5px}}
 
@@ -403,7 +403,7 @@ button.pill:active{transform:scale(.96)}
 .kbp-bar.light{background:rgba(255,255,255,.28);border:none}.kbp-bar.light i{background:#7FDB93}
 .kbp-stats{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
 .kbp-stat{display:flex;flex-direction:column;padding:8px 12px;border-radius:12px;background:var(--surface-2);min-width:98px}
-.kbp-stat b{font-family:'Fredoka',sans-serif;font-size:17px;font-weight:600}
+.kbp-stat b{font-family:'Sora',sans-serif;font-size:17px;font-weight:600}
 .kbp-stat i{font-style:normal;font-size:11px;color:var(--ink-faint)}
 .kbp-cont{position:relative;min-height:230px;border-radius:20px;overflow:hidden;color:#fff;background:var(--kb-g);cursor:pointer;box-shadow:var(--shadow);display:flex;align-items:flex-end}
 .kbp-cont .kbx-shade{background:linear-gradient(0deg,rgba(6,16,10,.9) 0%,rgba(6,16,10,.45) 55%,rgba(6,16,10,.1) 100%)}
@@ -5452,7 +5452,7 @@ function renderMapImage(){
     const w = Math.min(30, Math.max(11, a.name.length*1.32+2.6));
     return `<g style="pointer-events:none">
       <rect x="${(cx-w/2).toFixed(2)}" y="${(cy-1.7).toFixed(2)}" width="${w.toFixed(2)}" height="3.4" rx="1.7" fill="rgba(10,12,8,.44)" stroke="rgba(255,255,255,.28)" stroke-width="0.09"/>
-      <text x="${cx}" y="${(cy+0.38).toFixed(2)}" font-size="1.85" text-anchor="middle" fill="#fff" font-weight="600" font-family="'Fredoka',ui-sans-serif,sans-serif" letter-spacing=".01em">${a.name}</text>
+      <text x="${cx}" y="${(cy+0.38).toFixed(2)}" font-size="1.85" text-anchor="middle" fill="#fff" font-weight="600" font-family="'Sora',ui-sans-serif,sans-serif" letter-spacing=".01em">${a.name}</text>
     </g>`;
   }).join('');
   const drawPoly = drawPoints.length? `<polyline points="${drawPoints.map(p=>`${p.x*100},${p.y*100}`).join(' ')}" fill="none" stroke="var(--orange-500)" stroke-width="0.4" stroke-dasharray="1 0.8" stroke-linecap="round"/>` +
@@ -7604,7 +7604,7 @@ function kbxRing(pct, size, sw, label){
   return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" class="kbp-ring" role="img" aria-label="${pct}% concluído">
     <circle cx="${h}" cy="${h}" r="${r}" fill="none" style="stroke:var(--border)" stroke-width="${sw}"/>
     <circle cx="${h}" cy="${h}" r="${r}" fill="none" style="stroke:var(--green-500)" stroke-width="${sw}" stroke-linecap="round" stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${(c*(1-pct/100)).toFixed(1)}" transform="rotate(-90 ${h} ${h})"/>
-    <text x="50%" y="50%" text-anchor="middle" dominant-baseline="central" style="fill:var(--ink);font-family:Fredoka,sans-serif;font-weight:600;font-size:${Math.round(size*0.24)}px">${label}</text>
+    <text x="50%" y="50%" text-anchor="middle" dominant-baseline="central" style="fill:var(--ink);font-family:Sora,sans-serif;font-weight:600;font-size:${Math.round(size*0.24)}px">${label}</text>
   </svg>`;
 }
 function kbxBar(pct, cls){ return `<div class="kbp-bar ${cls||''}"><i style="width:${Math.max(0,Math.min(100,pct))}%"></i></div>`; }
@@ -7720,11 +7720,11 @@ function kbxCertificate(tid){
   const g = cv.getContext('2d'), when = Math.max(...t.ids.map(id=>p.done[id]||0));
   const finish = ()=>{
     g.textAlign = 'center';
-    g.fillStyle = '#2A6B3A'; g.font = '600 30px Fredoka, sans-serif'; g.fillText('CERTIFICADO DE PARTICIPAÇÃO', W/2, 330);
+    g.fillStyle = '#2A6B3A'; g.font = '600 30px Sora, sans-serif'; g.fillText('CERTIFICADO DE PARTICIPAÇÃO', W/2, 330);
     g.fillStyle = '#3B4A3F'; g.font = '400 30px sans-serif'; g.fillText('Certifica-se que', W/2, 430);
-    g.fillStyle = '#1F4429'; g.font = '600 82px Fredoka, sans-serif'; g.fillText(activeUser().name, W/2, 540);
+    g.fillStyle = '#1F4429'; g.font = '600 82px Sora, sans-serif'; g.fillText(activeUser().name, W/2, 540);
     g.fillStyle = '#3B4A3F'; g.font = '400 30px sans-serif'; g.fillText('concluiu a trilha de aprendizagem', W/2, 630);
-    g.fillStyle = '#2A6B3A'; g.font = '600 56px Fredoka, sans-serif'; g.fillText(t.title, W/2, 730);
+    g.fillStyle = '#2A6B3A'; g.font = '600 56px Sora, sans-serif'; g.fillText(t.title, W/2, 730);
     g.fillStyle = '#3B4A3F'; g.font = '400 28px sans-serif'; g.fillText(t.ids.length+' aulas concluídas  ·  '+kbxFmtDay(when), W/2, 810);
     g.fillStyle = '#7A857D'; g.font = '400 22px sans-serif'; g.fillText('Certificado interno de participação — não constitui uma certificação profissional ou oficial.', W/2, H-110);
     const a = document.createElement('a'); a.href = cv.toDataURL('image/png');
@@ -8729,7 +8729,7 @@ function renderEstufaMap(){
     const w = Math.min(30, Math.max(11, a.name.length*1.32+2.6));
     return `<g style="pointer-events:none">
       <rect x="${(cx-w/2).toFixed(2)}" y="${(cy-1.7).toFixed(2)}" width="${w.toFixed(2)}" height="3.4" rx="1.7" fill="rgba(10,12,8,.44)" stroke="rgba(255,255,255,.28)" stroke-width="0.09"/>
-      <text x="${cx}" y="${(cy+0.38).toFixed(2)}" font-size="1.85" text-anchor="middle" fill="#fff" font-weight="600" font-family="'Fredoka',ui-sans-serif,sans-serif" letter-spacing=".01em">${a.name}</text>
+      <text x="${cx}" y="${(cy+0.38).toFixed(2)}" font-size="1.85" text-anchor="middle" fill="#fff" font-weight="600" font-family="'Sora',ui-sans-serif,sans-serif" letter-spacing=".01em">${a.name}</text>
     </g>`;
   }).join('');
   const drawPoly = estufaDrawPoints.length? `<polyline points="${estufaDrawPoints.map(p=>`${p.x*100},${p.y*100}`).join(' ')}" fill="none" stroke="var(--orange-500)" stroke-width="0.4" stroke-dasharray="1 0.8" stroke-linecap="round"/>` +
