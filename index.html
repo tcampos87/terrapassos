@@ -2000,28 +2000,23 @@ function renderInsumos(){
     </div>
     <div class="grid-crops mb-4">
       ${filtered.map(i=>`
-        <div class="card overflow-hidden flex flex-col">
-          <button class="text-left" onclick="openInputDetail('${i.id}')">
-            ${inputThumbHTML(i, 92)}
-            <div class="p-4 pb-2">
-              <div class="flex items-center justify-between gap-2 mb-2">
-                <span class="font-semibold display" style="font-size:15px">${i.name}</span>
-                <span class="pill pill-${INPUT_TYPE_COLORS[i.type]}" style="font-size:10px;flex:none">${i.type==='organico'?'Biológico':'Químico'}</span>
-              </div>
-              <div class="text-xs mb-2" style="color:var(--ink-faint)">${i.cat}</div>
-              <p class="text-xs m-0" style="color:var(--ink-soft);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${i.properties}</p>
+        <button class="card overflow-hidden text-left flex flex-col hoverable" onclick="openInputDetail('${i.id}')">
+          ${inputThumbHTML(i, 92)}
+          <div class="p-4 pb-2">
+            <div class="flex items-center justify-between gap-2 mb-2">
+              <span class="font-semibold display" style="font-size:15px">${i.name}</span>
+              <span class="pill pill-${INPUT_TYPE_COLORS[i.type]}" style="font-size:10px;flex:none">${i.type==='organico'?'Biológico':'Químico'}</span>
             </div>
-          </button>
-          <div class="px-4 pb-4 mt-auto">
-            <button class="btn btn-accent btn-sm w-full" onclick="promptApplyInput('${i.id}')">Aplicar Fertilizante</button>
+            <div class="text-xs mb-2" style="color:var(--ink-faint)">${i.cat}</div>
+            <p class="text-xs m-0" style="color:var(--ink-soft);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${i.properties}</p>
           </div>
-        </div>
+        </button>
       `).join('')}
     </div>
     ${renderStockSectionHTML('insumo')}
     <div class="card p-5 mt-4">
       ${secHead('orange','history','Histórico de aplicações')}
-      ${recent.length===0? `<p class="text-sm m-0" style="color:var(--ink-faint)">Ainda sem aplicações registadas — usa o botão "Aplicar Fertilizante" em cada cartão acima.</p>` : `
+      ${recent.length===0? `<p class="text-sm m-0" style="color:var(--ink-faint)">Ainda sem aplicações registadas — abre um fertilizante acima e usa o botão "Aplicar Fertilizante".</p>` : `
       <div class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead><tr class="text-xs text-left" style="color:var(--ink-faint)">
@@ -2441,28 +2436,23 @@ function renderHerbicidas(){
     </div>
     <div class="grid-crops mb-4">
       ${filtered.map(h=>`
-        <div class="card overflow-hidden flex flex-col">
-          <button class="text-left" onclick="openHerbDetail('${h.id}')">
-            ${herbThumbHTML(h, 92)}
-            <div class="p-4 pb-2">
-              <div class="flex items-center justify-between gap-2 mb-2">
-                <span class="font-semibold display" style="font-size:15px">${h.name}</span>
-                <span class="pill pill-${INPUT_TYPE_COLORS[h.type]}" style="font-size:10px;flex:none">${h.type==='organico'?'Biológico':'Químico'}</span>
-              </div>
-              <div class="text-xs mb-2" style="color:var(--ink-faint)">${h.cat}</div>
-              <p class="text-xs m-0" style="color:var(--ink-soft);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${h.properties}</p>
+        <button class="card overflow-hidden text-left flex flex-col hoverable" onclick="openHerbDetail('${h.id}')">
+          ${herbThumbHTML(h, 92)}
+          <div class="p-4 pb-2">
+            <div class="flex items-center justify-between gap-2 mb-2">
+              <span class="font-semibold display" style="font-size:15px">${h.name}</span>
+              <span class="pill pill-${INPUT_TYPE_COLORS[h.type]}" style="font-size:10px;flex:none">${h.type==='organico'?'Biológico':'Químico'}</span>
             </div>
-          </button>
-          <div class="px-4 pb-4 mt-auto">
-            <button class="btn btn-accent btn-sm w-full" onclick="promptApplyHerbicide('${h.id}')">Aplicar Herbicida</button>
+            <div class="text-xs mb-2" style="color:var(--ink-faint)">${h.cat}</div>
+            <p class="text-xs m-0" style="color:var(--ink-soft);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${h.properties}</p>
           </div>
-        </div>
+        </button>
       `).join('')}
     </div>
     ${renderStockSectionHTML('herbicida')}
     <div class="card p-5 mt-4">
       ${secHead('red','history','Histórico de aplicações')}
-      ${recent.length===0? `<p class="text-sm m-0" style="color:var(--ink-faint)">Ainda sem aplicações registadas — usa o botão "Aplicar Herbicida" em cada cartão acima.</p>` : `
+      ${recent.length===0? `<p class="text-sm m-0" style="color:var(--ink-faint)">Ainda sem aplicações registadas — abre um herbicida acima e usa o botão "Aplicar Herbicida".</p>` : `
       <div class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead><tr class="text-xs text-left" style="color:var(--ink-faint)">
@@ -7294,7 +7284,7 @@ const KNOWLEDGE = [
     <h4>Armazenamento e segurança dos produtos químicos sintéticos</h4>
     <p>Guarda sempre fertilizantes químicos sintéticos na embalagem original, bem fechados, fora do alcance de crianças e animais, e nunca junto a alimentos ou água para consumo. Usa luvas ao manusear produtos concentrados em pó (superfosfato, sulfato de amónio), e lê sempre o rótulo antes da primeira aplicação de um produto novo — a dose recomendada varia bastante entre marcas e formulações, mesmo dentro do mesmo tipo genérico de fertilizante.</p>
     <h4>Regista sempre o que aplicaste</h4>
-    <p>Uma das causas mais comuns de sobredosagem acidental é simplesmente esquecer o que já foi aplicado numa determinada área. O módulo Fertilizantes desta aplicação tem precisamente este propósito — usa o botão "Aplicar Fertilizante" em cada cartão para registar o que aplicaste, onde, quando e em que quantidade por m², criando um histórico que evita repetir (ou esquecer) aplicações ao longo da estação.</p>`},
+    <p>Uma das causas mais comuns de sobredosagem acidental é simplesmente esquecer o que já foi aplicado numa determinada área. O módulo Fertilizantes desta aplicação tem precisamente este propósito — abre cada fertilizante e usa o botão "Aplicar Fertilizante" para registar o que aplicaste, onde, quando e em que quantidade por m², criando um histórico que evita repetir (ou esquecer) aplicações ao longo da estação.</p>`},
 ];
 /* =========================================================================
    ANÁLISES — inteligência sobre dados históricos (comparação ano-a-ano)
