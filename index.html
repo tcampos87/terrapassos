@@ -871,6 +871,7 @@ function defaultDB(){
     livestockHealthLogs: [], // {id,animalId,date,type:'tratamento'|'doenca'|'vermifugacao',description,userId}
     livestockVaccineLogs: [], // {id,animalId,date,vaccine,nextDueDate,withdrawalDays,userId}
     animalImageCache: {}, // {animalCatalogId: url|null} — fotos reais do catálogo do módulo Animais
+    breedImageCache: {}, // {breedId: url|null} — fotos reais de cada raça, dentro do catálogo de Animais
   };
 }
 let DB = loadDB();
@@ -1512,6 +1513,56 @@ const LOCAL_IMAGES = {
     // fornecida diretamente, em vez do desenho SVG simplificado que tínhamos antes.
     'logo-mark': 'images/misc/terrapassos-mark.png',
   },
+  breeds: {
+    'alentejana': 'images/breeds/alentejana.jpg',
+    'alentejano': 'images/breeds/alentejano.jpg',
+    'anglo-nubiana': 'images/breeds/anglo-nubiana.jpg',
+    'angus': 'images/breeds/angus.jpg',
+    'arouquesa': 'images/breeds/arouquesa.jpg',
+    'barrosa': 'images/breeds/barrosa.jpg',
+    'bisaro': 'images/breeds/bisaro.jpg',
+    'blonde-aquitaine': 'images/breeds/blonde-aquitaine.jpg',
+    'boer': 'images/breeds/boer.jpg',
+    'brahman': 'images/breeds/brahman.jpg',
+    'brangus': 'images/breeds/brangus.jpg',
+    'cachena': 'images/breeds/cachena.jpg',
+    'canchim': 'images/breeds/canchim.jpg',
+    'caracu': 'images/breeds/caracu.jpg',
+    'charoles': 'images/breeds/charoles.jpg',
+    'corriedale': 'images/breeds/corriedale.jpg',
+    'dorper': 'images/breeds/dorper.jpg',
+    'duroc': 'images/breeds/duroc.jpg',
+    'gir': 'images/breeds/gir.jpg',
+    'girolando': 'images/breeds/girolando.jpg',
+    'guernsey': 'images/breeds/guernsey.jpg',
+    'guzera': 'images/breeds/guzera.jpg',
+    'hampshire-down': 'images/breeds/hampshire-down.jpg',
+    'hampshire-pig': 'images/breeds/hampshire-pig.jpg',
+    'hereford': 'images/breeds/hereford.jpg',
+    'holstein': 'images/breeds/holstein.jpg',
+    'ile-de-france': 'images/breeds/ile-de-france.jpg',
+    'jersey': 'images/breeds/jersey.jpg',
+    'large-white': 'images/breeds/large-white.jpg',
+    'limousine': 'images/breeds/limousine.jpg',
+    'maronesa': 'images/breeds/maronesa.jpg',
+    'merino-branco': 'images/breeds/merino-branco.jpg',
+    'mertolenga': 'images/breeds/mertolenga.jpg',
+    'minhota': 'images/breeds/minhota.jpg',
+    'mirandesa': 'images/breeds/mirandesa.jpg',
+    'morada-nova': 'images/breeds/morada-nova.jpg',
+    'nelore': 'images/breeds/nelore.jpg',
+    'pardo-suico': 'images/breeds/pardo-suico.jpg',
+    'pietrain': 'images/breeds/pietrain.jpg',
+    'saanen': 'images/breeds/saanen.jpg',
+    'santa-ines': 'images/breeds/santa-ines.jpg',
+    'senepol': 'images/breeds/senepol.jpg',
+    'serra-da-estrela': 'images/breeds/serra-da-estrela.jpg',
+    'simental': 'images/breeds/simental.jpg',
+    'sindi': 'images/breeds/sindi.jpg',
+    'suffolk': 'images/breeds/suffolk.jpg',
+    'texel': 'images/breeds/texel.jpg',
+    'toggenburg': 'images/breeds/toggenburg.jpg',
+  },
   animals: {
     'bovino': 'images/animals/bovino.jpg',
     'suino': 'images/animals/suino.jpg',
@@ -1534,6 +1585,7 @@ const LOCAL_IMAGES = {
   if(DB.inputImageCache) for(const id in LOCAL_IMAGES.inputs){ if(DB.inputImageCache[id]!==LOCAL_IMAGES.inputs[id]){ DB.inputImageCache[id]=LOCAL_IMAGES.inputs[id]; changed=true; } }
   if(DB.herbImageCache) for(const id in LOCAL_IMAGES.herbicidas){ if(DB.herbImageCache[id]!==LOCAL_IMAGES.herbicidas[id]){ DB.herbImageCache[id]=LOCAL_IMAGES.herbicidas[id]; changed=true; } }
   if(DB.animalImageCache) for(const id in LOCAL_IMAGES.animals){ if(DB.animalImageCache[id]!==LOCAL_IMAGES.animals[id]){ DB.animalImageCache[id]=LOCAL_IMAGES.animals[id]; changed=true; } }
+  if(DB.breedImageCache) for(const id in LOCAL_IMAGES.breeds){ if(DB.breedImageCache[id]!==LOCAL_IMAGES.breeds[id]){ DB.breedImageCache[id]=LOCAL_IMAGES.breeds[id]; changed=true; } }
   if(changed) saveDB();
 })();
 
@@ -1612,6 +1664,21 @@ function animalCatalogThumbHTML(a, heightPx, rounded){
   return `<div class="relative" style="height:${heightPx}px;background:linear-gradient(135deg,var(--surface-2),var(--border));flex:none;overflow:hidden;${radius}">
     <div class="absolute inset-0 flex items-center justify-center" style="font-size:${Math.round(heightPx*0.4)}px;opacity:.55">${a.icon||'🐾'}</div>
     ${url? `<img src="${url}" alt="${a.name}" loading="lazy" class="absolute inset-0 w-full h-full object-cover" onerror="this.style.display='none'">` : ''}
+  </div>`;
+}
+
+/* ---- Fotos reais das raças (dentro de cada espécie do catálogo de Animais) ---- */
+async function ensureBreedImages(breedIds){
+  const missing = breedIds.filter(id => !(id in DB.breedImageCache) && LOCAL_IMAGES.breeds[id]);
+  if(!missing.length) return;
+  missing.forEach(id=>{ DB.breedImageCache[id] = LOCAL_IMAGES.breeds[id]; });
+  saveDB();
+}
+function breedThumbHTML(breedId, icon, heightPx){
+  const url = DB.breedImageCache[breedId];
+  return `<div class="relative" style="height:${heightPx}px;background:linear-gradient(135deg,var(--surface-2),var(--border));flex:none;overflow:hidden;border-radius:14px">
+    <div class="absolute inset-0 flex items-center justify-center" style="font-size:${Math.round(heightPx*0.4)}px;opacity:.55">${icon||'🐾'}</div>
+    ${url? `<img src="${url}" alt="" loading="lazy" class="absolute inset-0 w-full h-full object-cover" onerror="this.style.display='none'">` : ''}
   </div>`;
 }
 
@@ -7146,6 +7213,140 @@ const ANIMAIS_CATALOG = [
     space:'1 colmeia por 200-400 m² de área com floração disponível é uma referência comum, mas varia muito com a região.'},
 ];
 function animalCatalogById(id){ return ANIMAIS_CATALOG.find(a=>a.id===id); }
+
+/* ---- Ficha detalhada de cada raça — pesquisa própria (fotos + descrição), separada
+   do catálogo de espécies para não sobrecarregar o objeto principal ---- */
+const BREED_ID_BY_NAME = {
+  'Mertolenga':'mertolenga','Alentejana':'alentejana','Barrosã':'barrosa','Maronesa':'maronesa','Mirandesa':'mirandesa',
+  'Arouquesa':'arouquesa','Marinhoa':'marinhoa','Minhota':'minhota','Cachena':'cachena','Garvonesa':'garvonesa',
+  'Preta (Ramo Grande)':'preta-ramo-grande','Brava (de Lide)':'brava-lide','Nelore':'nelore','Gir':'gir','Guzerá':'guzera',
+  'Tabapuã':'tabapua','Indubrasil':'indubrasil','Sindi':'sindi','Caracu':'caracu','Curraleiro Pé-Duro':'curraleiro-pe-duro',
+  'Pantaneiro':'pantaneiro','Crioulo Lageano':'crioulo-lageano','Girolando':'girolando','Canchim':'canchim','Brangus':'brangus',
+  'Simbrasil':'simbrasil','Holstein Frísia (Holandesa)':'holstein','Jersey':'jersey','Pardo Suíço':'pardo-suico','Guernsey':'guernsey',
+  'Angus':'angus','Hereford':'hereford','Charolês':'charoles','Limousine':'limousine','Simental':'simental',
+  "Blonde d'Aquitaine":'blonde-aquitaine','Brahman':'brahman','Senepol':'senepol',
+  'Bísaro':'bisaro','Alentejano (Porco Preto Ibérico)':'alentejano','Piau':'piau','Canastra':'canastra','Caruncho':'caruncho',
+  'Moura':'moura','Nilo-Canastrão':'nilo-canastrao','Macau (Pirapemba)':'macau','Monteiro':'monteiro','Landrace':'landrace',
+  'Large White (Yorkshire)':'large-white','Duroc':'duroc','Pietrain':'pietrain','Hampshire':'hampshire-pig',
+  'Churra Galega Bragançana':'churra-bragancana','Churra da Terra Quente':'churra-terra-quente','Churra Mondegueira':'churra-mondegueira',
+  'Churra do Campo':'churra-campo','Churra Badana':'churra-badana','Merino Branco':'merino-branco','Merino Preto':'merino-preto',
+  'Saloia':'saloia','Serra da Estrela':'serra-da-estrela','Campaniça':'campanica','Bordaleira de Entre Douro e Minho':'bordaleira-entre-douro-minho',
+  'Santa Inês':'santa-ines','Morada Nova':'morada-nova','Rabo Largo':'rabo-largo','Somalis Brasileira':'somalis-brasileira',
+  'Ile de France':'ile-de-france','Suffolk':'suffolk','Texel':'texel','Dorper':'dorper','Hampshire Down':'hampshire-down','Corriedale':'corriedale',
+  'Serrana':'serrana','Charnequeira':'charnequeira','Algarvia':'algarvia','Bravia':'bravia','Preta de Montesinho':'preta-montesinho',
+  'Moxotó':'moxoto','Canindé':'caninde','Marota':'marota','Repartida':'repartida','Azul':'azul-caprino','Graúna':'grauna',
+  'Saanen':'saanen','Anglo-Nubiana':'anglo-nubiana','Toggenburg':'toggenburg','Alpina (Parda Alpina)':'alpina','Boer':'boer',
+};
+const BREED_DESCRIPTIONS = {
+  'mertolenga':'A Mertolenga é a raça bovina mais numerosa de Portugal, originária da região de Mértola, no Baixo Alentejo. É uma raça de dupla aptidão (carne e tração histórica), muito rústica e bem adaptada ao montado alentejano, com pelagem castanha e mucosas escuras. É a base da Vitela Mertolenga DOP, um dos produtos certificados mais valorizados da pecuária portuguesa.',
+  'alentejana':'A Alentejana foi durante séculos a principal raça de carne do Alentejo, de grande porte, pelagem que varia do castanho-claro ao quase preto, e cornos característicos virados para cima. Está historicamente associada também à raça de lide portuguesa. Hoje é criada sobretudo em regime extensivo no montado, valorizada pela qualidade da carne.',
+  'barrosa':'A Barrosã, do Minho e Trás-os-Montes, é facilmente reconhecível pelos seus cornos grandes em forma de lira e porte relativamente pequeno. É uma raça de dupla aptidão (tração tradicional e carne), muito rústica, e dá origem à Carne Barrosã DOP, apreciada pela sua qualidade e sabor.',
+  'maronesa':'A Maronesa é uma raça bovina de montanha de Trás-os-Montes, com pelagem escura quase preta e cornos em forma de lira. Extremamente rústica, está bem adaptada a terrenos acidentados e a condições climáticas adversas, sendo hoje sobretudo criada para carne (Carne Maronesa DOP).',
+  'mirandesa':'A Mirandesa, de Trás-os-Montes, é uma raça de grande porte, pelagem castanha-clara e cornos característicos em forma de lira aberta. Foi tradicionalmente usada para tração antes de se tornar predominantemente uma raça de carne, sendo a base da Carne Mirandesa DOP.',
+  'arouquesa':'A Arouquesa, da região de Arouca, é uma raça de tripla aptidão (carne, leite e tração histórica), de pequeno a médio porte e pelagem castanha-avermelhada. É criada sobretudo em regime extensivo nas serras da Beira, e dá nome à Carne Arouquesa DOP.',
+  'marinhoa':'A Marinhoa, da região de Aveiro e Beira Litoral, foi historicamente uma das principais raças de tração de Portugal, de grande porte e pelagem clara. Atualmente é criada principalmente para produção de carne, mantendo-se como património genético regional importante.',
+  'minhota':'A Minhota (ou Galega), do Minho, é uma raça tradicionalmente usada para tração e leite, de porte médio e pelagem castanho-avermelhada. É hoje uma raça em risco, com um número reduzido de efetivos, mantida sobretudo por criadores dedicados à conservação genética.',
+  'cachena':'A Cachena é uma das mais pequenas raças bovinas da Europa, originária do norte de Portugal e Galiza. Muito rústica e dócil, é hoje criada mais por valor patrimonial e paisagístico (gestão de pastagens, turismo rural) do que para produção intensiva.',
+  'garvonesa':'A Garvonesa, ou Chamusca, é uma raça bovina de tração tradicionalmente criada em Trás-os-Montes, atualmente com um efetivo extremamente reduzido e classificada como estando em risco crítico de extinção. É um importante exemplo do património genético bovino português a precisar de conservação ativa.',
+  'preta-ramo-grande':'A Preta (ou Ramo Grande) é uma raça bovina autóctone da ilha Terceira, nos Açores, de dupla aptidão (carne e antigamente tração). Adaptada ao clima húmido e às pastagens insulares açorianas, é hoje criada num número reduzido de efetivos.',
+  'brava-lide':'A raça Brava, criada no Alentejo e Ribatejo, é selecionada há séculos para a tourada e não para produção alimentar — daí o seu temperamento vivo e combativo, muito diferente das restantes raças bovinas portuguesas. Partilha ascendência com outras raças ibéricas de lide da Península Ibérica.',
+  'nelore':'O Nelore é a raça bovina mais criada no Brasil, de origem zebuína (Bos indicus), reconhecível pela pelagem branca ou cinzenta-clara, giba pronunciada e orelhas longas e pendentes. É extremamente resistente ao calor tropical e a parasitas como o carrapato, sendo a base da pecuária de corte brasileira.',
+  'gir':'O Gir, de origem indiana, é uma raça zebuína com uma característica testa convexa e orelhas longas e pendentes. No Brasil destaca-se sobretudo como raça leiteira (Gir Leiteiro), sendo também a base genética do Girolando, a principal raça leiteira do país.',
+  'guzera':'O Guzerá (ou Guzerat), de origem indiana, é uma raça zebuína de dupla aptidão (carne e leite), com cornos grandes e grossos e grande capacidade de adaptação a climas quentes e pastagens de baixa qualidade — uma das raças zebuínas mais rústicas do Brasil.',
+  'tabapua':'O Tabapuã é uma raça de corte desenvolvida no Brasil a partir de zebuínos, caracterizada por ser mocha (sem chifres) — uma vantagem prática no maneio. Foi selecionada para produtividade de carne e boa adaptação ao clima tropical brasileiro.',
+  'indubrasil':'O Indubrasil (ou Indo-Brasileiro) é uma raça zebuína de corte de grande porte, desenvolvida no Brasil a partir do cruzamento de várias raças indianas (Gir, Guzerá e Nelore). Destaca-se pelo tamanho elevado e boa produção de carne em sistemas extensivos.',
+  'sindi':'O Sindi (Red Sindhi), de origem paquistanesa, é uma raça zebuína de pequeno porte e pelagem avermelhada, valorizada sobretudo pela sua produção leiteira e extrema rusticidade — tolera muito bem o calor, a seca e condições de maneio exigentes.',
+  'caracu':'O Caracu é uma das raças bovinas naturalizadas mais antigas do Brasil, de origem taurina (europeia) trazida ainda no período colonial. De pelagem que varia do amarelo-claro ao vermelho-escuro, foi selecionada ao longo de séculos para se adaptar ao clima tropical, sendo hoje usada tanto para carne como em programas de cruzamento.',
+  'curraleiro-pe-duro':'O Curraleiro Pé-Duro é uma raça bovina naturalizada do sertão nordestino brasileiro, de pequeno porte e extrema rusticidade, capaz de sobreviver em condições de seca severa com poucos recursos. É hoje reconhecida como reserva genética importante e está envolvida em programas de conservação.',
+  'pantaneiro':'O Pantaneiro é uma raça bovina naturalizada, adaptada às condições únicas do Pantanal brasileiro — cheias sazonais, calor intenso e pastagens nativas. Descende de gado trazido pelos colonizadores portugueses e é valorizado pela sua rusticidade e resistência a doenças tropicais.',
+  'crioulo-lageano':'O Crioulo Lageano é uma raça bovina naturalizada do planalto serrano de Santa Catarina, descendente do gado ibérico trazido pelos colonizadores. Rústica e bem adaptada ao clima frio da região serrana, é hoje criada sobretudo por pequenos produtores e em programas de conservação genética.',
+  'girolando':'O Girolando, cruzamento estabilizado entre Gir e Holandês, é a principal raça leiteira do Brasil, respondendo pela maior parte do leite produzido no país. Combina a rusticidade e resistência ao calor do Gir com a elevada produção leiteira da raça Holandesa.',
+  'canchim':'O Canchim é uma raça de corte brasileira desenvolvida a partir de 1940, cruzando Charolês com zebuínos (Nelore/Indubrasil), para juntar o rápido crescimento e boa carcaça da raça francesa com a rusticidade tropical do zebu. É hoje uma referência em sistemas de produção de carne de qualidade no Brasil.',
+  'brangus':'O Brangus é uma raça composta americana resultante do cruzamento entre Angus e zebu (geralmente Brahman), combinando a qualidade de carne marmoreada do Angus com a tolerância ao calor e resistência a parasitas do zebu. É muito usada em climas tropicais e subtropicais, incluindo o Brasil.',
+  'simbrasil':'O Simbrasil é um cruzamento industrial brasileiro entre Simental e zebu, combinando a boa produção de carne e leite do Simental europeu com a rusticidade tropical do gado zebuíno — uma opção para produtores que procuram dupla aptidão em clima quente.',
+  'holstein':'A Holstein Frísia (ou Holandesa) é a raça leiteira mais produtiva do mundo, facilmente reconhecível pela pelagem malhada a preto e branco (ou vermelho e branco). De grande porte, é a base da produção leiteira intensiva em explorações especializadas de Portugal, Brasil e praticamente todo o mundo.',
+  'jersey':'A Jersey, originária da ilha do Canal com o mesmo nome, é uma raça leiteira de pequeno porte e pelagem castanha-clara, conhecida pelo leite com teor excecionalmente alto de gordura e proteína — muito valorizado para produção de manteiga e queijo de qualidade.',
+  'pardo-suico':'O Pardo Suíço (Brown Swiss), da Suíça, é uma raça de dupla aptidão robusta e de temperamento calmo, com pelagem que varia do cinzento-claro ao castanho-escuro. Produz leite com boa composição para queijo e é muito valorizada pela sua longevidade produtiva.',
+  'guernsey':'A Guernsey, da ilha do Canal com o mesmo nome, é uma raça leiteira de porte médio e pelagem castanho-alaranjada com manchas brancas. Produz um leite dourado, rico em betacaroteno, menos comum atualmente mas ainda valorizado por produtores especializados.',
+  'angus':'O Angus (ou Aberdeen Angus), da Escócia, é uma raça de corte de pequeno a médio porte, sem chifres (mocha) e de pelagem preta ou vermelha. É mundialmente reconhecida pela excelente qualidade de carne, bem marmoreada e macia, sendo uma das raças de corte mais valorizadas do mercado internacional.',
+  'hereford':'O Hereford, de Herefordshire, Inglaterra, é uma raça de corte robusta e rústica, facilmente reconhecível pela pelagem avermelhada com cabeça, peito e barriga brancos. É muito usada em sistemas extensivos pela sua capacidade de se adaptar a pastagens de qualidade variável.',
+  'charoles':'O Charolês, da região francesa de Charolles, é uma raça de corte de grande porte e pelagem branca a creme, conhecida pelo crescimento rápido e grande volume de carne magra. É muito usada em cruzamentos terminais para aumentar o peso de abate.',
+  'limousine':'O Limousine, da região francesa do Limousin, é uma raça de corte de pelagem castanho-dourada, valorizada pelo excelente rendimento de carcaça e pela elevada proporção de carne magra em relação ao osso — uma das raças de corte mais eficientes.',
+  'simental':'O Simental (ou Fleckvieh), da Suíça, é uma raça de dupla aptidão (carne e leite) de grande porte, com pelagem malhada a castanho-avermelhado e branco. É valorizada pela versatilidade, bom crescimento e boa produção leiteira quando usada para esse fim.',
+  'blonde-aquitaine':"O Blonde d'Aquitaine, do sudoeste de França, é uma raça de corte de grande porte e pelagem dourada uniforme, criada para produzir grandes volumes de carne extremamente magra, com uma das mais baixas percentagens de gordura entre as raças de corte.",
+  'brahman':'O Brahman, desenvolvido nos Estados Unidos a partir de raças zebuínas indianas, destaca-se pela giba pronunciada, orelhas longas e grande tolerância ao calor e a parasitas. É a base genética de várias raças compostas americanas usadas em climas tropicais, incluindo o Brangus e o Senepol.',
+  'senepol':"O Senepol, desenvolvido na ilha caribenha de St. Croix a partir do cruzamento de N'Dama africano com Red Poll, é uma raça de corte mocha (sem chifres) com excelente tolerância ao calor — inclusive pelo gene 'slick' que lhe confere pelo curto e liso, muito eficiente na dissipação de calor.",
+  'bisaro':'O Porco Bísaro é uma raça suína autóctone de Trás-os-Montes, de pelagem rosada com manchas pretas, orelhas grandes e caídas, e corpo comprido. Muito rústica e de crescimento lento, é a base de produtos tradicionais como enchidos e presunto transmontano, e tem vindo a recuperar importância com o interesse crescente em produção de qualidade.',
+  'alentejano':'O Porco Alentejano (Porco Preto Ibérico) é criado em regime de montanheira no montado de sobro e azinho do Alentejo, alimentando-se nos meses finais sobretudo de bolota — o que confere à sua carne e ao presunto de bolota características organoléticas muito valorizadas. É uma raça rústica, de pelagem preta e boa capacidade de acumular gordura intramuscular.',
+  'piau':"O Piau é uma raça suína naturalizada brasileira, muito criada em Minas Gerais, de pelagem malhada preta e branca (tipo 'canastra'). É rústica e de crescimento lento, hoje mais associada a sistemas de criação familiar e a produtos suínos artesanais do que à produção intensiva.",
+  'canastra':'O Canastra é uma raça suína crioula brasileira, de pequeno a médio porte e pelagem tipicamente malhada, rústica e bem adaptada a sistemas extensivos de baixo investimento. Faz parte do património genético suíno naturalizado do Brasil, hoje mantido sobretudo por pequenos produtores.',
+  'caruncho':'O Caruncho é uma raça suína naturalizada do nordeste do Brasil, rústica e adaptada às condições climáticas regionais, tradicionalmente criada em pequenas propriedades familiares para consumo próprio e venda local.',
+  'moura':'O Moura é uma raça suína crioula brasileira de pelagem escura, rústica e de crescimento lento, associada a sistemas de criação extensiva tradicional em pequenas explorações.',
+  'nilo-canastrao':'O Nilo-Canastrão é uma raça suína naturalizada brasileira, próxima do tipo Canastra, criada tradicionalmente em sistemas extensivos de baixo investimento em regiões do interior do Brasil.',
+  'macau':'O Macau (ou Pirapemba) é uma raça suína naturalizada do nordeste brasileiro, de pequeno porte e grande rusticidade, muito resistente a condições de seca e escassez alimentar — uma característica valiosa em regiões semiáridas.',
+  'monteiro':'O Monteiro é uma raça suína naturalizada brasileira, rústica e adaptada a sistemas de criação extensiva tradicional, fazendo parte do conjunto de raças crioulas que constituem uma reserva genética suína importante para o país.',
+  'landrace':'O Landrace é um grupo de raças suínas de origem dinamarquesa, de corpo comprido, orelhas caídas e pelagem branca, selecionado sobretudo pela prolificidade e qualidade materna — as porcas Landrace são reconhecidas como excelentes mães, com leitegadas numerosas.',
+  'large-white':'O Large White (ou Yorkshire), de origem britânica, é uma das raças suínas comerciais mais difundidas do mundo, de pelagem branca, orelhas eretas e excelente prolificidade. É a base genética de inúmeros programas de cruzamento comercial em todo o mundo.',
+  'duroc':'O Duroc, dos Estados Unidos, é uma raça suína de pelagem que varia do dourado ao vermelho-escuro, valorizada pelo crescimento rápido e pela qualidade da carne, com maior marmoreio (gordura intramuscular) do que muitas outras raças comerciais.',
+  'pietrain':'O Pietrain, da região belga da Valónia, é uma raça suína de pelagem malhada preta e branca, caracterizada por uma musculatura extremamente desenvolvida e o mais alto rendimento de carne magra entre as raças suínas comerciais — muito usado em cruzamentos terminais.',
+  'hampshire-pig':'O Hampshire, dos Estados Unidos, é uma raça suína de pelagem preta com uma faixa branca característica a rodear os ombros e as patas dianteiras. É valorizada pela carne magra e boa conformação da carcaça.',
+  'churra-bragancana':"A Churra Galega Bragançana é uma raça ovina rústica de Trás-os-Montes, criada tradicionalmente para lã e carne (borrego transmontano). Bem adaptada ao clima frio e aos terrenos acidentados da região de Bragança, é uma das várias variedades regionais do grande grupo das raças 'churras' portuguesas.",
+  'churra-terra-quente':'A Churra da Terra Quente é uma variante regional das raças churras portuguesas, criada na Terra Quente transmontana, rústica e adaptada ao clima mais ameno desta sub-região de Trás-os-Montes.',
+  'churra-mondegueira':'A Churra Mondegueira, da região do rio Mondego nas Beiras, é uma raça ovina rústica de lã e carne, adaptada aos terrenos e clima da região centro de Portugal.',
+  'churra-campo':'A Churra do Campo, da Beira Baixa, é uma raça ovina rústica tradicionalmente criada em regime extensivo para produção de lã e carne nas planícies e terrenos secos desta região.',
+  'churra-badana':'A Churra Badana, da Beira Interior, produz lã mais grosseira do que outras raças churras, sendo tradicionalmente criada para carne e lã em sistemas extensivos de terrenos pobres.',
+  'merino-branco':'O Merino é uma das raças ovinas mais influentes da história da pastorícia mundial, originária de Espanha e há séculos criada também no Alentejo português, famosa pela extrema finura e qualidade da sua lã. A variante Merino Branco tem pelagem totalmente branca.',
+  'merino-preto':'O Merino Preto é a variante de pelagem escura da raça Merino, partilhando a mesma qualidade de lã fina característica da raça, mas com menor procura comercial da lã devido à cor, sendo hoje criado sobretudo para carne.',
+  'saloia':'A Saloia, da região de Lisboa e Oeste, é uma raça ovina leiteira portuguesa, de pequeno porte, tradicionalmente usada na produção de queijos regionais frescos e curados desta zona periurbana da capital.',
+  'serra-da-estrela':'A Serra da Estrela é a raça ovina leiteira por excelência de Portugal, criada nas serras da Beira, e é a base do famoso Queijo Serra da Estrela DOP, um dos queijos mais prestigiados do país, feito com coalho vegetal de cardo.',
+  'campanica':'A Campaniça, do Alentejo, é uma raça ovina de carne, de porte médio e bem adaptada às condições de pastoreio extensivo das planícies alentejanas.',
+  'bordaleira-entre-douro-minho':'A Bordaleira de Entre Douro e Minho é uma raça ovina rústica do norte de Portugal, tradicionalmente criada em pequenas explorações de montanha para carne e lã, hoje com um efetivo reduzido.',
+  'santa-ines':'A Santa Inês é a raça ovina mais criada no Brasil, deslanada (sem lã, com pelo curto), de grande porte e excelente adaptação ao clima tropical. É criada essencialmente para produção de carne, com boa fertilidade e capacidade de se reproduzir ao longo de todo o ano.',
+  'morada-nova':'A Morada Nova, originária do estado do Ceará, é uma raça ovina deslanada do nordeste brasileiro, de pequeno porte e extrema rusticidade, bem adaptada às condições semiáridas da caatinga.',
+  'rabo-largo':'O Rabo Largo é uma raça ovina deslanada naturalizada do nordeste do Brasil, caracterizada pela cauda larga e gorda (reserva de energia), rústica e adaptada a condições de escassez alimentar sazonal.',
+  'somalis-brasileira':'A Somalis Brasileira é uma raça ovina deslanada de pelagem branca com cabeça preta, de pequeno porte e boa rusticidade, criada sobretudo para carne em sistemas extensivos no Brasil.',
+  'ile-de-france':'O Ile de France, desenvolvido em França a partir do cruzamento de Dishley Merino com Leicester, é uma raça de carne de grande porte muito usada em cruzamentos terminais para melhorar a conformação e o crescimento de cordeiros.',
+  'suffolk':'O Suffolk, da Inglaterra, é uma raça ovina de carne facilmente reconhecível pela cabeça e patas pretas sem lã, contrastando com o corpo branco. É valorizado pelo crescimento rápido dos cordeiros e boa conformação de carcaça.',
+  'texel':'O Texel, da ilha holandesa com o mesmo nome, é uma raça ovina de carne com uma das mais altas proporções de carne magra em relação à gordura entre todas as raças ovinas, muito usado em cruzamentos terminais para melhorar o rendimento de carcaça.',
+  'dorper':'O Dorper, desenvolvido na África do Sul a partir do cruzamento de Dorset Horn com Blackhead Persian, é uma raça deslanada de carne, muito rústica e de rápido crescimento — tornou-se extremamente popular no Brasil nas últimas décadas pela sua adaptação ao clima tropical.',
+  'hampshire-down':'O Hampshire Down, da Inglaterra, é uma raça ovina de carne de porte médio, cabeça escura e corpo lanudo, valorizada pelo crescimento rápido dos cordeiros e boa qualidade de carcaça.',
+  'corriedale':'O Corriedale, desenvolvido na Nova Zelândia a partir do cruzamento de Merino com raças de lã longa inglesas, é uma raça de dupla aptidão (lã e carne), muito criada no sul do Brasil (Rio Grande do Sul) em sistemas de pastoreio extensivo.',
+  'serrana':'A Serrana é a raça caprina mais numerosa e difundida de Portugal, criada nas regiões de montanha de norte a sul do país. É uma raça rústica de dupla aptidão (leite e carne), com grande variabilidade regional de pelagem e porte consoante a zona onde é criada.',
+  'charnequeira':'A Charnequeira, do Ribatejo e região Oeste, é uma raça caprina de porte médio, criada tradicionalmente para leite e carne nas zonas de charneca desta região de Portugal.',
+  'algarvia':'A Algarvia é uma raça caprina autóctone do Algarve, com um efetivo atualmente reduzido e considerada em risco, mantida sobretudo por criadores dedicados à conservação do património genético regional.',
+  'bravia':'A Bravia, de Trás-os-Montes, é uma raça caprina rústica adaptada aos terrenos acidentados e ao clima continental desta região do interior norte de Portugal.',
+  'preta-montesinho':'A Preta de Montesinho é uma das raças caprinas mais raras de Portugal, originária da serra de Montesinho, em Trás-os-Montes, com um número de efetivos extremamente reduzido e sob risco crítico de desaparecimento.',
+  'moxoto':'A Moxotó, nativa do sertão nordestino brasileiro, é uma raça caprina de pequeno porte, pelagem geralmente castanha com uma lista dorsal escura, e extrema rusticidade — capaz de sobreviver com pouca água e pastagens escassas típicas do semiárido.',
+  'caninde':'A Canindé, do nordeste do Brasil, é uma raça caprina nativa de pelagem clara e chifres característicos em espiral, selecionada ao longo de gerações para sobreviver às condições difíceis da caatinga semiárida.',
+  'marota':'A Marota é uma raça caprina nativa do semiárido nordestino brasileiro, rústica e de pequeno porte, adaptada a longos períodos de escassez de água e alimento.',
+  'repartida':'A Repartida é uma raça caprina nativa do nordeste brasileiro, com pelagem tipicamente dividida em duas cores (daí o nome), rústica e bem adaptada ao clima semiárido regional.',
+  'azul-caprino':'A Azul é uma raça caprina nativa rara do semiárido nordestino brasileiro, de pelagem acinzentada-azulada característica, hoje com um efetivo muito reduzido e alvo de atenção em programas de conservação genética.',
+  'grauna':'A Graúna é uma raça caprina nativa do nordeste do Brasil, de pelagem escura, rústica e adaptada às condições do semiárido, fazendo parte do grupo de raças caprinas naturalizadas brasileiras.',
+  'saanen':'A Saanen, da Suíça, é a raça caprina leiteira mais produtiva do mundo, de pelagem totalmente branca e grande porte. É amplamente usada em explorações leiteiras comerciais em todo o mundo, incluindo Portugal e Brasil, pela sua elevada produção de leite.',
+  'anglo-nubiana':'A Anglo-Nubiana, desenvolvida em Inglaterra a partir de cabras britânicas cruzadas com raças africanas e indianas, destaca-se pelas orelhas longas e caídas e perfil convexo. Produz leite com um teor de gordura mais elevado do que a maioria das raças leiteiras, sendo muito popular no Brasil.',
+  'toggenburg':'A Toggenburg, da Suíça, é uma das raças caprinas leiteiras mais antigas do mundo com registo genealógico, de pelagem castanha-acinzentada com marcas brancas características na face e patas.',
+  'alpina':'A Alpina (ou Parda Alpina), da região alpina franco-suíça, é uma raça caprina leiteira rústica e de boa produção, com pelagem que varia do castanho-claro ao quase preto, muito usada em cruzamentos para melhorar a produção leiteira de rebanhos locais.',
+  'boer':'A Boer, desenvolvida na África do Sul, é a principal raça caprina de corte do mundo, reconhecível pela cabeça e pescoço castanhos contrastando com o corpo branco. Foi selecionada para crescimento rápido e boa conformação muscular, sendo hoje usada globalmente em cruzamentos para produção de carne caprina.',
+};
+function openBreedDetail(animalId, breedName){
+  const animal = animalCatalogById(animalId);
+  const breed = animal.breeds.find(b=>b.name===breedName);
+  const breedId = BREED_ID_BY_NAME[breedName];
+  const description = (breedId && BREED_DESCRIPTIONS[breedId]) || breed.note;
+  if(breedId) ensureBreedImages([breedId]);
+  openModal(`
+    ${breedThumbHTML(breedId, animal.icon, 170)}
+    <div class="flex items-center justify-between mb-1 mt-4">
+      <h3 class="display font-semibold m-0" style="font-size:19px">${breedName}</h3>
+      ${breed.origin? `<span class="pill pill-${ANIMAL_CAT_COLORS[animal.cat]}">${breed.origin==='Portugal'?'🇵🇹':breed.origin==='Brasil'?'🇧🇷':'🌍'} ${breed.origin}</span>` : ''}
+    </div>
+    <div class="text-xs mb-4" style="color:var(--ink-faint)">Raça de ${animal.name}</div>
+    <p class="text-sm mb-4">${description}</p>
+    <div class="flex gap-2 justify-end">
+      <button class="btn btn-ghost" onclick="openAnimalCatalogDetail('${animalId}')">← Voltar a ${animal.name}</button>
+    </div>
+  `, true);
+}
 let animalCatalogFilter = 'all';
 function setAnimalCatalogFilter(k){ animalCatalogFilter=k; renderAnimaisCatalog(); }
 function renderAnimaisCatalog(){
@@ -7192,15 +7393,19 @@ function openAnimalCatalogDetail(id){
     <div class="mb-4">
       <span class="label">Raças (${a.breeds.length})</span>
       ${(()=>{
+        const breedRowHTML = b => `<button class="p-2.5 rounded-lg text-left w-full hoverable" style="background:var(--surface-2)" onclick="openBreedDetail('${a.id}','${b.name.replace(/'/g,"\\'")}')">
+          <div class="flex items-center justify-between gap-2"><div class="text-sm font-semibold">${b.name}</div>${BREED_ID_BY_NAME[b.name]&&LOCAL_IMAGES.breeds[BREED_ID_BY_NAME[b.name]]? `<span class="text-xs" style="color:var(--ink-faint)">📷</span>` : ''}</div>
+          <div class="text-xs" style="color:var(--ink-soft)">${b.note}</div>
+        </button>`;
         if(!a.breeds.some(b=>b.origin)){
-          return `<div class="flex flex-col gap-2 mt-1">${a.breeds.map(b=>`<div class="p-2.5 rounded-lg" style="background:var(--surface-2)"><div class="text-sm font-semibold">${b.name}</div><div class="text-xs" style="color:var(--ink-soft)">${b.note}</div></div>`).join('')}</div>`;
+          return `<div class="flex flex-col gap-2 mt-1">${a.breeds.map(breedRowHTML).join('')}</div>`;
         }
         const groups = ['Portugal','Brasil','Internacional'].map(origin=>({origin, list:a.breeds.filter(b=>b.origin===origin)})).filter(g=>g.list.length);
         return groups.map(g=>`
           <div class="mt-2">
             <div class="text-xs font-semibold mb-1.5" style="color:var(--ink-faint)">${g.origin==='Portugal'?'🇵🇹':g.origin==='Brasil'?'🇧🇷':'🌍'} ${g.origin} (${g.list.length})</div>
             <div class="flex flex-col gap-1.5">
-              ${g.list.map(b=>`<div class="p-2.5 rounded-lg" style="background:var(--surface-2)"><div class="text-sm font-semibold">${b.name}</div><div class="text-xs" style="color:var(--ink-soft)">${b.note}</div></div>`).join('')}
+              ${g.list.map(breedRowHTML).join('')}
             </div>
           </div>`).join('');
       })()}
