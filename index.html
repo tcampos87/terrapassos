@@ -4734,6 +4734,9 @@ let drawPoints = [];
 
 function renderAreas(){
   autoAdvanceAreaPlantings();
+  // Mostra sempre uma área por defeito ao abrir o módulo (a primeira), em vez do painel vazio
+  // "seleciona uma área" — e escolhe outra automaticamente se a que estava selecionada foi apagada.
+  if(DB.areas.length && !DB.areas.some(a=>a.id===selectedAreaId)) selectedAreaId = DB.areas[0].id;
   const el = document.getElementById('panel-areas');
   el.innerHTML = `
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -4967,6 +4970,12 @@ function createArea(pts, color){
 }
 
 function selectArea(id){ selectedAreaId=id; drawingMode=false; drawPoints=[]; renderAreas(); }
+function selectAreaByOffset(delta){
+  if(!DB.areas.length) return;
+  const idx = DB.areas.findIndex(a=>a.id===selectedAreaId);
+  const nextIdx = ((idx===-1?0:idx) + delta + DB.areas.length) % DB.areas.length;
+  selectArea(DB.areas[nextIdx].id);
+}
 function renderAreaDetail(){
   const panel = document.getElementById('areaDetailPanel');
   const a = DB.areas.find(x=>x.id===selectedAreaId);
@@ -4976,11 +4985,17 @@ function renderAreaDetail(){
   const curIdx = p? STATUS_FLOW.indexOf(p.status) : -1;
   const relatedTasks = p? DB.tasks.filter(t=>t.plantingId===p.id && t.status!=='done').sort((x,y)=>(x.dueDate||'9999').localeCompare(y.dueDate||'9999')) : [];
 
+  const areaIdx = DB.areas.findIndex(x=>x.id===a.id);
   panel.innerHTML = `
-    <div class="flex items-center justify-between mb-1">
-      <h3 class="display font-semibold m-0" style="font-size:16px">${a.name}</h3>
-      <button class="text-xs" style="color:var(--red-600)" onclick="deleteArea('${a.id}')">remover</button>
+    <div class="flex items-center justify-between gap-2 mb-1">
+      <div class="flex items-center gap-1 min-w-0 flex-1">
+        <button class="btn btn-ghost btn-sm btn-icon flex-none" onclick="selectAreaByOffset(-1)" title="Área anterior" ${DB.areas.length<2?'disabled':''} style="${DB.areas.length<2?'opacity:.35':''}">‹</button>
+        <h3 class="display font-semibold m-0 truncate" style="font-size:16px">${a.name}</h3>
+        <button class="btn btn-ghost btn-sm btn-icon flex-none" onclick="selectAreaByOffset(1)" title="Próxima área" ${DB.areas.length<2?'disabled':''} style="${DB.areas.length<2?'opacity:.35':''}">›</button>
+      </div>
+      <button class="text-xs flex-none" style="color:var(--red-600)" onclick="deleteArea('${a.id}')">remover</button>
     </div>
+    ${DB.areas.length>1? `<div class="text-[11px] mb-2" style="color:var(--ink-faint)">Área ${areaIdx+1} de ${DB.areas.length}</div>` : ''}
     ${crop? `<span class="pill pill-${CAT_COLORS[crop.cat]} mb-3 inline-flex">${crop.name}</span>` : ''}
     ${p && p.status==='Colheita perdida' ? `
       <div class="p-3 rounded-xl mb-3 text-sm" style="background:var(--red-100);color:var(--red-600)">🥀 Colheita perdida — o prazo para colher esgotou-se sem registo de colheita.</div>
