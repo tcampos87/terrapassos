@@ -1872,6 +1872,118 @@ function confirmStockMovement(kind, itemId){
   if(currentTab==='armazem') renderArmazem();
   if(currentTab==='dashboard') renderDashboard();
 }
+/* ---- Manejo — regista fertilizante/herbicida/outro numa área ou estufa,
+   independentemente da fase atual, debitando o stock quando controlado ---- */
+let manejoState = {type:'fertilizante'};
+function manejoItemFieldHTML(type){
+  if(type==='fertilizante'){
+    return `<label class="label">Fertilizante usado</label>
+    <select class="field mb-2" id="manejoItemSelect">
+      <optgroup label="Biológicos">${INPUTS.filter(i=>i.type==='organico').map(i=>`<option value="${i.id}">${i.name}</option>`).join('')}</optgroup>
+      <optgroup label="Químicos">${INPUTS.filter(i=>i.type==='quimico').map(i=>`<option value="${i.id}">${i.name}</option>`).join('')}</optgroup>
+    </select>`;
+  }
+  if(type==='herbicida'){
+    return `<label class="label">Herbicida usado</label>
+    <select class="field mb-2" id="manejoItemSelect">
+      <optgroup label="Biológicos">${HERBICIDES.filter(h=>h.type==='organico').map(h=>`<option value="${h.id}">${h.name}</option>`).join('')}</optgroup>
+      <optgroup label="Químicos">${HERBICIDES.filter(h=>h.type==='quimico').map(h=>`<option value="${h.id}">${h.name}</option>`).join('')}</optgroup>
+    </select>`;
+  }
+  return `<label class="label">Descrição</label>
+    <input class="field mb-2" id="manejoItemOther" placeholder="Ex: Calda bordalesa caseira">`;
+}
+function setManejoType(t){
+  manejoState.type = t;
+  document.querySelectorAll('#manejoTypeSeg .seg-btn').forEach(b=>b.classList.toggle('on', b.dataset.v===t));
+  document.getElementById('manejoItemFieldBox').innerHTML = manejoItemFieldHTML(t);
+}
+function promptManejo(scope, areaId){
+  const area = scope==='area'? DB.areas.find(a=>a.id===areaId) : DB.estufaAreas.find(a=>a.id===areaId);
+  const p = area? (scope==='area'? DB.plantings.find(pl=>pl.id===area.plantingId) : DB.estufaPlantings.find(pl=>pl.id===area.plantingId)) : null;
+  if(!area || !p){ alert('Regista primeiro uma cultura nesta área para poderes registar um manejo.'); return; }
+  manejoState = {type:'fertilizante'};
+  openModal(`
+    <h3 class="display font-semibold mb-1" style="font-size:17px">Registar manejo</h3>
+    <div class="text-sm mb-3" style="color:var(--ink-soft)">${area.name}${p.cropName?' — '+p.cropName:''}</div>
+    <label class="label">Tipo</label>
+    <div class="seg mb-3" id="manejoTypeSeg">
+      <button type="button" class="seg-btn on" data-v="fertilizante" onclick="setManejoType('fertilizante')">🧪 Fertilizante</button>
+      <button type="button" class="seg-btn" data-v="herbicida" onclick="setManejoType('herbicida')">🌿 Herbicida</button>
+      <button type="button" class="seg-btn" data-v="outro" onclick="setManejoType('outro')">🔧 Outro</button>
+    </div>
+    <div id="manejoItemFieldBox">${manejoItemFieldHTML('fertilizante')}</div>
+    <div class="grid grid-cols-2 gap-2 mb-2">
+      <div><label class="label">Volume aplicado</label><input type="number" min="0" step="0.01" class="field" id="manejoQty" placeholder="Ex: 2"></div>
+      <div><label class="label">Unidade</label><input class="field" id="manejoUnit" value="kg" placeholder="kg, L, g, ml..."></div>
+    </div>
+    <label class="label">Data</label>
+    <input type="date" class="field mb-2" id="manejoDate" value="${todayISO()}">
+    <label class="label">Notas (opcional)</label>
+    <input class="field mb-3" id="manejoNotes" placeholder="Ex: aplicado ao final da tarde">
+    <div class="flex gap-2 justify-end">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmManejo('${scope}','${areaId}')">Registar</button>
+    </div>`);
+  setTimeout(()=>document.getElementById('manejoQty')?.focus(),50);
+}
+function confirmManejo(scope, areaId){
+  const type = manejoState.type;
+  const qty = parseFloat(document.getElementById('manejoQty').value)||0;
+  const unit = document.getElementById('manejoUnit').value.trim()||'un';
+  const date = document.getElementById('manejoDate').value||todayISO();
+  const notes = document.getElementById('manejoNotes').value.trim();
+  if(qty<=0){ alert('Indica um volume maior que zero.'); return; }
+
+  let itemName, stockKindVal=null, itemId=null;
+  if(type==='fertilizante'){
+    itemId = document.getElementById('manejoItemSelect').value;
+    const item = inputById(itemId);
+    if(!item){ alert('Escolhe um fertilizante.'); return; }
+    itemName = item.name; stockKindVal = 'insumo';
+  } else if(type==='herbicida'){
+    itemId = document.getElementById('manejoItemSelect').value;
+    const item = herbById(itemId);
+    if(!item){ alert('Escolhe um herbicida.'); return; }
+    itemName = item.name; stockKindVal = 'herbicida';
+  } else {
+    itemName = document.getElementById('manejoItemOther').value.trim();
+    if(!itemName){ alert('Descreve o que foi aplicado.'); return; }
+  }
+
+  const area = scope==='area'? DB.areas.find(a=>a.id===areaId) : DB.estufaAreas.find(a=>a.id===areaId);
+  const p = scope==='area'? DB.plantings.find(pl=>pl.id===area.plantingId) : DB.estufaPlantings.find(pl=>pl.id===area.plantingId);
+  if(!area || !p) return;
+
+  const label = type==='fertilizante'? 'Manejo — Fertilizante' : type==='herbicida'? 'Manejo — Herbicida' : 'Manejo — Outro';
+  const note = `${itemName} — ${qty} ${unit}${notes? ' · '+notes : ''}`;
+  p.statusHistory.push({status:label, date, userId:DB.activeUserId, note});
+
+  const targetLabel = `${area.name}${p.cropName?' — '+p.cropName:''}`;
+  const targetKind = scope==='area'? 'mapa' : 'estufa';
+  const targetId = (scope==='area'? 'area:' : 'estufaArea:') + areaId;
+  if(stockKindVal==='insumo'){
+    DB.inputApplications.push({id:uid(), inputId:itemId, targetKind, targetId, targetLabel, ratePerM2:`${qty} ${unit}`, date, userId:DB.activeUserId, notes: notes||'Registado via Manejo'});
+  } else if(stockKindVal==='herbicida'){
+    DB.herbicideApplications.push({id:uid(), herbId:itemId, targetKind, targetId, targetLabel, ratePerM2:`${qty} ${unit}`, date, userId:DB.activeUserId, notes: notes||'Registado via Manejo'});
+  }
+
+  let stockMsg = null;
+  if(stockKindVal){
+    const stock = getStock(stockKindVal, itemId);
+    if(stock){
+      stock.quantity = Math.round(Math.max(0, stock.quantity - qty)*100)/100;
+      stock.updatedAt = date;
+      DB.stockMovements.unshift({id:uid(), date, kind:stockKindVal, itemId, itemName, type:'saida', quantity:qty, unit, note:`Manejo em ${targetLabel}`, userId:DB.activeUserId});
+    } else {
+      stockMsg = `"${itemName}" ainda não tem stock controlado — a aplicação foi registada na mesma, mas não há stock para debitar. Podes começar a controlar o stock em ${stockKindVal==='insumo'?'Fertilizantes':'Herbicidas'}.`;
+    }
+  }
+
+  saveDB(); closeModal();
+  if(scope==='area') renderAreas(); else renderEstufa();
+  if(stockMsg) alert(stockMsg);
+}
 let insumoFilter = 'all';
 function setInsumoFilter(k){ insumoFilter=k; renderInsumos(); }
 function renderInsumos(){
@@ -5270,6 +5382,7 @@ function renderAreaDetail(){
         ${STATUS_FLOW.map((s,i)=>`<div class="status-flow-step pb-3 ${i<curIdx?'done':i===curIdx?'current':''}"><span class="text-sm ${i===curIdx?'font-semibold':''}">${s}</span></div>`).join('')}
       </div>
       <button class="btn btn-outline btn-sm w-full mb-2" onclick="openTraceabilityModal('${p.id}', false)">🏷️ Etiqueta de Rastreabilidade</button>
+      <button class="btn btn-outline btn-sm w-full mb-2" onclick="promptManejo('area','${a.id}')">+ Adicionar manejo</button>
       ${p.status!=='Colher'? `<button class="btn btn-primary btn-sm w-full mb-2" onclick="advanceStatus('${p.id}')">Marcar: ${STATUS_FLOW[curIdx+1]||'—'}</button>` :
         `<button class="btn btn-accent btn-sm w-full mb-2" onclick="completeHarvest('${p.id}')">Concluir colheita</button>`}
       <label class="label">Mudar fase diretamente</label>
@@ -8610,6 +8723,7 @@ function renderEstufaAreaDetail(){
         ${ESTUFA_STATUS_FLOW.map((s,i)=>`<div class="status-flow-step pb-3 ${i<curIdx?'done':i===curIdx?'current':''}"><span class="text-sm ${i===curIdx?'font-semibold':''}">${s}</span></div>`).join('')}
       </div>
       <button class="btn btn-outline btn-sm w-full mb-2" onclick="openTraceabilityModal('${p.id}', true)">🏷️ Etiqueta de Rastreabilidade</button>
+      <button class="btn btn-outline btn-sm w-full mb-2" onclick="promptManejo('estufa','${a.id}')">+ Adicionar manejo</button>
       ${p.status!=='Colheita'? `<button class="btn btn-primary btn-sm w-full mb-2" onclick="advanceEstufaStatus('${p.id}')">Marcar: ${ESTUFA_STATUS_FLOW[curIdx+1]||'—'}</button>` :
         `<button class="btn btn-accent btn-sm w-full mb-2" onclick="completeEstufaHarvest('${p.id}')">Concluir colheita</button>`}
       <label class="label">Mudar fase diretamente</label>
