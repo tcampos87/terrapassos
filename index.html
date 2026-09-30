@@ -8077,6 +8077,8 @@ function seedlingCareTips(crop){
   ];
 }
 function renderEstufa(){
+  // Mostra sempre uma área por defeito ao abrir o módulo, tal como em Áreas/Mapa.
+  if(DB.estufaAreas.length && !DB.estufaAreas.some(a=>a.id===selectedEstufaAreaId)) selectedEstufaAreaId = DB.estufaAreas[0].id;
   const el = document.getElementById('panel-estufa');
   const active = DB.seedlings.filter(s=>s.status==='germinando'||s.status==='pronta').sort((a,b)=>a.sownDate.localeCompare(b.sownDate));
   const history = DB.seedlings.filter(s=>s.status==='transplantada'||s.status==='descartada').sort((a,b)=>(b.transplantedDate||b.sownDate).localeCompare(a.transplantedDate||a.sownDate));
@@ -8107,14 +8109,7 @@ function renderEstufa(){
           ${DB.estufaAreas.map(a=>{
             const p = DB.estufaPlantings.find(pl=>pl.id===a.plantingId);
             const crop = p? cropById(p.cropId): null;
-            const statusColor = p? (ESTUFA_STATUS_COLORS[p.status]||ESTUFA_STATUS_COLOR_EMPTY) : ESTUFA_STATUS_COLOR_EMPTY;
-            return `<button class="card p-4 text-left" onclick="selectEstufaArea('${a.id}')">
-              <div class="flex items-center justify-between mb-2">
-                <span class="font-semibold display" style="font-size:15px">${a.name}</span>
-                <span style="width:14px;height:14px;border-radius:4px;background:${statusColor}" title="${p?p.status:'Sem cultura'}"></span>
-              </div>
-              ${crop? `<span class="pill" style="${catTagStyle(crop.cat)}">${crop.name}</span><div class="text-xs mt-2" style="color:var(--ink-soft)">${p.status}</div>` : `<span class="pill pill-neutral">Sem cultura ativa</span>`}
-            </button>`;
+            return estufaAreaStatusCardHTML(a, p, crop);
           }).join('')}
         </div>
       </div>` : ''}
@@ -8173,21 +8168,34 @@ function renderEstufaHistoryTable(){
 function renderEstufaMap(){
   const c = document.getElementById('estufaMapContainer');
   if(!c) return;
+  // Mesma "vitrificação" do mapa de Áreas/Mapa: preenchimento translúcido, contorno mais
+  // brilhante, sombra suave (feDropShadow) e etiqueta em "chip" de vidro.
   const polys = DB.estufaAreas.map(a=>{
     const pts = a.points.map(p=>`${p.x*100},${p.y*100}`).join(' ');
     const planting = DB.estufaPlantings.find(pl=>pl.id===a.plantingId);
     const fillColor = planting? (ESTUFA_STATUS_COLORS[planting.status]||ESTUFA_STATUS_COLOR_EMPTY) : ESTUFA_STATUS_COLOR_EMPTY;
-    return `<polygon class="area-poly ${a.id===selectedEstufaAreaId?'selected':''}" points="${pts}" fill="${fillColor}" stroke="${a.color}" stroke-width="${a.id===selectedEstufaAreaId?'0.7':'0.45'}" stroke-linejoin="round" onclick="selectEstufaArea('${a.id}')" style="pointer-events:${estufaDrawingMode?'none':'auto'}"/>`;
+    const sel = a.id===selectedEstufaAreaId;
+    return `<polygon class="area-poly ${sel?'selected':''}" points="${pts}" fill="${fillColor}" fill-opacity="${sel?0.7:0.52}" stroke="${a.color}" stroke-width="${sel?'0.85':'0.5'}" stroke-opacity="0.95" stroke-linejoin="round" filter="url(#estufaGlass)" onclick="selectEstufaArea('${a.id}')" style="pointer-events:${estufaDrawingMode?'none':'auto'}"/>`;
   }).join('');
   const labels = DB.estufaAreas.map(a=>{
     const cx = a.points.reduce((s,p)=>s+p.x,0)/a.points.length*100;
     const cy = a.points.reduce((s,p)=>s+p.y,0)/a.points.length*100;
-    return `<text x="${cx}" y="${cy}" font-size="2.1" text-anchor="middle" fill="#1B2018" font-weight="600" font-family="'Fredoka',ui-sans-serif,sans-serif" letter-spacing=".01em" style="paint-order:stroke;stroke:#fff;stroke-width:.32px;stroke-linejoin:round;pointer-events:none">${a.name}</text>`;
+    const w = Math.min(30, Math.max(11, a.name.length*1.32+2.6));
+    return `<g style="pointer-events:none">
+      <rect x="${(cx-w/2).toFixed(2)}" y="${(cy-1.7).toFixed(2)}" width="${w.toFixed(2)}" height="3.4" rx="1.7" fill="rgba(10,12,8,.44)" stroke="rgba(255,255,255,.28)" stroke-width="0.09"/>
+      <text x="${cx}" y="${(cy+0.38).toFixed(2)}" font-size="1.85" text-anchor="middle" fill="#fff" font-weight="600" font-family="'Fredoka',ui-sans-serif,sans-serif" letter-spacing=".01em">${a.name}</text>
+    </g>`;
   }).join('');
   const drawPoly = estufaDrawPoints.length? `<polyline points="${estufaDrawPoints.map(p=>`${p.x*100},${p.y*100}`).join(' ')}" fill="none" stroke="var(--orange-500)" stroke-width="0.4" stroke-dasharray="1 0.8" stroke-linecap="round"/>` +
     estufaDrawPoints.map(p=>`<circle cx="${p.x*100}" cy="${p.y*100}" r="0.6" fill="var(--orange-500)"/>`).join('') : '';
   const emptyHint = (!estufaDrawingMode && !DB.estufaAreas.length)? `<div class="absolute inset-0 flex items-center justify-center text-sm text-center px-6" style="color:var(--green-700);pointer-events:none">Clica em "Desenhar área de Estufa" e marca os cantos da bancada ou canteiro — pelo menos 3 pontos.</div>` : '';
-  c.innerHTML = `${emptyHint}<svg class="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none" style="cursor:${estufaDrawingMode?'crosshair':'default'}" onclick="estufaMapClick(event)">${polys}${labels}${drawPoly}</svg>`;
+  c.innerHTML = `${emptyHint}<svg class="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none" style="cursor:${estufaDrawingMode?'crosshair':'default'}" onclick="estufaMapClick(event)">
+    <defs>
+      <filter id="estufaGlass" x="-30%" y="-30%" width="160%" height="160%">
+        <feDropShadow dx="0" dy="0.4" stdDeviation="0.55" flood-color="#000" flood-opacity="0.4"/>
+      </filter>
+    </defs>
+    ${polys}${labels}${drawPoly}</svg>`;
 }
 function toggleEstufaDrawing(){ estufaDrawingMode=!estufaDrawingMode; estufaDrawPoints=[]; selectedEstufaAreaId=null; renderEstufa(); }
 function cancelEstufaDrawing(){ estufaDrawingMode=false; estufaDrawPoints=[]; renderEstufa(); }
@@ -8244,6 +8252,42 @@ function createEstufaArea(pts, color){
   saveDB(); closeModal(); selectedEstufaAreaId=area.id; renderEstufa();
 }
 function selectEstufaArea(id){ selectedEstufaAreaId=id; estufaDrawingMode=false; estufaDrawPoints=[]; renderEstufa(); }
+function selectEstufaAreaByOffset(delta){
+  if(!DB.estufaAreas.length) return;
+  const idx = DB.estufaAreas.findIndex(a=>a.id===selectedEstufaAreaId);
+  const nextIdx = ((idx===-1?0:idx) + delta + DB.estufaAreas.length) % DB.estufaAreas.length;
+  selectEstufaArea(DB.estufaAreas[nextIdx].id);
+}
+function estufaStatusPillHTML(status){
+  const color = ESTUFA_STATUS_COLORS[status] || ESTUFA_STATUS_COLOR_EMPTY;
+  const label = status==='Colheita-concluída'? 'Concluído' : status;
+  return `<span class="pill" style="background:${color};color:${contrastTextColor(color)}">${label}</span>`;
+}
+function estufaProgressBarHTML(status){
+  const stages = ESTUFA_STATUS_FLOW;
+  let activeIdx = -1;
+  if(status){ const idx = stages.indexOf(status==='Colheita-concluída'? 'Colheita' : status); activeIdx = idx===-1? stages.length-1 : idx; }
+  return `<div class="flex gap-[3px] mt-3">
+    ${stages.map((s,i)=>`<span style="flex:1;height:5px;border-radius:3px;background:${i<=activeIdx? ESTUFA_STATUS_COLORS[s] : 'var(--border)'}" title="${s}"></span>`).join('')}
+  </div>`;
+}
+/* Cartão de área de estufa — mesmo tratamento visual do cartão de Áreas/Mapa: estado em destaque
+   (selo colorido) + barra de progresso por etapas do ciclo da estufa. */
+function estufaAreaStatusCardHTML(a, p, crop){
+  const status = p? p.status : null;
+  const stripeColor = status? (ESTUFA_STATUS_COLORS[status]||ESTUFA_STATUS_COLOR_EMPTY) : ESTUFA_STATUS_COLOR_EMPTY;
+  return `<button class="card p-0 text-left hoverable overflow-hidden" onclick="selectEstufaArea('${a.id}')">
+    <div style="height:5px;background:${stripeColor}"></div>
+    <div class="p-4">
+      <div class="flex items-center justify-between gap-2 mb-1.5">
+        <span class="font-semibold display truncate" style="font-size:15px">${a.name}</span>
+        ${status? estufaStatusPillHTML(status) : `<span class="pill pill-neutral">Sem cultura</span>`}
+      </div>
+      <div class="text-xs truncate" style="color:var(--ink-faint)">${crop? crop.name : 'Nenhuma cultura ativa nesta área'}</div>
+      ${estufaProgressBarHTML(status)}
+    </div>
+  </button>`;
+}
 function createEstufaPlantingForArea(area, cropId, seedCells, seedBrand, substrate){
   const crop = cropById(cropId);
   const noteParts = [];
@@ -8276,11 +8320,17 @@ function renderEstufaAreaDetail(){
   const crop = p? cropById(p.cropId): null;
   const curIdx = p? ESTUFA_STATUS_FLOW.indexOf(p.status) : -1;
   const relatedTasks = p? DB.tasks.filter(t=>t.estufaPlantingId===p.id && t.status!=='done').sort((x,y)=>(x.dueDate||'9999').localeCompare(y.dueDate||'9999')) : [];
+  const estufaAreaIdx = DB.estufaAreas.findIndex(x=>x.id===a.id);
   panel.innerHTML = `
-    <div class="flex items-center justify-between mb-1">
-      <h3 class="display font-semibold m-0" style="font-size:16px">${a.name}</h3>
-      <button class="text-xs" style="color:var(--red-600)" onclick="deleteEstufaArea('${a.id}')">remover</button>
+    <div class="flex items-center justify-between gap-2 mb-1">
+      <div class="flex items-center gap-1 min-w-0 flex-1">
+        <button class="btn btn-ghost btn-sm btn-icon flex-none" onclick="selectEstufaAreaByOffset(-1)" title="Área anterior" ${DB.estufaAreas.length<2?'disabled':''} style="${DB.estufaAreas.length<2?'opacity:.35':''}">‹</button>
+        <h3 class="display font-semibold m-0 truncate" style="font-size:16px">${a.name}</h3>
+        <button class="btn btn-ghost btn-sm btn-icon flex-none" onclick="selectEstufaAreaByOffset(1)" title="Próxima área" ${DB.estufaAreas.length<2?'disabled':''} style="${DB.estufaAreas.length<2?'opacity:.35':''}">›</button>
+      </div>
+      <button class="text-xs flex-none" style="color:var(--red-600)" onclick="deleteEstufaArea('${a.id}')">remover</button>
     </div>
+    ${DB.estufaAreas.length>1? `<div class="text-[11px] mb-2" style="color:var(--ink-faint)">Área ${estufaAreaIdx+1} de ${DB.estufaAreas.length}</div>` : ''}
     ${crop? `<span class="pill pill-${CAT_COLORS[crop.cat]} mb-3 inline-flex">${crop.name}</span>` : ''}
     ${!p ? `
       <p class="text-sm mb-3" style="color:var(--ink-faint)">Sem cultura ativa nesta área.</p>
