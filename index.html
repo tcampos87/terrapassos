@@ -2018,7 +2018,8 @@ function renderInsumos(){
         </div>
       `).join('')}
     </div>
-    <div class="card p-5">
+    ${renderStockSectionHTML('insumo')}
+    <div class="card p-5 mt-4">
       ${secHead('orange','history','Histórico de aplicações')}
       ${recent.length===0? `<p class="text-sm m-0" style="color:var(--ink-faint)">Ainda sem aplicações registadas — usa o botão "Aplicar Fertilizante" em cada cartão acima.</p>` : `
       <div class="overflow-x-auto">
@@ -2046,7 +2047,6 @@ function renderInsumos(){
         </table>
       </div>`}
     </div>
-    ${renderStockSectionHTML('insumo')}
   `;
   ensureInputImages(filtered);
 }
@@ -2459,7 +2459,8 @@ function renderHerbicidas(){
         </div>
       `).join('')}
     </div>
-    <div class="card p-5">
+    ${renderStockSectionHTML('herbicida')}
+    <div class="card p-5 mt-4">
       ${secHead('red','history','Histórico de aplicações')}
       ${recent.length===0? `<p class="text-sm m-0" style="color:var(--ink-faint)">Ainda sem aplicações registadas — usa o botão "Aplicar Herbicida" em cada cartão acima.</p>` : `
       <div class="overflow-x-auto">
@@ -2487,7 +2488,6 @@ function renderHerbicidas(){
         </table>
       </div>`}
     </div>
-    ${renderStockSectionHTML('herbicida')}
   `;
   ensureHerbImages(filtered);
 }
@@ -2581,6 +2581,7 @@ function renderArmazem(){
   const items = DB.warehouseItems.filter(w=>armazemFilter==='all'||w.category===armazemFilter);
   const statusMeta = {ok:{cls:'pill-green',label:'OK'}, low:{cls:'pill-orange',label:'Stock baixo'}, empty:{cls:'pill-red',label:'Esgotado'}, none:{cls:'pill-neutral',label:'Sem stock'}};
   const lowGlobal = allTrackedStock().filter(s=>s.status==='low'||s.status==='empty');
+  const insumoHerbStock = allTrackedStock().filter(s=>s.kind==='insumo'||s.kind==='herbicida');
   const recentMoves = DB.stockMovements.filter(m=>m.kind==='armazem').slice(0,10);
 
   el.innerHTML = `
@@ -2607,6 +2608,27 @@ function renderArmazem(){
           </div>
           <button class="btn btn-sm btn-accent flex-none" onclick="${s.kind==='armazem'?`openWarehouseItemDetail('${s.itemId}')`:`switchTab('${s.kind==='insumo'?'insumos':'herbicidas'}')`}">Ver</button>
         </div>`).join('')}</div>
+    </div>` : ''}
+
+    ${insumoHerbStock.length? `<div class="card p-5 mb-4">
+      ${secHead('green','box','Fertilizantes & Herbicidas com stock controlado', null, 'Controlado nos módulos Fertilizantes e Herbicidas — mostrado aqui para veres tudo num só lugar')}
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead><tr class="text-xs text-left" style="color:var(--ink-faint)">
+            <th class="pb-2 pr-2">Item</th><th class="pb-2 pr-2">Tipo</th><th class="pb-2 pr-2">Stock atual</th><th class="pb-2 pr-2">Estado</th><th class="pb-2"></th>
+          </tr></thead>
+          <tbody>${insumoHerbStock.map(s=>{
+            const st = statusMeta[s.status];
+            return `<tr style="border-top:1px solid var(--border)">
+              <td class="py-2 pr-2">${s.item.name}</td>
+              <td class="py-2 pr-2 text-xs" style="color:var(--ink-faint)">${s.kind==='insumo'?'Fertilizante':'Herbicida'}</td>
+              <td class="py-2 pr-2 mono">${s.stock.quantity} ${s.stock.unit}</td>
+              <td class="py-2 pr-2"><span class="pill ${st.cls}" style="font-size:10px">${st.label}</span></td>
+              <td class="py-2 text-right"><button class="btn btn-ghost btn-sm" onclick="switchTab('${s.kind==='insumo'?'insumos':'herbicidas'}')">Gerir</button></td>
+            </tr>`;
+          }).join('')}</tbody>
+        </table>
+      </div>
     </div>` : ''}
 
     ${!items.length? `<div class="empty-box">Ainda não tens itens ${armazemFilter==='all'?'no Armazém':'nesta categoria'}.<button class="btn btn-outline btn-sm" onclick="promptNewWarehouseItem()">+ Novo item</button></div>` : `
