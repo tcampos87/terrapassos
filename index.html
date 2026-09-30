@@ -585,6 +585,7 @@ button.pill:active{transform:scale(.96)}
       <div id="panel-areas" class="tab-panel"></div>
       <div id="panel-galinhas" class="tab-panel"></div>
       <div id="panel-pecuaria" class="tab-panel"></div>
+      <div id="panel-animais" class="tab-panel"></div>
       <div id="panel-ambiente" class="tab-panel"></div>
       <div id="panel-financas" class="tab-panel"></div>
       <div id="panel-analises" class="tab-panel"></div>
@@ -869,6 +870,7 @@ function defaultDB(){
     livestockWeightLogs: [], // {id,animalId,date,weightKg,userId}
     livestockHealthLogs: [], // {id,animalId,date,type:'tratamento'|'doenca'|'vermifugacao',description,userId}
     livestockVaccineLogs: [], // {id,animalId,date,vaccine,nextDueDate,withdrawalDays,userId}
+    animalImageCache: {}, // {animalCatalogId: url|null} — fotos reais do catálogo do módulo Animais
   };
 }
 let DB = loadDB();
@@ -1510,6 +1512,18 @@ const LOCAL_IMAGES = {
     // fornecida diretamente, em vez do desenho SVG simplificado que tínhamos antes.
     'logo-mark': 'images/misc/terrapassos-mark.png',
   },
+  animals: {
+    'bovino': 'images/animals/bovino.jpg',
+    'suino': 'images/animals/suino.jpg',
+    'ovino': 'images/animals/ovino.jpg',
+    'caprino': 'images/animals/caprino.jpg',
+    'equino': 'images/animals/equino.jpg',
+    'galinha': 'images/animals/galinha.jpg',
+    'pato': 'images/animals/pato.jpg',
+    'peru': 'images/animals/peru.jpg',
+    'coelho': 'images/animals/coelho.jpg',
+    'abelha': 'images/animals/abelha.jpg',
+  },
 };
 (function migrateToLocalImages(){
   // Troca qualquer foto já em cache (link da Wikipédia ou "sem foto") pela versão guardada
@@ -1519,6 +1533,7 @@ const LOCAL_IMAGES = {
   if(DB.cropImageCache) for(const id in LOCAL_IMAGES.crops){ if(DB.cropImageCache[id]!==LOCAL_IMAGES.crops[id]){ DB.cropImageCache[id]=LOCAL_IMAGES.crops[id]; changed=true; } }
   if(DB.inputImageCache) for(const id in LOCAL_IMAGES.inputs){ if(DB.inputImageCache[id]!==LOCAL_IMAGES.inputs[id]){ DB.inputImageCache[id]=LOCAL_IMAGES.inputs[id]; changed=true; } }
   if(DB.herbImageCache) for(const id in LOCAL_IMAGES.herbicidas){ if(DB.herbImageCache[id]!==LOCAL_IMAGES.herbicidas[id]){ DB.herbImageCache[id]=LOCAL_IMAGES.herbicidas[id]; changed=true; } }
+  if(DB.animalImageCache) for(const id in LOCAL_IMAGES.animals){ if(DB.animalImageCache[id]!==LOCAL_IMAGES.animals[id]){ DB.animalImageCache[id]=LOCAL_IMAGES.animals[id]; changed=true; } }
   if(changed) saveDB();
 })();
 
@@ -1579,6 +1594,26 @@ function cropThumbHTML(c, heightPx, rounded){
   </div>`;
 }
 const cropById = id => allCrops().find(c=>c.id===id);
+
+/* ---- Fotos reais do catálogo de Animais (mesmo mecanismo dos das culturas) ---- */
+async function ensureAnimalImages(animals){
+  const missing = animals.filter(a => !(a.id in DB.animalImageCache));
+  if(!missing.length) return;
+  await Promise.allSettled(missing.map(async a=>{
+    if(LOCAL_IMAGES.animals[a.id]){ DB.animalImageCache[a.id] = LOCAL_IMAGES.animals[a.id]; return; }
+    DB.animalImageCache[a.id] = a.wiki? await fetchWikiThumb(a.wiki,'en') : await fetchWikiThumb(a.name,'pt');
+  }));
+  saveDB();
+  if(currentTab==='animais') renderAnimaisCatalog();
+}
+function animalCatalogThumbHTML(a, heightPx, rounded){
+  const url = DB.animalImageCache[a.id];
+  const radius = rounded? 'border-radius:14px' : '';
+  return `<div class="relative" style="height:${heightPx}px;background:linear-gradient(135deg,var(--surface-2),var(--border));flex:none;overflow:hidden;${radius}">
+    <div class="absolute inset-0 flex items-center justify-center" style="font-size:${Math.round(heightPx*0.4)}px;opacity:.55">${a.icon||'🐾'}</div>
+    ${url? `<img src="${url}" alt="${a.name}" loading="lazy" class="absolute inset-0 w-full h-full object-cover" onerror="this.style.display='none'">` : ''}
+  </div>`;
+}
 
 /* =========================================================================
    INSUMOS / FERTILIZANTES — biblioteca de insumos biológicos e químicos
@@ -3798,6 +3833,7 @@ const ICONS = {
   areas:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3Z"/><path d="M9 3v15M15 6v15"/></svg>',
   galinhas:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 20c0-5 2-9 6-9s6 4 6 9"/><circle cx="15" cy="7" r="3"/><path d="M18 6l3-1-2 3"/><path d="M4 20h16"/></svg>',
   pecuaria:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13.5" r="6"/><path d="M6.5 10 3 6M17.5 10l3.5-4"/><circle cx="9.3" cy="13" r=".55" fill="currentColor" stroke="none"/><circle cx="14.7" cy="13" r=".55" fill="currentColor" stroke="none"/><path d="M9.3 17c1 .9 4.4.9 5.4 0"/></svg>',
+  animais:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="8" r="2"/><circle cx="16.5" cy="8" r="2"/><circle cx="4" cy="13.5" r="1.8"/><circle cx="20" cy="13.5" r="1.8"/><path d="M12 12c-3 0-5.5 2.3-5.5 5.2 0 1.5 1.3 2.3 2.8 1.8 1-.3 1.8-.3 2.7-.3s1.7 0 2.7.3c1.5.5 2.8-.3 2.8-1.8C17.5 14.3 15 12 12 12Z"/></svg>',
   ambiente:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 17a4 4 0 010-8 5 5 0 019.6-1.5A4.5 4.5 0 0119 17H6Z"/></svg>',
   financas:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="13" rx="2"/><path d="M2 10h20"/><circle cx="16" cy="14.5" r="1.6" fill="currentColor" stroke="none"/></svg>',
   conhecimento:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2Z"/><path d="M9 7h7M9 11h5"/></svg>',
@@ -3824,6 +3860,7 @@ const TABS = [
   {id:'agrofloresta', label:'AgroFloresta', sub:'Sugestão de consórcios de culturas com boa simbiose, por época do ano'},
   {id:'galinhas', label:'Galinhas', sub:'Lotes, ovos, saúde, vacinas e vendas'},
   {id:'pecuaria', label:'Pecuária', sub:'Registo individual dos animais, lotes, ambientes, saúde, vacinas e peso'},
+  {id:'animais', label:'Animais', sub:'Catálogo de espécies — raças e o essencial de maneio para cada uma'},
   {id:'ambiente', label:'Ambiente', sub:'Sensores e limpeza'},
   {id:'financas', label:'Finanças', sub:'Fluxo de caixa, despesas e receitas'},
   {id:'analises', label:'Análises', sub:'Comparação ano-a-ano e tendências dos últimos 12 meses'},
@@ -3973,6 +4010,7 @@ function renderTab(id){
   if(id==='areas') renderAreas();
   if(id==='galinhas') renderGalinhas();
   if(id==='pecuaria') renderPecuaria();
+  if(id==='animais') renderAnimaisCatalog();
   if(id==='ambiente') renderAmbiente();
   if(id==='financas') renderFinancas();
   if(id==='analises') renderAnalises();
@@ -6735,6 +6773,226 @@ function renderPecuariaPesoHTML(){
       </tbody></table></div>`}
     </div>
   `;
+}
+
+/* =========================================================================
+   ANIMAIS — catálogo enciclopédico de espécies (como o de Culturas, mas
+   para animais): descrição, raças, e o essencial de maneio que um
+   criador/veterinário precisa para começar a criar bem cada espécie.
+   ========================================================================= */
+const ANIMAL_CAT_LABELS = {gado:'Gado', aves:'Aves', outros:'Outros'};
+const ANIMAL_CAT_COLORS = {gado:'orange', aves:'blue', outros:'purple'};
+const ANIMAIS_CATALOG = [
+  {id:'bovino', name:'Bovino (Vaca/Boi)', icon:'🐄', cat:'gado', wiki:'Cattle', family:'Bovinae',
+    description:'O bovino é o pilar da pecuária em Portugal e no Brasil, criado tanto para carne como para leite. É um ruminante de grande porte, dócil quando bem maneado, e adapta-se a climas muito diferentes — do frio do Minho ao calor do Cerrado — consoante a raça escolhida.',
+    breeds:[
+      {name:'Mertolenga, Alentejana, Barrosã, Maronesa, Mirandesa', note:'raças portuguesas autóctones, rústicas e bem adaptadas ao pastoreio extensivo'},
+      {name:'Nelore, Gir, Guzerá, Girolando', note:'zebuínas e mestiças brasileiras, resistentes ao calor e a parasitas'},
+      {name:'Holstein Frísia, Jersey', note:'raças leiteiras internacionais, alta produção de leite'},
+      {name:'Angus, Hereford, Charolês, Limousine', note:'raças de corte internacionais, bom rendimento de carne'},
+    ],
+    housing:'Em extensivo, precisa sobretudo de pastagem e sombra/abrigo para dias de chuva ou calor extremo; em intensivo, currais ou estábulos com boa ventilação, piso não escorregadio e pelo menos 6-10 m² por animal adulto.',
+    feeding:'Pasto/feno como base (ruminante), complementado com ração concentrada em fases de maior exigência (crescimento, lactação); acesso permanente a água limpa e sal mineral.',
+    reproduction:'Gestação de cerca de 283 dias (≈9 meses), normalmente 1 cria por parto; puberdade entre os 12-15 meses, primeira cobrição recomendada por volta dos 15-18 meses.',
+    health:'Vacinação de base contra clostridioses, IBR/BVD e brucelose (fêmeas); vermifugação regular a cada 3-4 meses; atenção a carraças e mastite em vacas leiteiras.',
+    production:'Carne (~50-55% de rendimento de carcaça) ou leite (15-30+ L/dia em raças leiteiras especializadas, bem menos em raças rústicas de duplo propósito).',
+    lifespan:'15-20 anos de esperança de vida; vida produtiva de leite/reprodução até aos 8-10 anos.',
+    space:'0,5-1 hectare de pastagem por cabeça em extensivo (muito variável com a qualidade do solo); 6-10 m² por animal em estábulo.'},
+  {id:'suino', name:'Suíno (Porco)', icon:'🐖', cat:'gado', wiki:'Domestic pig', family:'Suidae',
+    description:'O porco é um animal monogástrico, inteligente e de crescimento rápido, muito eficiente a converter alimento em carne. É criado tanto em pequenas explorações familiares como em sistemas intensivos, e adapta-se bem a climas quentes e temperados.',
+    breeds:[
+      {name:'Bísaro', note:'raça portuguesa autóctone, rústica, usada em produtos tradicionais (enchidos, presunto)'},
+      {name:'Alentejano', note:'porco preto ibérico, criado em montado de sobro/azinho, base do presunto de bolota'},
+      {name:'Landrace, Large White, Duroc', note:'raças internacionais de alta produtividade, muito usadas em cruzamentos comerciais'},
+      {name:'Piau, Moura, Caruncho', note:'raças naïves/crioulas brasileiras, rústicas'},
+    ],
+    housing:'Pocilgas ou parques com zona coberta (abrigo do sol/chuva) e zona de exercício; piso fácil de limpar; separar por idade/fase (maternidade, creche, engorda).',
+    feeding:'Onívoro — ração balanceada à base de milho e soja é o padrão comercial; pode aproveitar restos de cozinha/hortícolas em sistemas caseiros, sempre com cautela sanitária.',
+    reproduction:'Gestação de cerca de 114 dias (3 meses, 3 semanas, 3 dias); ninhadas de 8-14 leitões; puberdade aos 5-8 meses.',
+    health:'Vacinação contra peste suína clássica (obrigatória em muitas regiões), erisipela, parvovirose; vermifugação regular; atenção a diarreias em leitões desmamados.',
+    production:'Carne — abate normalmente entre os 5-6 meses, 90-120 kg de peso vivo, ~75-80% de rendimento de carcaça.',
+    lifespan:'6-10 anos de esperança de vida; reprodutoras usadas até aos 3-4 anos (6-8 partos).',
+    space:'1-1,5 m² por porco em engorda; 4-6 m² por porca reprodutora com a ninhada.'},
+  {id:'ovino', name:'Ovino (Ovelha)', icon:'🐑', cat:'gado', wiki:'Sheep', family:'Caprinae',
+    description:'A ovelha é um ruminante rústico, muito usado em pastoreio extensivo em terrenos pobres ou declivosos onde outros animais têm dificuldade. Produz carne, leite (base de queijos tradicionais) e lã, consoante a raça e o propósito de criação.',
+    breeds:[
+      {name:'Serra da Estrela, Churra, Saloia, Merino', note:'raças portuguesas — leiteiras (queijo Serra da Estrela) ou de lã/carne'},
+      {name:'Santa Inês, Morada Nova, Dorper', note:'raças deslanadas (sem lã) muito criadas no Brasil, adaptadas ao calor'},
+      {name:'Suffolk, Texel', note:'raças de corte internacionais, bom rendimento de carne'},
+    ],
+    housing:'Abrigo simples contra chuva forte e frio extremo (aprisco); pastoreio extensivo é o normal; cercas bem vedadas — ovelhas fogem por baixo, não por cima.',
+    feeding:'Pasto como base; feno no inverno ou em seca; suplementação mineral é importante (sobretudo cobre, com muito cuidado pois o ovino é sensível a excesso de cobre).',
+    reproduction:'Gestação de cerca de 152 dias (≈5 meses); 1-2 crias por parto (raças prolíficas podem ter mais); puberdade aos 6-8 meses.',
+    health:'Vacinação contra clostridioses (basbaque/enterotoxemia) é essencial; vermifugação regular (grande sensibilidade a parasitas gastrointestinais); atenção ao casco (podridão em terrenos húmidos).',
+    production:'Carne (cordeiro/borrego), leite (queijos tradicionais) ou lã, consoante a raça — muitas raças brasileiras modernas são deslanadas e focadas só em carne.',
+    lifespan:'10-12 anos de esperança de vida; vida reprodutiva até aos 6-8 anos.',
+    space:'0,1-0,2 hectare de pastagem por cabeça (bem menos exigente que o bovino).'},
+  {id:'caprino', name:'Caprino (Cabra)', icon:'🐐', cat:'gado', wiki:'Goat', family:'Caprinae',
+    description:'A cabra é um ruminante muito versátil e resistente, capaz de aproveitar vegetação pobre onde outros animais não sobrevivem. É a base de muitos queijos de cabra tradicionais e adapta-se particularmente bem a explorações familiares e a climas semiáridos.',
+    breeds:[
+      {name:'Serrana, Charnequeira, Algarvia', note:'raças portuguesas autóctones, rústicas'},
+      {name:'Saanen, Toggenburg, Alpina', note:'raças leiteiras internacionais de alta produção'},
+      {name:'Boer', note:'raça de corte, muito usada para produção de carne'},
+      {name:'Moxotó, Canindé, Marota', note:'raças naturalizadas do semiárido brasileiro, muito rústicas'},
+    ],
+    housing:'Abrigo simples e seco — a cabra tolera mal a humidade; gosta de plataformas elevadas para saltar/descansar; cercas altas e bem vedadas (é excelente saltadora).',
+    feeding:'Ramoneadora por natureza — prefere arbustos e folhagem a pasto rasteiro; feno e concentrado em lactação; muito eficiente a aproveitar vegetação de baixa qualidade.',
+    reproduction:'Gestação de cerca de 150 dias (≈5 meses); 1-3 crias por parto (frequentemente gémeos); puberdade aos 5-7 meses.',
+    health:'Vacinação contra clostridioses; vermifugação regular; muito sensível a excesso de humidade nos pés e no abrigo (favorece problemas respiratórios e de casco).',
+    production:'Leite (queijos de cabra) ou carne, consoante a raça; produção leiteira de 2-4 L/dia em raças especializadas.',
+    lifespan:'12-15 anos de esperança de vida; vida produtiva até aos 8-10 anos.',
+    space:'0,1-0,15 hectare por cabeça em extensivo, ou boa área de ramoneio disponível.'},
+  {id:'equino', name:'Equino (Cavalo)', icon:'🐴', cat:'gado', wiki:'Horse', family:'Equidae',
+    description:'O cavalo é hoje criado sobretudo para lazer, desporto e trabalho (tração, arreio), mais do que para produção de alimento. Exige mais espaço, cuidados veterinários especializados (dentição, cascos) e maneio individual do que o gado de produção.',
+    breeds:[
+      {name:'Lusitano, Sorraia, Garrano', note:'raças portuguesas — o Lusitano é internacionalmente reconhecido em dressage e tauromaquia'},
+      {name:'Mangalarga Marchado, Crioulo', note:'raças brasileiras — o Mangalarga é a raça mais numerosa do Brasil'},
+      {name:'Puro Sangue Lusitano, Andaluz, Árabe', note:'raças ibéricas/internacionais de sela'},
+    ],
+    housing:'Box individual de pelo menos 3x3 m com boa ventilação, ou acesso amplo a pastagem/piquete; precisa de espaço para se movimentar livremente todos os dias.',
+    feeding:'Herbívoro de estômago simples (não ruminante) — pasto/feno como base, ração concentrada conforme o esforço; comer pouco e muitas vezes é mais saudável do que grandes refeições espaçadas.',
+    reproduction:'Gestação de cerca de 340 dias (≈11 meses); normalmente 1 cria (poldro); puberdade aos 12-18 meses, mas a primeira cobrição faz-se tipicamente só aos 3 anos.',
+    health:'Vacinação contra tétano e gripe equina; desparasitação regular; cuidados de ferrageamento/casqueamento a cada 6-8 semanas; dentição verificada anualmente.',
+    production:'Trabalho, desporto/lazer, e nalgumas raças, carne — não é o foco principal da maioria das criações.',
+    lifespan:'25-30 anos de esperança de vida; vida ativa de trabalho/desporto até aos 18-20 anos.',
+    space:'1 hectare de pastagem por 1-2 cavalos é uma referência confortável.'},
+  {id:'galinha', name:'Galinha', icon:'🐔', cat:'aves', wiki:'Chicken', family:'Phasianidae',
+    description:'A galinha é a ave doméstica mais criada do mundo, adequada tanto para produção de ovos como de carne, e fácil de manter mesmo em pequenas explorações. Este módulo tem também um separador próprio ("Galinhas") para gestão diária de lotes, ovos e vacinas.',
+    breeds:[
+      {name:'Pedrês Portuguesa, Preta Lusitânica', note:'raças portuguesas rústicas, boas poedeiras'},
+      {name:'Índio Gigante, Caipira, Pescoço Pelado', note:'raças/tipos brasileiros de dupla aptidão (carne e ovos)'},
+      {name:'Leghorn, Rhode Island Red, Isa Brown', note:'linhas comerciais de alta postura'},
+    ],
+    housing:'Galinheiro seco e ventilado, poleiros e ninhos-poedeiros (1 ninho por cada 4-5 galinhas), acesso a espaço exterior sempre que possível.',
+    feeding:'Onívora — ração equilibrada (milho, soja, cálcio para postura), pode complementar com restos vegetais e insetos em pastoreio livre.',
+    reproduction:'Incubação de 21 dias; postura de 1 ovo/dia em picos de produção (raças especializadas); puberdade/início de postura aos 5-6 meses.',
+    health:'Vacinação contra doença de Newcastle e bronquite infeciosa; atenção a piolhos/ácaros e coccidiose; boa ventilação previne muitas doenças respiratórias.',
+    production:'Ovos (200-300/ano em linhas comerciais) e/ou carne, consoante a raça.',
+    lifespan:'5-8 anos de esperança de vida; produção de ovos economicamente viável até aos 2-3 anos.',
+    space:'2-3 m² de galinheiro + 4-6 m² de pátio exterior por ave, em sistemas ao ar livre.'},
+  {id:'pato', name:'Pato', icon:'🦆', cat:'aves', wiki:'Duck', family:'Anatidae',
+    description:'O pato é uma ave aquática rústica, mais resistente a doenças do que a galinha, e um excelente controlador natural de lesmas e caracóis na horta. Precisa de acesso a água para nadar/mergulhar para o bem-estar e higiene, embora não seja estritamente obrigatório para sobreviver.',
+    breeds:[
+      {name:'Pequim', note:'raça de carne, crescimento rápido, muito comum'},
+      {name:'Khaki Campbell', note:'excelente poedeira, até 300 ovos/ano'},
+      {name:'Mudo (Muscovy/Pato-do-mato)', note:'muito rústico, bom para controlo de pragas, comum no Brasil'},
+    ],
+    housing:'Abrigo simples seco à noite (proteção de predadores); tanque ou lago pequeno é muito benéfico, mesmo que não indispensável.',
+    feeding:'Onívoro — ração para aves aquáticas ou mista, complementa muito bem com lesmas, caracóis e insetos que apanha sozinho.',
+    reproduction:'Incubação de 28 dias; postura variável consoante a raça (poedeiras especializadas chegam a 300 ovos/ano); puberdade aos 5-7 meses.',
+    health:'Geralmente mais resistente a doenças do que a galinha; manter a água limpa é a principal medida preventiva; vacinação conforme risco local.',
+    production:'Ovos e/ou carne; também valorizado como controlo biológico de pragas na horta.',
+    lifespan:'8-12 anos de esperança de vida.',
+    space:'2-4 m² por ave + acesso a água, se possível.'},
+  {id:'peru', name:'Peru', icon:'🦃', cat:'aves', wiki:'Turkey (bird)', family:'Phasianidae',
+    description:'O peru é uma ave de grande porte criada principalmente para carne, tradicionalmente associada a épocas festivas em Portugal e no Brasil. Exige mais espaço e cuidados na fase jovem (perus são sensíveis a frio e humidade) do que a galinha.',
+    breeds:[
+      {name:'Bronzeado (Standard Bronze)', note:'raça tradicional, rústica, bom crescimento'},
+      {name:'Branco de Beltsville', note:'raça de carne mais compacta'},
+      {name:'Nacional/Caipira', note:'tipos rústicos criados extensivamente no Brasil'},
+    ],
+    housing:'Abrigo amplo, seco e sem correntes de ar (perutos jovens são muito sensíveis à humidade); poleiros altos, pois gostam de empoleirar-se.',
+    feeding:'Ração rica em proteína na fase de crescimento (mais exigente do que a galinha); acesso a pasto/insetos é bem aproveitado em adultos.',
+    reproduction:'Incubação de 28 dias; postura sazonal de 80-100 ovos/ano; puberdade aos 7-9 meses.',
+    health:'Muito sensível a histomoníase ("blackhead disease") sobretudo se criado junto de galinhas; vacinação e boas condições de higiene são essenciais nas primeiras semanas.',
+    production:'Carne — abate entre os 4-6 meses, machos podem ultrapassar os 10-15 kg.',
+    lifespan:'10 anos de esperança de vida; engorda de abate normalmente com menos de 1 ano.',
+    space:'4-6 m² por ave adulta.'},
+  {id:'coelho', name:'Coelho', icon:'🐇', cat:'outros', wiki:'Rabbit', family:'Leporidae',
+    description:'O coelho é um pequeno mamífero herbívoro de reprodução muito rápida, adequado para explorações de pequena escala e com baixo investimento inicial. É criado sobretudo para carne, mas também para pelo em algumas raças.',
+    breeds:[
+      {name:'Nova Zelândia Branco', note:'raça de carne mais criada comercialmente, crescimento rápido'},
+      {name:'Califórnia', note:'boa conversão alimentar, muito usada em cruzamentos comerciais'},
+      {name:'Gigante de Flandres, Chinchila', note:'raças de maior porte, dupla aptidão'},
+    ],
+    housing:'Gaiolas ou coelheiras elevadas do chão, secas e ventiladas, protegidas de sol direto e chuva; fêmeas reprodutoras precisam de ninho separado antes do parto.',
+    feeding:'Herbívoro — feno/erva sempre disponível (essencial para o trânsito intestinal), complementado com ração concentrada específica para coelhos.',
+    reproduction:'Gestação de cerca de 31 dias (a mais curta entre os animais de criação comuns); ninhadas de 6-10 crias; puberdade aos 4-5 meses — reprodução muito rápida.',
+    health:'Vacinação contra mixomatose e doença hemorrágica viral (onde disponível/recomendada); atenção à coccidiose e a problemas dentários (dentes crescem continuamente).',
+    production:'Carne magra e de rápido ciclo — pronta para abate aos 2,5-3 meses de idade.',
+    lifespan:'8-12 anos de esperança de vida; reprodutoras usadas 2-3 anos.',
+    space:'0,3-0,5 m² por coelho adulto em gaiola.'},
+  {id:'abelha', name:'Abelha (Apicultura)', icon:'🐝', cat:'outros', wiki:'Western honey bee', family:'Apidae',
+    description:'A apicultura é a criação de abelhas em colmeias para produção de mel, cera e própolis, e presta um serviço essencial de polinização às culturas vizinhas. É uma atividade que se integra particularmente bem com a agrofloresta e a horticultura.',
+    breeds:[
+      {name:'Abelha-europeia (Apis mellifera iberiensis)', note:'subespécie ibérica, comum em Portugal'},
+      {name:'Africanizada', note:'híbrida muito produtiva e resistente, predominante no Brasil — mais defensiva, exige experiência'},
+      {name:'Itálica, Cárnica', note:'linhagens frequentemente usadas em apicultura comercial pela docilidade'},
+    ],
+    housing:'Colmeias (caixas Langstroth é o modelo mais comum) colocadas num apiário arejado, com sombra parcial, longe de zonas de muita passagem de pessoas/animais.',
+    feeding:'Autossuficiente em condições normais (néctar e pólen); alimentação artificial com xarope de açúcar só em períodos de escassez de floração ou para reforçar colónias novas.',
+    reproduction:'A colónia reproduz-se por enxameação (a rainha e parte das operárias saem para formar uma nova colónia); uma rainha pode pôr 1500-2000 ovos/dia em pico de produção.',
+    health:'Principal ameaça é o ácaro Varroa destructor — monitorização e tratamento regular são essenciais; atenção também a doenças como a nosemose.',
+    production:'Mel (15-30+ kg/colmeia/ano, muito variável com a região e floração), cera, própolis, e polinização das culturas vizinhas.',
+    lifespan:'Operárias vivem semanas a poucos meses; uma rainha pode viver 2-5 anos.',
+    space:'1 colmeia por 200-400 m² de área com floração disponível é uma referência comum, mas varia muito com a região.'},
+];
+function animalCatalogById(id){ return ANIMAIS_CATALOG.find(a=>a.id===id); }
+let animalCatalogFilter = 'all';
+function setAnimalCatalogFilter(k){ animalCatalogFilter=k; renderAnimaisCatalog(); }
+function renderAnimaisCatalog(){
+  const el = document.getElementById('panel-animais');
+  if(!el) return;
+  const visible = ANIMAIS_CATALOG.filter(a=>animalCatalogFilter==='all'||a.cat===animalCatalogFilter);
+  el.innerHTML = `
+    <div class="flex items-center justify-between gap-3 mb-4 flex-wrap">
+      <div class="seg" style="flex-wrap:wrap">
+        <button class="seg-btn ${animalCatalogFilter==='all'?'on':''}" onclick="setAnimalCatalogFilter('all')">Todos</button>
+        ${Object.keys(ANIMAL_CAT_LABELS).map(k=>`<button class="seg-btn ${animalCatalogFilter===k?'on':''}" onclick="setAnimalCatalogFilter('${k}')">${ANIMAL_CAT_LABELS[k]}</button>`).join('')}
+      </div>
+      <p class="text-xs m-0" style="color:var(--ink-faint)">${visible.length} espécie${visible.length===1?'':'s'}</p>
+    </div>
+    <div class="grid-crops">
+      ${visible.map(a=>`
+        <button class="card overflow-hidden text-left flex flex-col hoverable" onclick="openAnimalCatalogDetail('${a.id}')">
+          ${animalCatalogThumbHTML(a, 130)}
+          <div class="p-4">
+            <div class="flex items-center justify-between gap-2 mb-1">
+              <span class="font-semibold display" style="font-size:15px">${a.icon} ${a.name}</span>
+              <span class="pill pill-${ANIMAL_CAT_COLORS[a.cat]}" style="font-size:10px;flex:none">${ANIMAL_CAT_LABELS[a.cat]}</span>
+            </div>
+            <p class="text-xs m-0" style="color:var(--ink-soft);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden">${a.description}</p>
+          </div>
+        </button>
+      `).join('')}
+    </div>
+  `;
+  ensureAnimalImages(visible);
+}
+function openAnimalCatalogDetail(id){
+  const a = animalCatalogById(id);
+  if(!a) return;
+  ensureAnimalImages([a]);
+  openModal(`
+    ${animalCatalogThumbHTML(a, 170, true)}
+    <div class="flex items-center justify-between mb-1 mt-4">
+      <h3 class="display font-semibold m-0" style="font-size:19px">${a.icon} ${a.name}</h3>
+      <span class="pill pill-${ANIMAL_CAT_COLORS[a.cat]}">${ANIMAL_CAT_LABELS[a.cat]}</span>
+    </div>
+    <div class="text-xs mb-4" style="color:var(--ink-faint)">Família: ${a.family}</div>
+    <p class="text-sm mb-4">${a.description}</p>
+    <div class="mb-4">
+      <span class="label">Raças comuns em Portugal e no Brasil</span>
+      <div class="flex flex-col gap-2 mt-1">
+        ${a.breeds.map(b=>`<div class="p-2.5 rounded-lg" style="background:var(--surface-2)"><div class="text-sm font-semibold">${b.name}</div><div class="text-xs" style="color:var(--ink-soft)">${b.note}</div></div>`).join('')}
+      </div>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4 text-sm">
+      <div><span class="label">🏠 Alojamento / ambiente</span>${a.housing}</div>
+      <div><span class="label">🌾 Alimentação</span>${a.feeding}</div>
+      <div><span class="label">🐣 Reprodução</span>${a.reproduction}</div>
+      <div><span class="label">💉 Saúde</span>${a.health}</div>
+      <div><span class="label">🧺 Produção</span>${a.production}</div>
+      <div><span class="label">⏳ Esperança de vida</span>${a.lifespan}</div>
+    </div>
+    <div class="mb-4">
+      <span class="label">📐 Espaço necessário</span>
+      <p class="text-sm m-0">${a.space}</p>
+    </div>
+    <div class="flex gap-2 justify-end">
+      <button class="btn btn-ghost" onclick="closeModal()">Fechar</button>
+    </div>
+  `, true);
 }
 
 /* =========================================================================
