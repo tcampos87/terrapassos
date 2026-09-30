@@ -2590,7 +2590,11 @@ function renderArmazem(){
         <button class="seg-btn ${armazemFilter==='all'?'on':''}" onclick="setArmazemFilter('all')">Todos</button>
         ${WAREHOUSE_CATEGORIES.map(c=>`<button class="seg-btn ${armazemFilter===c.id?'on':''}" onclick="setArmazemFilter('${c.id}')">${c.icon} ${c.label}</button>`).join('')}
       </div>
-      <button class="btn btn-primary btn-sm" onclick="promptNewWarehouseItem()">+ Novo item</button>
+      <div class="flex gap-2">
+        <button class="btn btn-outline btn-sm" onclick="confirmSeedWarehouseDemo()">🎲 Itens aleatórios (1 ano)</button>
+        <button class="btn btn-outline btn-sm" onclick="promptExportArmazem()">⭳ Exportar</button>
+        <button class="btn btn-primary btn-sm" onclick="promptNewWarehouseItem()">+ Novo item</button>
+      </div>
     </div>
 
     <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
@@ -2663,6 +2667,174 @@ function renderArmazem(){
       </div>
     </div>` : ''}
   `;
+}
+/* ---- Itens de exemplo com 1 ano de histórico (só Armazém) ---- */
+function confirmSeedWarehouseDemo(){
+  if(!confirm('Isto acrescenta um conjunto de itens de exemplo ao Armazém — variados, cobrindo todas as categorias — com um ano de movimentos de stock (entradas e saídas). Os teus itens atuais não são apagados nem alterados. Continuar?')) return;
+  seedWarehouseDemoYear();
+  alert('Pronto! Foram acrescentados itens de exemplo com um ano de histórico de movimentos. Podes removê-los a qualquer momento em Configurações → Remover dados de exemplo.');
+  renderArmazem();
+}
+function seedWarehouseDemoYear(){
+  const rnd = (min,max) => min + Math.random()*(max-min);
+  const rndInt = (min,max) => Math.floor(rnd(min,max+1));
+  const today = todayISO();
+  const yearAgo = addDays(today, -365);
+  const activeUserId = DB.activeUserId;
+  const defs = [
+    {name:'Sementes de alface (saqueta)', category:'sementes', unit:'saquetas', threshold:3},
+    {name:'Sementes de cenoura (saqueta)', category:'sementes', unit:'saquetas', threshold:3},
+    {name:'Bandejas de mudas (200 células)', category:'sementes', unit:'un', threshold:5},
+    {name:'Tesoura de poda', category:'ferramentas', unit:'un', threshold:1},
+    {name:'Mangueira de rega (rolo 50m)', category:'ferramentas', unit:'un', threshold:1},
+    {name:'Carriola', category:'ferramentas', unit:'un', threshold:1},
+    {name:'Caixas de plástico para colheita', category:'embalagens', unit:'un', threshold:10},
+    {name:'Etiquetas autocolantes', category:'embalagens', unit:'rolos', threshold:2},
+    {name:'Ração inicial para pintos', category:'racao', unit:'kg', threshold:15},
+    {name:'Feno', category:'racao', unit:'fardos', threshold:5},
+    {name:'Batata armazenada', category:'producao', unit:'kg', threshold:10},
+    {name:'Azeite engarrafado', category:'producao', unit:'garrafas', threshold:6},
+    {name:'Gasolina (roçadora)', category:'combustivel', unit:'L', threshold:10},
+    {name:'Luvas de proteção', category:'outros', unit:'pares', threshold:4},
+    {name:'Material de escritório', category:'outros', unit:'un', threshold:2},
+  ];
+  defs.forEach(def=>{
+    const item = {id:uid(), name:def.name, category:def.category, location:'', notes:'', createdAt: addDays(yearAgo, rndInt(0,15)), demo:true};
+    DB.warehouseItems.push(item);
+    const key = stockKey('armazem', item.id);
+    const isTool = def.category==='ferramentas';
+    const initialQty = isTool? rndInt(1,6) : rndInt(10,60);
+    let stock = {quantity:0, unit:def.unit, lowThreshold:def.threshold, updatedAt:yearAgo, demo:true};
+    let cursor = addDays(yearAgo, rndInt(0,20));
+    stock.quantity = initialQty;
+    DB.stockMovements.push({id:uid(), date:cursor, kind:'armazem', itemId:item.id, itemName:item.name, type:'entrada', quantity:initialQty, unit:def.unit, note:'Stock inicial', userId:activeUserId, demo:true});
+    const moveCount = isTool? rndInt(1,2) : rndInt(3,6);
+    for(let i=0;i<moveCount;i++){
+      cursor = addDays(cursor, rndInt(20,80));
+      if(daysBetween(cursor,today) < 0) break;
+      const isEntry = Math.random()<0.4;
+      const moveQty = isEntry? rndInt(5, Math.max(6,initialQty)) : rndInt(1, Math.max(2,Math.round(stock.quantity*0.5)));
+      stock.quantity = isEntry? Math.round((stock.quantity+moveQty)*100)/100 : Math.round(Math.max(0,stock.quantity-moveQty)*100)/100;
+      stock.updatedAt = cursor;
+      DB.stockMovements.push({id:uid(), date:cursor, kind:'armazem', itemId:item.id, itemName:item.name, type:isEntry?'entrada':'saida', quantity:moveQty, unit:def.unit, note:'', userId:activeUserId, demo:true});
+    }
+    DB.stockLevels[key] = stock;
+  });
+  saveDB();
+}
+/* ---- Exportação CSV — Armazém (inclui Fertilizantes/Herbicidas, já cruzados aqui) ---- */
+function movementGroupInfo(m){
+  if(m.kind==='insumo') return {id:'insumo', label:'Fertilizante'};
+  if(m.kind==='herbicida') return {id:'herbicida', label:'Herbicida'};
+  const item = DB.warehouseItems.find(w=>w.id===m.itemId);
+  const cat = item? warehouseCatMeta(item.category) : null;
+  return {id: item? item.category : 'outros', label: cat? cat.label : 'Armazém'};
+}
+function armExportPeriodFieldsHTML(mode){
+  const now = new Date();
+  if(mode==='semana'){
+    return `<label class="label">Uma data dentro da semana pretendida</label>
+    <input type="date" class="field mb-3" id="armExpWeekDate" value="${todayISO()}">`;
+  }
+  if(mode==='mes'){
+    return `<div class="grid grid-cols-2 gap-2 mb-3">
+      <div><label class="label">Mês</label><select class="field" id="armExpMonth">${MONTHS_FULL.map((m,i)=>`<option value="${i+1}" ${i+1===now.getMonth()+1?'selected':''}>${m}</option>`).join('')}</select></div>
+      <div><label class="label">Ano</label><select class="field" id="armExpYear">${reportYearsFrom(DB.stockMovements.map(m=>m.date)).map(y=>`<option value="${y}">${y}</option>`).join('')}</select></div>
+    </div>`;
+  }
+  return `<div class="grid grid-cols-2 gap-2 mb-3">
+    <div><label class="label">Data inicial</label><input type="date" class="field" id="armExpStart" value="${addDays(todayISO(),-30)}"></div>
+    <div><label class="label">Data final</label><input type="date" class="field" id="armExpEnd" value="${todayISO()}"></div>
+  </div>`;
+}
+function toggleArmExportPeriodFields(){
+  const mode = document.getElementById('armExpMode').value;
+  document.getElementById('armExpPeriodFields').innerHTML = armExportPeriodFieldsHTML(mode);
+}
+function promptExportArmazem(){
+  openModal(`
+    <h3 class="display font-semibold mb-3" style="font-size:17px">Exportar registo — Armazém</h3>
+    <label class="label">Período</label>
+    <select class="field mb-2" id="armExpMode" onchange="toggleArmExportPeriodFields()">
+      <option value="semana">Semana específica</option>
+      <option value="mes" selected>Mês específico</option>
+      <option value="periodo">Período personalizado</option>
+    </select>
+    <div id="armExpPeriodFields">${armExportPeriodFieldsHTML('mes')}</div>
+    <label class="label">Grupo</label>
+    <select class="field mb-3" id="armExpGroup">
+      <option value="all">Todos os grupos</option>
+      ${WAREHOUSE_CATEGORIES.map(c=>`<option value="${c.id}">${c.icon} ${c.label}</option>`).join('')}
+      <option value="insumo">🧪 Fertilizantes</option>
+      <option value="herbicida">🌿 Herbicidas</option>
+    </select>
+    <p class="text-[11px] mb-3" style="color:var(--ink-faint)">Gera um ficheiro .csv com todos os movimentos de stock (entradas, saídas e ajustes) do período e grupo escolhidos — Armazém, Fertilizantes e Herbicidas, tudo junto ou filtrado por grupo.</p>
+    <div class="flex gap-2 justify-end">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="exportArmazemCSV()">Gerar CSV</button>
+    </div>`);
+}
+function armExportDateRange(){
+  const mode = document.getElementById('armExpMode').value;
+  if(mode==='semana'){
+    const d = document.getElementById('armExpWeekDate').value || todayISO();
+    const dt = new Date(d+'T00:00:00');
+    const dow = dt.getDay();
+    const diffToMonday = dow===0? -6 : 1-dow;
+    const monday = addDays(d, diffToMonday);
+    const sunday = addDays(monday, 6);
+    return {start:monday, end:sunday, label:`semana_${monday}_a_${sunday}`};
+  }
+  if(mode==='mes'){
+    const month = +document.getElementById('armExpMonth').value;
+    const year = +document.getElementById('armExpYear').value;
+    const start = `${year}-${String(month).padStart(2,'0')}-01`;
+    const lastDay = new Date(year, month, 0).getDate();
+    const end = `${year}-${String(month).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`;
+    return {start, end, label:`${MONTHS_FULL[month-1]}_${year}`};
+  }
+  const start = document.getElementById('armExpStart').value;
+  const end = document.getElementById('armExpEnd').value;
+  return {start, end, label:`${start}_a_${end}`};
+}
+function exportArmazemCSV(){
+  const {start, end, label} = armExportDateRange();
+  if(!start || !end){ alert('Indica as datas do período.'); return; }
+  const group = document.getElementById('armExpGroup').value;
+  const inPeriod = d => d>=start && d<=end;
+  let moves = DB.stockMovements.filter(m=>inPeriod(m.date));
+  if(group!=='all') moves = moves.filter(m=>movementGroupInfo(m).id===group);
+  moves = moves.slice().sort((a,b)=>a.date.localeCompare(b.date));
+
+  const rows = [['Data','Grupo','Item','Tipo de movimento','Quantidade','Unidade','Nota','Utilizador']];
+  moves.forEach(m=>{
+    const g = movementGroupInfo(m);
+    const user = DB.users.find(u=>u.id===m.userId);
+    const typeLabel = m.type==='entrada'?'Entrada':m.type==='saida'?'Saída':'Ajuste';
+    rows.push([
+      m.date.split('-').reverse().join('/'),
+      g.label,
+      m.itemName,
+      typeLabel,
+      csvNum(m.quantity),
+      m.unit,
+      m.note||'',
+      user? user.name : '—',
+    ]);
+  });
+  if(!moves.length) rows.push(['Sem movimentos registados neste período/grupo.']);
+
+  const csv = '﻿' + rows.map(r=>r.map(csvField).join(';')).join('\r\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `terrapassos-armazem-${label}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  closeModal();
 }
 function promptNewWarehouseItem(){
   openModal(`
