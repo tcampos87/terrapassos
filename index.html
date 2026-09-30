@@ -2074,7 +2074,7 @@ function openInputDetail(id){
       <span class="label">Dose sugerida</span>
       <p class="text-sm m-0 mono">${i.dose}</p>
     </div>
-    <button class="btn btn-accent btn-sm w-full" onclick="closeModal();promptApplyInput('${i.id}')">Aplicar Fertilizante</button>
+    <button class="btn btn-accent btn-sm w-full" onclick="promptApplyInput('${i.id}')">Aplicar Fertilizante</button>
   `);
 }
 function applicationTargets(){
@@ -2510,7 +2510,7 @@ function openHerbDetail(id){
       <span class="label">Segurança e precauções</span>
       <p class="text-sm m-0">${h.safety}</p>
     </div>
-    <button class="btn btn-accent btn-sm w-full" onclick="closeModal();promptApplyHerbicide('${h.id}')">Aplicar Herbicida</button>
+    <button class="btn btn-accent btn-sm w-full" onclick="promptApplyHerbicide('${h.id}')">Aplicar Herbicida</button>
   `);
 }
 function promptApplyHerbicide(id){
@@ -4310,7 +4310,7 @@ function closeModal(){
   const root=document.getElementById('modalRoot');
   if(root.hidden || root.classList.contains('closing')) return;
   root.classList.add('closing');
-  const done=()=>{ root.hidden=true; root.classList.remove('closing'); root.removeEventListener('animationend', done); };
+  const done=()=>{ if(!root.classList.contains('closing')) return; root.hidden=true; root.classList.remove('closing'); root.removeEventListener('animationend', done); };
   root.addEventListener('animationend', done);
   setTimeout(done, 220);
 }
