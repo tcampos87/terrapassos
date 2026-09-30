@@ -6786,10 +6786,44 @@ const ANIMAIS_CATALOG = [
   {id:'bovino', name:'Bovino (Vaca/Boi)', icon:'🐄', cat:'gado', wiki:'Cattle', family:'Bovinae',
     description:'O bovino é o pilar da pecuária em Portugal e no Brasil, criado tanto para carne como para leite. É um ruminante de grande porte, dócil quando bem maneado, e adapta-se a climas muito diferentes — do frio do Minho ao calor do Cerrado — consoante a raça escolhida.',
     breeds:[
-      {name:'Mertolenga, Alentejana, Barrosã, Maronesa, Mirandesa', note:'raças portuguesas autóctones, rústicas e bem adaptadas ao pastoreio extensivo'},
-      {name:'Nelore, Gir, Guzerá, Girolando', note:'zebuínas e mestiças brasileiras, resistentes ao calor e a parasitas'},
-      {name:'Holstein Frísia, Jersey', note:'raças leiteiras internacionais, alta produção de leite'},
-      {name:'Angus, Hereford, Charolês, Limousine', note:'raças de corte internacionais, bom rendimento de carne'},
+      {name:'Mertolenga', origin:'Portugal', note:'a raça mais numerosa de Portugal; dupla aptidão (carne/tração), muito rústica, base da vitela Mertolenga DOP no Alentejo'},
+      {name:'Alentejana', origin:'Portugal', note:'grande porte, carne, ligada historicamente também à raça Brava de lide'},
+      {name:'Barrosã', origin:'Portugal', note:'pequeno porte, cornos em lira muito característicos, carne Barrosã DOP, Minho'},
+      {name:'Maronesa', origin:'Portugal', note:'Trás-os-Montes, muito rústica, pouco exigente, carne Maronesa DOP'},
+      {name:'Mirandesa', origin:'Portugal', note:'Trás-os-Montes, robusta, base da Carne Mirandesa DOP'},
+      {name:'Arouquesa', origin:'Portugal', note:'Arouca/Aveiro, carne Arouquesa DOP'},
+      {name:'Marinhoa', origin:'Portugal', note:'Aveiro/Beira Litoral, historicamente de tração, hoje sobretudo carne'},
+      {name:'Minhota', origin:'Portugal', note:'Minho, leiteira/tração tradicional, raça em risco'},
+      {name:'Cachena', origin:'Portugal', note:'pequeno porte, Minho, muito rústica'},
+      {name:'Garvonesa', origin:'Portugal', note:'Trás-os-Montes, extremamente rara, em risco de extinção'},
+      {name:'Preta (Ramo Grande)', origin:'Portugal', note:'ilha Terceira, Açores, dupla aptidão'},
+      {name:'Brava (de Lide)', origin:'Portugal', note:'Alentejo/Ribatejo, criada para tourada, não para produção alimentar'},
+      {name:'Nelore', origin:'Brasil', note:'a raça mais criada no Brasil; zebuína de corte, muito resistente ao calor e a carrapatos'},
+      {name:'Gir', origin:'Brasil', note:'zebuína leiteira (origem indiana), base do Girolando'},
+      {name:'Guzerá', origin:'Brasil', note:'zebuína de dupla aptidão, muito rústica'},
+      {name:'Tabapuã', origin:'Brasil', note:'zebuína de corte, mocha (sem chifres), desenvolvida no Brasil'},
+      {name:'Indubrasil', origin:'Brasil', note:'zebuína de corte, grande porte'},
+      {name:'Sindi', origin:'Brasil', note:'zebuína de pequeno porte (origem paquistanesa), muito resistente'},
+      {name:'Caracu', origin:'Brasil', note:'taurina naturalizada, uma das raças mais antigas do Brasil, carne'},
+      {name:'Curraleiro Pé-Duro', origin:'Brasil', note:'nordeste, extremamente rústica, importante reserva genética'},
+      {name:'Pantaneiro', origin:'Brasil', note:'adaptada ao regime de alagamentos sazonais do Pantanal'},
+      {name:'Crioulo Lageano', origin:'Brasil', note:'planalto serrano de Santa Catarina, rústica'},
+      {name:'Girolando', origin:'Brasil', note:'cruzamento Gir x Holandês, principal raça leiteira do Brasil'},
+      {name:'Canchim', origin:'Brasil', note:'cruzamento Charolês x Zebu, carne'},
+      {name:'Brangus', origin:'Internacional', note:'cruzamento Angus x Zebu, carne, boa tolerância ao calor'},
+      {name:'Simbrasil', origin:'Brasil', note:'cruzamento Simental x Zebu, dupla aptidão'},
+      {name:'Holstein Frísia (Holandesa)', origin:'Internacional', note:'maior produção de leite do mundo entre as raças bovinas'},
+      {name:'Jersey', origin:'Internacional', note:'leite com alto teor de gordura e proteína'},
+      {name:'Pardo Suíço', origin:'Internacional', note:'dupla aptidão, muito robusta'},
+      {name:'Guernsey', origin:'Internacional', note:'leite rico e dourado, menos comum'},
+      {name:'Angus', origin:'Internacional', note:'carne de alta qualidade, bem marmoreada'},
+      {name:'Hereford', origin:'Internacional', note:'carne, muito rústica'},
+      {name:'Charolês', origin:'Internacional', note:'grande porte, carne magra e volumosa'},
+      {name:'Limousine', origin:'Internacional', note:'carne, excelente rendimento de carcaça'},
+      {name:'Simental', origin:'Internacional', note:'dupla aptidão carne/leite'},
+      {name:"Blonde d'Aquitaine", origin:'Internacional', note:'grande porte, carne muito magra'},
+      {name:'Brahman', origin:'Internacional', note:'zebuína, base de várias raças compostas americanas'},
+      {name:'Senepol', origin:'Internacional', note:'mocha, muito tolerante ao calor'},
     ],
     housing:'Em extensivo, precisa sobretudo de pastagem e sombra/abrigo para dias de chuva ou calor extremo; em intensivo, currais ou estábulos com boa ventilação, piso não escorregadio e pelo menos 6-10 m² por animal adulto.',
     feeding:'Pasto/feno como base (ruminante), complementado com ração concentrada em fases de maior exigência (crescimento, lactação); acesso permanente a água limpa e sal mineral.',
@@ -6801,10 +6835,20 @@ const ANIMAIS_CATALOG = [
   {id:'suino', name:'Suíno (Porco)', icon:'🐖', cat:'gado', wiki:'Domestic pig', family:'Suidae',
     description:'O porco é um animal monogástrico, inteligente e de crescimento rápido, muito eficiente a converter alimento em carne. É criado tanto em pequenas explorações familiares como em sistemas intensivos, e adapta-se bem a climas quentes e temperados.',
     breeds:[
-      {name:'Bísaro', note:'raça portuguesa autóctone, rústica, usada em produtos tradicionais (enchidos, presunto)'},
-      {name:'Alentejano', note:'porco preto ibérico, criado em montado de sobro/azinho, base do presunto de bolota'},
-      {name:'Landrace, Large White, Duroc', note:'raças internacionais de alta produtividade, muito usadas em cruzamentos comerciais'},
-      {name:'Piau, Moura, Caruncho', note:'raças naïves/crioulas brasileiras, rústicas'},
+      {name:'Bísaro', origin:'Portugal', note:'autóctone de Trás-os-Montes, muito rústica, base de enchidos e presunto tradicionais'},
+      {name:'Alentejano (Porco Preto Ibérico)', origin:'Portugal', note:'criado em regime de montanheira (bolota) no montado de sobro/azinho, presunto de alta qualidade'},
+      {name:'Piau', origin:'Brasil', note:'rústica, muito comum em Minas Gerais'},
+      {name:'Canastra', origin:'Brasil', note:'rústica, pequeno porte'},
+      {name:'Caruncho', origin:'Brasil', note:'rústica, nordeste do Brasil'},
+      {name:'Moura', origin:'Brasil', note:'rústica, pelagem escura'},
+      {name:'Nilo-Canastrão', origin:'Brasil', note:'crioula, pouco exigente'},
+      {name:'Macau (Pirapemba)', origin:'Brasil', note:'pequeno porte, nordeste, resistente à seca'},
+      {name:'Monteiro', origin:'Brasil', note:'raça naturalizada rústica'},
+      {name:'Landrace', origin:'Internacional', note:'leitegadas numerosas, excelente mãe, muito usada em cruzamentos'},
+      {name:'Large White (Yorkshire)', origin:'Internacional', note:'prolífica, base de muitos programas de cruzamento comercial'},
+      {name:'Duroc', origin:'Internacional', note:'crescimento rápido, boa qualidade de carne (mais marmoreada)'},
+      {name:'Pietrain', origin:'Internacional', note:'altíssimo rendimento de carne magra'},
+      {name:'Hampshire', origin:'Internacional', note:'carne magra, boa conformação'},
     ],
     housing:'Pocilgas ou parques com zona coberta (abrigo do sol/chuva) e zona de exercício; piso fácil de limpar; separar por idade/fase (maternidade, creche, engorda).',
     feeding:'Onívoro — ração balanceada à base de milho e soja é o padrão comercial; pode aproveitar restos de cozinha/hortícolas em sistemas caseiros, sempre com cautela sanitária.',
@@ -6816,9 +6860,27 @@ const ANIMAIS_CATALOG = [
   {id:'ovino', name:'Ovino (Ovelha)', icon:'🐑', cat:'gado', wiki:'Sheep', family:'Caprinae',
     description:'A ovelha é um ruminante rústico, muito usado em pastoreio extensivo em terrenos pobres ou declivosos onde outros animais têm dificuldade. Produz carne, leite (base de queijos tradicionais) e lã, consoante a raça e o propósito de criação.',
     breeds:[
-      {name:'Serra da Estrela, Churra, Saloia, Merino', note:'raças portuguesas — leiteiras (queijo Serra da Estrela) ou de lã/carne'},
-      {name:'Santa Inês, Morada Nova, Dorper', note:'raças deslanadas (sem lã) muito criadas no Brasil, adaptadas ao calor'},
-      {name:'Suffolk, Texel', note:'raças de corte internacionais, bom rendimento de carne'},
+      {name:'Churra Galega Bragançana', origin:'Portugal', note:'Trás-os-Montes, lã e carne'},
+      {name:'Churra da Terra Quente', origin:'Portugal', note:'Trás-os-Montes, rústica'},
+      {name:'Churra Mondegueira', origin:'Portugal', note:'região das Beiras'},
+      {name:'Churra do Campo', origin:'Portugal', note:'Beira Baixa'},
+      {name:'Churra Badana', origin:'Portugal', note:'Beira Interior, lã grosseira e carne'},
+      {name:'Merino Branco', origin:'Portugal', note:'Alentejo, lã fina de grande qualidade'},
+      {name:'Merino Preto', origin:'Portugal', note:'variante de pelagem escura do Merino'},
+      {name:'Saloia', origin:'Portugal', note:'região de Lisboa/Oeste, leiteira'},
+      {name:'Serra da Estrela', origin:'Portugal', note:'leiteira, base do queijo Serra da Estrela DOP'},
+      {name:'Campaniça', origin:'Portugal', note:'Alentejo, carne'},
+      {name:'Bordaleira de Entre Douro e Minho', origin:'Portugal', note:'rústica, região do Minho'},
+      {name:'Santa Inês', origin:'Brasil', note:'a raça de ovinos mais criada no Brasil; deslanada, carne'},
+      {name:'Morada Nova', origin:'Brasil', note:'nordeste, pequeno porte, muito rústica, deslanada'},
+      {name:'Rabo Largo', origin:'Brasil', note:'nordeste, deslanada'},
+      {name:'Somalis Brasileira', origin:'Brasil', note:'deslanada, carne, boa rusticidade'},
+      {name:'Ile de France', origin:'Internacional', note:'carne, muito usada em cruzamentos terminais'},
+      {name:'Suffolk', origin:'Internacional', note:'carne, crescimento rápido'},
+      {name:'Texel', origin:'Internacional', note:'carne magra, excelente rendimento de carcaça'},
+      {name:'Dorper', origin:'Internacional', note:'deslanada (origem sul-africana), carne, muito popular no Brasil'},
+      {name:'Hampshire Down', origin:'Internacional', note:'carne'},
+      {name:'Corriedale', origin:'Internacional', note:'dupla aptidão lã/carne, comum no sul do Brasil'},
     ],
     housing:'Abrigo simples contra chuva forte e frio extremo (aprisco); pastoreio extensivo é o normal; cercas bem vedadas — ovelhas fogem por baixo, não por cima.',
     feeding:'Pasto como base; feno no inverno ou em seca; suplementação mineral é importante (sobretudo cobre, com muito cuidado pois o ovino é sensível a excesso de cobre).',
@@ -6830,10 +6892,22 @@ const ANIMAIS_CATALOG = [
   {id:'caprino', name:'Caprino (Cabra)', icon:'🐐', cat:'gado', wiki:'Goat', family:'Caprinae',
     description:'A cabra é um ruminante muito versátil e resistente, capaz de aproveitar vegetação pobre onde outros animais não sobrevivem. É a base de muitos queijos de cabra tradicionais e adapta-se particularmente bem a explorações familiares e a climas semiáridos.',
     breeds:[
-      {name:'Serrana, Charnequeira, Algarvia', note:'raças portuguesas autóctones, rústicas'},
-      {name:'Saanen, Toggenburg, Alpina', note:'raças leiteiras internacionais de alta produção'},
-      {name:'Boer', note:'raça de corte, muito usada para produção de carne'},
-      {name:'Moxotó, Canindé, Marota', note:'raças naturalizadas do semiárido brasileiro, muito rústicas'},
+      {name:'Serrana', origin:'Portugal', note:'a raça caprina mais numerosa de Portugal; dupla aptidão'},
+      {name:'Charnequeira', origin:'Portugal', note:'Ribatejo/Oeste'},
+      {name:'Algarvia', origin:'Portugal', note:'Algarve, raça em risco'},
+      {name:'Bravia', origin:'Portugal', note:'Trás-os-Montes'},
+      {name:'Preta de Montesinho', origin:'Portugal', note:'muito rara, Trás-os-Montes'},
+      {name:'Moxotó', origin:'Brasil', note:'nordeste, nativa, muito rústica'},
+      {name:'Canindé', origin:'Brasil', note:'nordeste, nativa'},
+      {name:'Marota', origin:'Brasil', note:'nordeste, nativa'},
+      {name:'Repartida', origin:'Brasil', note:'nordeste, nativa'},
+      {name:'Azul', origin:'Brasil', note:'nordeste, nativa, rara'},
+      {name:'Graúna', origin:'Brasil', note:'nordeste, nativa'},
+      {name:'Saanen', origin:'Internacional', note:'maior produção leiteira entre as raças caprinas'},
+      {name:'Anglo-Nubiana', origin:'Internacional', note:'leite com alto teor de gordura, muito popular no Brasil'},
+      {name:'Toggenburg', origin:'Internacional', note:'leiteira'},
+      {name:'Alpina (Parda Alpina)', origin:'Internacional', note:'leiteira, rústica'},
+      {name:'Boer', origin:'Internacional', note:'corte, origem sul-africana, crescimento rápido'},
     ],
     housing:'Abrigo simples e seco — a cabra tolera mal a humidade; gosta de plataformas elevadas para saltar/descansar; cercas altas e bem vedadas (é excelente saltadora).',
     feeding:'Ramoneadora por natureza — prefere arbustos e folhagem a pasto rasteiro; feno e concentrado em lactação; muito eficiente a aproveitar vegetação de baixa qualidade.',
@@ -6948,7 +7022,7 @@ function renderAnimaisCatalog(){
           ${animalCatalogThumbHTML(a, 130)}
           <div class="p-4">
             <div class="flex items-center justify-between gap-2 mb-1">
-              <span class="font-semibold display" style="font-size:15px">${a.icon} ${a.name}</span>
+              <span class="font-semibold display" style="font-size:15px">${a.name}</span>
               <span class="pill pill-${ANIMAL_CAT_COLORS[a.cat]}" style="font-size:10px;flex:none">${ANIMAL_CAT_LABELS[a.cat]}</span>
             </div>
             <p class="text-xs m-0" style="color:var(--ink-soft);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden">${a.description}</p>
@@ -6966,16 +7040,26 @@ function openAnimalCatalogDetail(id){
   openModal(`
     ${animalCatalogThumbHTML(a, 170, true)}
     <div class="flex items-center justify-between mb-1 mt-4">
-      <h3 class="display font-semibold m-0" style="font-size:19px">${a.icon} ${a.name}</h3>
+      <h3 class="display font-semibold m-0" style="font-size:19px">${a.name}</h3>
       <span class="pill pill-${ANIMAL_CAT_COLORS[a.cat]}">${ANIMAL_CAT_LABELS[a.cat]}</span>
     </div>
     <div class="text-xs mb-4" style="color:var(--ink-faint)">Família: ${a.family}</div>
     <p class="text-sm mb-4">${a.description}</p>
     <div class="mb-4">
-      <span class="label">Raças comuns em Portugal e no Brasil</span>
-      <div class="flex flex-col gap-2 mt-1">
-        ${a.breeds.map(b=>`<div class="p-2.5 rounded-lg" style="background:var(--surface-2)"><div class="text-sm font-semibold">${b.name}</div><div class="text-xs" style="color:var(--ink-soft)">${b.note}</div></div>`).join('')}
-      </div>
+      <span class="label">Raças (${a.breeds.length})</span>
+      ${(()=>{
+        if(!a.breeds.some(b=>b.origin)){
+          return `<div class="flex flex-col gap-2 mt-1">${a.breeds.map(b=>`<div class="p-2.5 rounded-lg" style="background:var(--surface-2)"><div class="text-sm font-semibold">${b.name}</div><div class="text-xs" style="color:var(--ink-soft)">${b.note}</div></div>`).join('')}</div>`;
+        }
+        const groups = ['Portugal','Brasil','Internacional'].map(origin=>({origin, list:a.breeds.filter(b=>b.origin===origin)})).filter(g=>g.list.length);
+        return groups.map(g=>`
+          <div class="mt-2">
+            <div class="text-xs font-semibold mb-1.5" style="color:var(--ink-faint)">${g.origin==='Portugal'?'🇵🇹':g.origin==='Brasil'?'🇧🇷':'🌍'} ${g.origin} (${g.list.length})</div>
+            <div class="flex flex-col gap-1.5">
+              ${g.list.map(b=>`<div class="p-2.5 rounded-lg" style="background:var(--surface-2)"><div class="text-sm font-semibold">${b.name}</div><div class="text-xs" style="color:var(--ink-soft)">${b.note}</div></div>`).join('')}
+            </div>
+          </div>`).join('');
+      })()}
     </div>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4 text-sm">
       <div><span class="label">🏠 Alojamento / ambiente</span>${a.housing}</div>
