@@ -6199,7 +6199,14 @@ const LIVESTOCK_SPECIES = [
   {id:'bovino', label:'Bovino', icon:'🐄'},
 ];
 const LIVESTOCK_BREEDS = {
-  bovino: ['Holstein Frísia','Jersey','Angus','Hereford','Limousine','Charolês','Nelore','Mertolenga','Alentejana','Barrosã','Maronesa','Mirandesa','Cruzada','Outra'],
+  bovino: {
+    'Raças portuguesas': ['Mertolenga','Alentejana','Barrosã','Maronesa','Mirandesa','Arouquesa','Marinhoa','Minhota','Preta (Ramo Grande)','Garvonesa','Cachena'],
+    'Raças brasileiras / zebuínas': ['Nelore','Gir','Guzerá','Tabapuã','Indubrasil','Sindi','Caracu','Curraleiro Pé-Duro','Pantaneiro'],
+    'Cruzamentos e mestiças': ['Girolando','Canchim','Brangus','Simbrasil','Cruzada'],
+    'Raças leiteiras internacionais': ['Holstein Frísia','Jersey','Pardo Suíço','Guernsey'],
+    'Raças de corte internacionais': ['Angus','Hereford','Charolês','Limousine','Simental',"Blonde d'Aquitaine",'Brahman','Senepol'],
+    'Outra': ['Outra'],
+  },
 };
 const LIVESTOCK_STATUS_LABELS = {ativo:'Ativo', vendido:'Vendido', morto:'Morto', abatido:'Abatido'};
 const LIVESTOCK_STATUS_COLORS = {ativo:'var(--green-600)', vendido:'var(--blue-600)', morto:'var(--red-600)', abatido:'var(--orange-600)'};
@@ -6387,12 +6394,17 @@ function promptNewAnimal(){
     </div>`);
   setTimeout(()=>{ updateAnBreedOptions(); document.getElementById('anTag')?.focus(); },50);
 }
+function breedOptionsHTML(species){
+  const groups = LIVESTOCK_BREEDS[species]||{};
+  return Object.entries(groups).map(([groupLabel, breeds])=>
+    `<optgroup label="${groupLabel}">${breeds.map(b=>`<option value="${b}">${b}</option>`).join('')}</optgroup>`
+  ).join('');
+}
 function updateAnBreedOptions(){
   const speciesSel = document.getElementById('anSpecies');
   const breedSel = document.getElementById('anBreed');
   if(!speciesSel || !breedSel) return;
-  const breeds = LIVESTOCK_BREEDS[speciesSel.value]||[];
-  breedSel.innerHTML = breeds.map(b=>`<option value="${b}">${b}</option>`).join('');
+  breedSel.innerHTML = breedOptionsHTML(speciesSel.value);
 }
 function confirmNewAnimal(){
   const tag = document.getElementById('anTag').value.trim();
