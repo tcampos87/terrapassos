@@ -859,6 +859,9 @@ function defaultDB(){
     warehouseItems: [], // {id,name,category,location,notes,createdAt} — itens genéricos do Armazém (sementes, ferramentas, embalagens, produção guardada...)
     kbP: {}, // progresso de aprendizagem por utilizador: {userId:{done,read,prog,days,fav,goal,ach}}
     brandLogo: null, // dataURL — logótipo da empresa que substitui "TerraPassos" no cabeçalho e nas etiquetas QR
+    accounts: [], // {id,name,type:'banco'|'caixa'|'cartao',openingBalance,createdAt}
+    employees: [], // {id,name,role,payType:'hora'|'dia',rate,active,createdAt}
+    timeLogs: [], // {id,employeeId,date,hours,costCenterKind,costCenterId,note,cost,transactionId,userId,createdAt}
   };
 }
 let DB = loadDB();
@@ -958,7 +961,8 @@ function migrateBatchesToCoops(db){
    ========================================================================= */
 const CLOUD_COLLECTIONS = ['areas','plantings','chickenBatches','coops','eggLogs','healthLogs','vaccineLogs',
   'deathLogs','salesLogs','cleaningLogs','transactions','tasks','pestDiagnoses','stockMovements',
-  'warehouseItems','inputApplications','herbicideApplications','estufaAreas','estufaPlantings','seedlings','users'];
+  'warehouseItems','inputApplications','herbicideApplications','estufaAreas','estufaPlantings','seedlings','users',
+  'accounts','employees','timeLogs'];
 // Moeda/localização/culturas/utilizador ativo — campos pequenos, sempre seguros para um único documento.
 const CLOUD_SETTINGS_FIELDS = ['currency','location','customCrops','activeUserId'];
 // propertyImage/brandLogo são imagens em base64 e podem, sozinhas, aproximar-se do limite de
@@ -6312,10 +6316,59 @@ function addCleaning(){
 /* =========================================================================
    FINANÇAS
    ========================================================================= */
+/* ---- Contas / centros de custo — helpers partilhados ---- */
+const ACCOUNT_TYPES = [{id:'banco',label:'Banco',icon:'🏦'},{id:'caixa',label:'Caixa / Dinheiro',icon:'💵'},{id:'cartao',label:'Cartão',icon:'💳'}];
+const COST_CENTER_KINDS = [
+  {id:'geral', label:'Geral / Administrativo'},
+  {id:'area', label:'Área (Culturas)'},
+  {id:'estufa', label:'Estufa'},
+  {id:'galinhas', label:'Galinhas'},
+];
+function costCenterOptions(kind){
+  if(kind==='area') return DB.areas.map(a=>({id:a.id,name:a.name}));
+  if(kind==='estufa') return DB.estufaAreas.map(a=>({id:a.id,name:a.name}));
+  if(kind==='galinhas') return DB.coops.map(c=>({id:c.id,name:c.name}));
+  return [];
+}
+function costCenterSelectHTML(id, selected){
+  const sel = selected || 'geral';
+  return `<select class="field" id="${id}">
+    <option value="geral" ${sel==='geral'?'selected':''}>Geral / Administrativo</option>
+    ${DB.areas.length? `<optgroup label="Áreas">${DB.areas.map(a=>`<option value="area:${a.id}" ${sel==='area:'+a.id?'selected':''}>${a.name}</option>`).join('')}</optgroup>` : ''}
+    ${DB.estufaAreas.length? `<optgroup label="Estufa">${DB.estufaAreas.map(a=>`<option value="estufa:${a.id}" ${sel==='estufa:'+a.id?'selected':''}>${a.name}</option>`).join('')}</optgroup>` : ''}
+    ${DB.coops.length? `<optgroup label="Galinhas">${DB.coops.map(c=>`<option value="galinhas:${c.id}" ${sel==='galinhas:'+c.id?'selected':''}>${c.name}</option>`).join('')}</optgroup>` : ''}
+  </select>`;
+}
+function parseCostCenterVal(val){
+  if(!val || val==='geral') return {costCenterKind:'geral', costCenterId:null};
+  const [costCenterKind, costCenterId] = val.split(':');
+  return {costCenterKind, costCenterId};
+}
+function costCenterLabel(t){
+  const kind = t.costCenterKind || 'geral';
+  if(kind==='geral') return 'Geral';
+  const opts = costCenterOptions(kind);
+  const found = opts.find(o=>o.id===t.costCenterId);
+  const kindLabel = (COST_CENTER_KINDS.find(k=>k.id===kind)||{}).label || kind;
+  return found? found.name : kindLabel;
+}
+function txIsPago(t){ return (t.status||'pago')==='pago'; }
+function accountBalance(accountId){
+  const acc = DB.accounts.find(a=>a.id===accountId);
+  if(!acc) return 0;
+  const moved = DB.transactions.filter(t=>t.accountId===accountId && txIsPago(t)).reduce((s,t)=>s+(t.type==='receita'?t.amount:-t.amount),0);
+  return Math.round((acc.openingBalance + moved)*100)/100;
+}
+function totalAccountsBalance(){ return DB.accounts.reduce((s,a)=>s+accountBalance(a.id),0); }
+function pendingCountBadge(){
+  const n = DB.transactions.filter(t=>t.status==='pendente').length;
+  return n? ` <span class="pill pill-orange" style="font-size:9.5px;padding:1px 6px;margin-left:4px">${n}</span>` : '';
+}
+
 function categoryFinanceCard(title, expenseCats, incomeCats){
   const months = [...Array(6)].map((_,i)=>{ const d=new Date(); d.setMonth(d.getMonth()-(5-i)); return dateISO(d).slice(0,7); });
   const monthData = months.map(m=>{
-    const tx = DB.transactions.filter(t=>t.date.slice(0,7)===m);
+    const tx = DB.transactions.filter(t=>t.date.slice(0,7)===m && txIsPago(t));
     const r = tx.filter(t=>t.type==='receita' && incomeCats.includes(t.category)).reduce((s,t)=>s+t.amount,0);
     const d = tx.filter(t=>t.type==='despesa' && expenseCats.includes(t.category)).reduce((s,t)=>s+t.amount,0);
     return {m, r, d};
@@ -6345,53 +6398,85 @@ function categoryFinanceCard(title, expenseCats, incomeCats){
     <div class="flex gap-4 mt-2 text-xs"><span style="color:var(--green-700)">■ vendas</span><span style="color:var(--red-600)">■ custos</span></div>
   </div>`;
 }
+let financasView = 'geral'; // 'geral' | 'pagar' | 'centros' | 'rh' | 'fluxo' | 'contas'
+function setFinancasView(v){ financasView=v; renderFinancas(); }
 function renderFinancas(){
   const el = document.getElementById('panel-financas');
+  el.innerHTML = `
+    <div class="flex items-center justify-between gap-2 mb-4 flex-wrap">
+      <div class="seg" style="flex-wrap:wrap">
+        <button class="seg-btn ${financasView==='geral'?'on':''}" onclick="setFinancasView('geral')">Visão Geral</button>
+        <button class="seg-btn ${financasView==='pagar'?'on':''}" onclick="setFinancasView('pagar')">A Pagar/Receber${pendingCountBadge()}</button>
+        <button class="seg-btn ${financasView==='centros'?'on':''}" onclick="setFinancasView('centros')">Centros de Custo</button>
+        <button class="seg-btn ${financasView==='rh'?'on':''}" onclick="setFinancasView('rh')">RH</button>
+        <button class="seg-btn ${financasView==='fluxo'?'on':''}" onclick="setFinancasView('fluxo')">Fluxo de Caixa</button>
+        <button class="seg-btn ${financasView==='contas'?'on':''}" onclick="setFinancasView('contas')">Contas</button>
+      </div>
+      <div class="flex gap-2">
+        <button class="btn btn-outline btn-sm" onclick="promptExportCSV()">⬇️ CSV</button>
+        <button class="btn btn-outline btn-sm" onclick="promptExportReport('financas')">🖨️ PDF</button>
+      </div>
+    </div>
+    <div id="financasBody"></div>
+  `;
+  const body = document.getElementById('financasBody');
+  if(financasView==='geral') body.innerHTML = renderFinancasGeralHTML();
+  else if(financasView==='pagar') body.innerHTML = renderFinancasPagarHTML();
+  else if(financasView==='centros') body.innerHTML = renderFinancasCentrosHTML();
+  else if(financasView==='rh') body.innerHTML = renderFinancasRHHTML();
+  else if(financasView==='fluxo') body.innerHTML = renderFinancasFluxoHTML();
+  else if(financasView==='contas') body.innerHTML = renderFinancasContasHTML();
+  if(financasView==='geral') renderTxCats();
+}
+function renderFinancasGeralHTML(){
   const thisMonth = todayISO().slice(0,7);
-  const monthTx = DB.transactions.filter(t=>t.date.slice(0,7)===thisMonth);
+  const monthTx = DB.transactions.filter(t=>t.date.slice(0,7)===thisMonth && txIsPago(t));
   const receitas = monthTx.filter(t=>t.type==='receita').reduce((s,t)=>s+t.amount,0);
   const despesas = monthTx.filter(t=>t.type==='despesa').reduce((s,t)=>s+t.amount,0);
 
   const months = [...Array(6)].map((_,i)=>{ const d=new Date(); d.setMonth(d.getMonth()-(5-i)); return dateISO(d).slice(0,7); });
   const monthData = months.map(m=>{
-    const tx = DB.transactions.filter(t=>t.date.slice(0,7)===m);
+    const tx = DB.transactions.filter(t=>t.date.slice(0,7)===m && txIsPago(t));
     return {m, r:tx.filter(t=>t.type==='receita').reduce((s,t)=>s+t.amount,0), d:tx.filter(t=>t.type==='despesa').reduce((s,t)=>s+t.amount,0)};
   });
   const maxVal = Math.max(1,...monthData.map(x=>Math.max(x.r,x.d)));
 
-  el.innerHTML = `
-    <div class="flex justify-end mb-3">
-      <button class="btn btn-outline btn-sm" onclick="promptExportCSV()">⬇️ Exportar CSV (contabilidade)</button>
-      <button class="btn btn-outline btn-sm" onclick="promptExportReport('financas')">🖨️ Exportar relatório PDF</button>
-    </div>
+  return `
     <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
-      <div class="card p-4" style="border-left:4px solid var(--green-600)"><div class="text-xs mb-1" style="color:var(--ink-soft)">Receitas (mês)</div><div class="text-2xl font-bold mono" style="color:var(--green-700)">${fmtMoney(receitas)}</div></div>
-      <div class="card p-4" style="border-left:4px solid var(--red-600)"><div class="text-xs mb-1" style="color:var(--ink-soft)">Despesas (mês)</div><div class="text-2xl font-bold mono" style="color:var(--red-600)">${fmtMoney(despesas)}</div></div>
+      <div class="card p-4" style="border-left:4px solid var(--green-600)"><div class="text-xs mb-1" style="color:var(--ink-soft)">Receitas (mês, realizadas)</div><div class="text-2xl font-bold mono" style="color:var(--green-700)">${fmtMoney(receitas)}</div></div>
+      <div class="card p-4" style="border-left:4px solid var(--red-600)"><div class="text-xs mb-1" style="color:var(--ink-soft)">Despesas (mês, realizadas)</div><div class="text-2xl font-bold mono" style="color:var(--red-600)">${fmtMoney(despesas)}</div></div>
       <div class="card p-4"><div class="text-xs mb-1" style="color:var(--ink-soft)">Saldo (mês)</div><div class="text-2xl font-bold mono">${fmtMoney(receitas-despesas)}</div></div>
     </div>
 
     <div class="card p-4 mb-4" style="background:var(--green-100);border-color:var(--green-600)">
       <h3 class="display font-semibold mb-3" style="font-size:15px;color:var(--green-900)">Novo lançamento</h3>
-      <div class="grid grid-cols-1 md:grid-cols-6 gap-2 items-end">
+      <div class="grid grid-cols-1 md:grid-cols-6 gap-2 items-end mb-2">
         <div><span class="label">Tipo</span><select class="field" id="txType" onchange="renderTxCats()"><option value="despesa">Despesa</option><option value="receita">Receita</option></select></div>
         <div><span class="label">Categoria</span><select class="field" id="txCat"></select></div>
-        <div><span class="label">Data</span><input type="date" class="field" id="txDate" value="${todayISO()}"></div>
+        <div><span class="label">Estado</span><select class="field" id="txStatus"><option value="pago">Pago / Recebido</option><option value="pendente">Pendente</option></select></div>
+        <div><span class="label" id="txDateLabel">Data</span><input type="date" class="field" id="txDate" value="${todayISO()}"></div>
         <div><span class="label">Valor (${CURRENCY_SYMBOLS[DB.currency]})</span><input type="number" step="0.01" min="0" class="field" id="txAmount"></div>
-        <div class="md:col-span-2"><span class="label">Nota</span><input class="field" id="txNote" placeholder="opcional"></div>
+        <div><span class="label">Nota</span><input class="field" id="txNote" placeholder="opcional"></div>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-2 items-end">
+        <div><span class="label">Conta</span><select class="field" id="txAccount"><option value="">— sem conta —</option>${DB.accounts.map(a=>`<option value="${a.id}">${a.name}</option>`).join('')}</select></div>
+        <div class="md:col-span-2"><span class="label">Centro de custo</span>${costCenterSelectHTML('txCostCenter')}</div>
       </div>
       <button class="btn btn-primary btn-sm mt-3" onclick="addTransaction()">Adicionar</button>
     </div>
 
     <div class="card p-4 mb-4">
       ${secHead('blue','history','Lançamentos recentes')}
-      <div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr style="color:var(--ink-faint)" class="text-left text-xs"><th class="pb-2">Data</th><th class="pb-2">Tipo</th><th class="pb-2">Categoria</th><th class="pb-2">Nota</th><th class="pb-2 text-right">Valor</th></tr></thead>
+      <div class="overflow-x-auto"><table class="w-full text-sm"><thead style="color:var(--ink-faint)" class="text-left text-xs"><tr><th class="pb-2">Data</th><th class="pb-2">Tipo</th><th class="pb-2">Categoria</th><th class="pb-2">Centro de custo</th><th class="pb-2">Estado</th><th class="pb-2">Nota</th><th class="pb-2 text-right">Valor</th></tr></thead>
       <tbody>${DB.transactions.slice().reverse().slice(0,40).map(t=>`<tr style="border-top:1px solid var(--border)">
         <td class="py-2 mono">${fmtDate(t.date)}</td>
         <td><span class="pill ${t.type==='receita'?'pill-green':'pill-red'}">${t.type}</span></td>
         <td>${t.category}</td>
+        <td class="text-xs" style="color:var(--ink-soft)">${costCenterLabel(t)}</td>
+        <td><span class="pill ${txIsPago(t)?'pill-green':'pill-orange'}" style="font-size:10px">${txIsPago(t)?'Pago':'Pendente'}</span></td>
         <td class="text-xs" style="color:var(--ink-soft)">${t.note||'—'}</td>
         <td class="text-right mono font-semibold" style="color:${t.type==='receita'?'var(--green-700)':'var(--red-600)'}">${t.type==='receita'?'+':'-'}${fmtMoney(Math.abs(t.amount)).slice(1)}</td>
-      </tr>`).join('') || `<tr><td colspan="5" class="py-4 text-center" style="color:var(--ink-faint)">Sem lançamentos.</td></tr>`}</tbody></table></div>
+      </tr>`).join('') || `<tr><td colspan="7" class="py-4 text-center" style="color:var(--ink-faint)">Sem lançamentos.</td></tr>`}</tbody></table></div>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -6400,7 +6485,7 @@ function renderFinancas(){
     </div>
 
     <div class="card p-4">
-      ${secHead('green','chart','Últimos 6 meses')}
+      ${secHead('green','chart','Últimos 6 meses (realizado)')}
       <div class="flex items-end gap-4" style="height:140px">
         ${monthData.map(x=>`
           <div class="flex-1 flex flex-col items-center gap-1 h-full justify-end">
@@ -6414,7 +6499,6 @@ function renderFinancas(){
       <div class="flex gap-4 mt-2 text-xs"><span style="color:var(--green-700)">■ receitas</span><span style="color:var(--red-600)">■ despesas</span></div>
     </div>
   `;
-  renderTxCats();
 }
 function renderTxCats(){
   const type = document.getElementById('txType').value;
@@ -6424,8 +6508,317 @@ function renderTxCats(){
 function addTransaction(){
   const type=document.getElementById('txType').value, category=document.getElementById('txCat').value, date=document.getElementById('txDate').value,
     amount=parseFloat(document.getElementById('txAmount').value)||0, note=document.getElementById('txNote').value.trim();
+  const status = document.getElementById('txStatus').value;
+  const accountId = document.getElementById('txAccount').value || null;
+  const {costCenterKind, costCenterId} = parseCostCenterVal(document.getElementById('txCostCenter').value);
   if(amount<=0) return;
-  DB.transactions.push({id:uid(),type,category,date,amount,note,userId:DB.activeUserId});
+  const tx = {id:uid(), type, category, date, amount, note, userId:DB.activeUserId, status, accountId, costCenterKind, costCenterId};
+  if(status==='pendente') tx.dueDate = date; else tx.paidDate = date;
+  DB.transactions.push(tx);
+  saveDB(); renderFinancas();
+}
+function markTxPaid(id){
+  const t = DB.transactions.find(x=>x.id===id);
+  if(!t) return;
+  t.status = 'pago'; t.paidDate = todayISO(); t.date = todayISO();
+  saveDB(); renderFinancas();
+}
+function renderFinancasPagarHTML(){
+  const pending = DB.transactions.filter(t=>t.status==='pendente').sort((a,b)=>(a.dueDate||a.date).localeCompare(b.dueDate||b.date));
+  const today = todayISO();
+  const totalReceber = pending.filter(t=>t.type==='receita').reduce((s,t)=>s+t.amount,0);
+  const totalPagar = pending.filter(t=>t.type==='despesa').reduce((s,t)=>s+t.amount,0);
+  const overdue = pending.filter(t=>(t.dueDate||t.date) < today);
+  return `
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+      <div class="card p-4" style="border-left:4px solid var(--green-600)"><div class="text-xs mb-1" style="color:var(--ink-soft)">A receber</div><div class="text-2xl font-bold mono" style="color:var(--green-700)">${fmtMoney(totalReceber)}</div></div>
+      <div class="card p-4" style="border-left:4px solid var(--red-600)"><div class="text-xs mb-1" style="color:var(--ink-soft)">A pagar</div><div class="text-2xl font-bold mono" style="color:var(--red-600)">${fmtMoney(totalPagar)}</div></div>
+      <div class="card p-4" style="${overdue.length?'border-left:4px solid var(--orange-600)':''}"><div class="text-xs mb-1" style="color:var(--ink-soft)">Atrasados</div><div class="text-2xl font-bold mono" style="color:${overdue.length?'var(--orange-600)':'inherit'}">${overdue.length}</div></div>
+    </div>
+    <div class="card p-4">
+      ${secHead('orange','box','Pendentes', null, 'Contas a pagar e a receber, ordenadas por vencimento')}
+      ${!pending.length? `<p class="text-sm m-0" style="color:var(--ink-faint)">Sem lançamentos pendentes — tudo em dia.</p>` : `
+      <div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr class="text-xs text-left" style="color:var(--ink-faint)">
+        <th class="pb-2">Vencimento</th><th class="pb-2">Tipo</th><th class="pb-2">Categoria</th><th class="pb-2">Centro de custo</th><th class="pb-2">Nota</th><th class="pb-2 text-right">Valor</th><th class="pb-2"></th>
+      </tr></thead><tbody>
+        ${pending.map(t=>{
+          const due = t.dueDate||t.date;
+          const isOverdue = due < today;
+          return `<tr style="border-top:1px solid var(--border)${isOverdue?';background:var(--red-100)':''}">
+            <td class="py-2 mono text-xs">${fmtDate(due)}${isOverdue?' <span class="pill pill-red" style="font-size:9.5px">atrasado</span>':''}</td>
+            <td><span class="pill ${t.type==='receita'?'pill-green':'pill-red'}">${t.type}</span></td>
+            <td class="text-xs">${t.category}</td>
+            <td class="text-xs" style="color:var(--ink-soft)">${costCenterLabel(t)}</td>
+            <td class="text-xs" style="color:var(--ink-soft)">${t.note||'—'}</td>
+            <td class="text-right mono font-semibold" style="color:${t.type==='receita'?'var(--green-700)':'var(--red-600)'}">${fmtMoney(t.amount)}</td>
+            <td class="text-right"><button class="btn btn-sm btn-accent" onclick="markTxPaid('${t.id}')">Marcar pago</button></td>
+          </tr>`;
+        }).join('')}
+      </tbody></table></div>`}
+    </div>
+  `;
+}
+function renderFinancasCentrosHTML(){
+  const centers = [{kind:'geral',id:null,label:'Geral / Administrativo'}];
+  DB.areas.forEach(a=>centers.push({kind:'area',id:a.id,label:`Área — ${a.name}`}));
+  DB.estufaAreas.forEach(a=>centers.push({kind:'estufa',id:a.id,label:`Estufa — ${a.name}`}));
+  DB.coops.forEach(c=>centers.push({kind:'galinhas',id:c.id,label:`Galinhas — ${c.name}`}));
+  const rows = centers.map(c=>{
+    const txs = DB.transactions.filter(t=>txIsPago(t) && (t.costCenterKind||'geral')===c.kind && (c.kind==='geral' || t.costCenterId===c.id));
+    const r = txs.filter(t=>t.type==='receita').reduce((s,t)=>s+t.amount,0);
+    const d = txs.filter(t=>t.type==='despesa').reduce((s,t)=>s+t.amount,0);
+    return {...c, r, d, saldo:r-d, count:txs.length};
+  }).filter(c=>c.count>0 || c.kind==='geral');
+  return `<div class="card p-4">
+    ${secHead('blue','chart','Centros de custo', null, 'Receitas e despesas já realizadas, por área/módulo — mostra o que cada zona da quinta realmente custa e rende')}
+    <div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr class="text-xs text-left" style="color:var(--ink-faint)">
+      <th class="pb-2">Centro de custo</th><th class="pb-2 text-right">Receitas</th><th class="pb-2 text-right">Despesas</th><th class="pb-2 text-right">Saldo</th><th class="pb-2 text-right">Lançamentos</th>
+    </tr></thead><tbody>
+      ${rows.map(c=>`<tr style="border-top:1px solid var(--border)">
+        <td class="py-2">${c.label}</td>
+        <td class="py-2 text-right mono" style="color:var(--green-700)">${fmtMoney(c.r)}</td>
+        <td class="py-2 text-right mono" style="color:var(--red-600)">${fmtMoney(c.d)}</td>
+        <td class="py-2 text-right mono font-semibold" style="color:${c.saldo>=0?'var(--green-700)':'var(--red-600)'}">${fmtMoney(c.saldo)}</td>
+        <td class="py-2 text-right mono text-xs" style="color:var(--ink-faint)">${c.count}</td>
+      </tr>`).join('')}
+    </tbody></table></div>
+  </div>`;
+}
+function renderFinancasRHHTML(){
+  const totalCostMonth = DB.timeLogs.filter(l=>l.date.slice(0,7)===todayISO().slice(0,7)).reduce((s,l)=>s+l.cost,0);
+  return `
+    <div class="flex items-center justify-end gap-2 mb-4 flex-wrap">
+      <div class="flex gap-2">
+        <button class="btn btn-outline btn-sm" onclick="promptNewEmployee()">+ Colaborador</button>
+        <button class="btn btn-primary btn-sm" onclick="promptLogHours()" ${!DB.employees.length?'disabled':''}>+ Registar horas</button>
+      </div>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+      <div class="card p-4"><div class="text-xs mb-1" style="color:var(--ink-soft)">Colaboradores ativos</div><div class="text-2xl font-bold mono">${DB.employees.filter(e=>e.active!==false).length}</div></div>
+      <div class="card p-4" style="border-left:4px solid var(--orange-600)"><div class="text-xs mb-1" style="color:var(--ink-soft)">Custo de mão-de-obra (mês)</div><div class="text-2xl font-bold mono" style="color:var(--orange-600)">${fmtMoney(totalCostMonth)}</div></div>
+    </div>
+    <div class="card p-4 mb-4">
+      ${secHead('green','grid','Colaboradores')}
+      ${!DB.employees.length? `<p class="text-sm m-0" style="color:var(--ink-faint)">Ainda sem colaboradores registados.</p>` : `
+      <div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr class="text-xs text-left" style="color:var(--ink-faint)">
+        <th class="pb-2">Nome</th><th class="pb-2">Função</th><th class="pb-2">Custo</th><th class="pb-2">Estado</th><th class="pb-2"></th>
+      </tr></thead><tbody>
+        ${DB.employees.map(e=>`<tr style="border-top:1px solid var(--border)">
+          <td class="py-2">${e.name}</td>
+          <td class="py-2 text-xs" style="color:var(--ink-soft)">${e.role||'—'}</td>
+          <td class="py-2 mono text-xs">${fmtMoney(e.rate)}/${e.payType==='hora'?'hora':'dia'}</td>
+          <td class="py-2"><span class="pill ${e.active!==false?'pill-green':'pill-neutral'}" style="font-size:10px">${e.active!==false?'Ativo':'Inativo'}</span></td>
+          <td class="py-2 text-right"><button class="btn btn-ghost btn-sm" onclick="promptEditEmployee('${e.id}')">Editar</button></td>
+        </tr>`).join('')}
+      </tbody></table></div>`}
+    </div>
+    <div class="card p-4">
+      ${secHead('blue','history','Horas registadas recentes')}
+      ${!DB.timeLogs.length? `<p class="text-sm m-0" style="color:var(--ink-faint)">Ainda sem horas registadas.</p>` : `
+      <div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr class="text-xs text-left" style="color:var(--ink-faint)">
+        <th class="pb-2">Data</th><th class="pb-2">Colaborador</th><th class="pb-2">Horas</th><th class="pb-2">Centro de custo</th><th class="pb-2 text-right">Custo</th>
+      </tr></thead><tbody>
+        ${DB.timeLogs.slice().reverse().slice(0,30).map(l=>{
+          const emp = DB.employees.find(e=>e.id===l.employeeId);
+          return `<tr style="border-top:1px solid var(--border)">
+            <td class="py-2 mono text-xs">${fmtDate(l.date)}</td>
+            <td class="py-2 text-xs">${emp?emp.name:'—'}</td>
+            <td class="py-2 mono text-xs">${l.hours}h</td>
+            <td class="py-2 text-xs" style="color:var(--ink-soft)">${costCenterLabel(l)}</td>
+            <td class="py-2 text-right mono text-xs" style="color:var(--orange-600)">${fmtMoney(l.cost)}</td>
+          </tr>`;
+        }).join('')}
+      </tbody></table></div>`}
+    </div>
+  `;
+}
+function promptNewEmployee(){
+  openModal(`
+    <h3 class="display font-semibold mb-3" style="font-size:17px">Novo colaborador</h3>
+    <label class="label">Nome</label><input class="field mb-2" id="empName" placeholder="Ex: João Silva">
+    <label class="label">Função (opcional)</label><input class="field mb-2" id="empRole" placeholder="Ex: Encarregado, Tratorista...">
+    <div class="grid grid-cols-2 gap-2 mb-3">
+      <div><label class="label">Tipo de pagamento</label><select class="field" id="empPayType"><option value="hora">Por hora</option><option value="dia">Por dia</option></select></div>
+      <div><label class="label">Valor (${CURRENCY_SYMBOLS[DB.currency]})</label><input type="number" min="0" step="0.01" class="field" id="empRate" placeholder="Ex: 8"></div>
+    </div>
+    <div class="flex gap-2 justify-end">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmNewEmployee()">Criar</button>
+    </div>`);
+  setTimeout(()=>document.getElementById('empName')?.focus(),50);
+}
+function confirmNewEmployee(){
+  const name = document.getElementById('empName').value.trim();
+  if(!name){ alert('Indica o nome do colaborador.'); return; }
+  const role = document.getElementById('empRole').value.trim();
+  const payType = document.getElementById('empPayType').value;
+  const rate = parseFloat(document.getElementById('empRate').value)||0;
+  DB.employees.push({id:uid(), name, role, payType, rate, active:true, createdAt:todayISO()});
+  saveDB(); closeModal(); renderFinancas();
+}
+function promptEditEmployee(id){
+  const e = DB.employees.find(x=>x.id===id);
+  if(!e) return;
+  openModal(`
+    <h3 class="display font-semibold mb-3" style="font-size:17px">Editar colaborador</h3>
+    <label class="label">Nome</label><input class="field mb-2" id="empName" value="${e.name}">
+    <label class="label">Função (opcional)</label><input class="field mb-2" id="empRole" value="${e.role||''}">
+    <div class="grid grid-cols-2 gap-2 mb-2">
+      <div><label class="label">Tipo de pagamento</label><select class="field" id="empPayType"><option value="hora" ${e.payType==='hora'?'selected':''}>Por hora</option><option value="dia" ${e.payType==='dia'?'selected':''}>Por dia</option></select></div>
+      <div><label class="label">Valor (${CURRENCY_SYMBOLS[DB.currency]})</label><input type="number" min="0" step="0.01" class="field" id="empRate" value="${e.rate}"></div>
+    </div>
+    <label class="label flex items-center gap-2" style="cursor:pointer"><input type="checkbox" id="empActive" ${e.active!==false?'checked':''}> Colaborador ativo</label>
+    <div class="flex gap-2 justify-end mt-3">
+      <button class="text-xs" style="color:var(--red-600)" onclick="deleteEmployee('${e.id}')">remover</button>
+      <span class="flex-1"></span>
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmEditEmployee('${e.id}')">Guardar</button>
+    </div>`);
+}
+function confirmEditEmployee(id){
+  const e = DB.employees.find(x=>x.id===id);
+  if(!e) return;
+  e.name = document.getElementById('empName').value.trim()||e.name;
+  e.role = document.getElementById('empRole').value.trim();
+  e.payType = document.getElementById('empPayType').value;
+  e.rate = parseFloat(document.getElementById('empRate').value)||0;
+  e.active = document.getElementById('empActive').checked;
+  saveDB(); closeModal(); renderFinancas();
+}
+function deleteEmployee(id){
+  if(!confirm('Remover este colaborador? O histórico de horas registadas mantém-se.')) return;
+  DB.employees = DB.employees.filter(e=>e.id!==id);
+  saveDB(); closeModal(); renderFinancas();
+}
+function promptLogHours(){
+  openModal(`
+    <h3 class="display font-semibold mb-3" style="font-size:17px">Registar horas</h3>
+    <label class="label">Colaborador</label>
+    <select class="field mb-2" id="logEmployee" onchange="updateLogHoursCostPreview()">
+      ${DB.employees.filter(e=>e.active!==false).map(e=>`<option value="${e.id}">${e.name} (${fmtMoney(e.rate)}/${e.payType==='hora'?'h':'dia'})</option>`).join('')}
+    </select>
+    <div class="grid grid-cols-2 gap-2 mb-2">
+      <div><label class="label">Data</label><input type="date" class="field" id="logDate" value="${todayISO()}"></div>
+      <div><label class="label">Horas</label><input type="number" min="0" step="0.5" class="field" id="logHours" placeholder="Ex: 8" oninput="updateLogHoursCostPreview()"></div>
+    </div>
+    <label class="label">Centro de custo</label>
+    ${costCenterSelectHTML('logCostCenter')}
+    <label class="label mt-2">Nota (opcional)</label>
+    <input class="field mb-2" id="logNote" placeholder="Ex: colheita de tomate">
+    <p class="text-xs mb-3" style="color:var(--ink-faint)">Custo estimado: <b id="logCostPreview">—</b> — cria automaticamente uma despesa em "Mão-de-obra".</p>
+    <div class="flex gap-2 justify-end">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmLogHours()">Registar</button>
+    </div>`);
+  setTimeout(()=>{ updateLogHoursCostPreview(); document.getElementById('logHours')?.focus(); },50);
+}
+function updateLogHoursCostPreview(){
+  const emp = DB.employees.find(e=>e.id===document.getElementById('logEmployee')?.value);
+  const hours = parseFloat(document.getElementById('logHours')?.value)||0;
+  const el = document.getElementById('logCostPreview');
+  if(!emp || !el) return;
+  const cost = emp.payType==='hora'? hours*emp.rate : (hours/8)*emp.rate;
+  el.textContent = fmtMoney(Math.round(cost*100)/100);
+}
+function confirmLogHours(){
+  const employeeId = document.getElementById('logEmployee').value;
+  const emp = DB.employees.find(e=>e.id===employeeId);
+  if(!emp){ alert('Escolhe um colaborador.'); return; }
+  const date = document.getElementById('logDate').value||todayISO();
+  const hours = parseFloat(document.getElementById('logHours').value)||0;
+  if(hours<=0){ alert('Indica um número de horas maior que zero.'); return; }
+  const note = document.getElementById('logNote').value.trim();
+  const {costCenterKind, costCenterId} = parseCostCenterVal(document.getElementById('logCostCenter').value);
+  const cost = Math.round((emp.payType==='hora'? hours*emp.rate : (hours/8)*emp.rate)*100)/100;
+  const logId = uid();
+  const tx = {id:uid(), type:'despesa', category:'Mão-de-obra', date, amount:cost, note:`${emp.name}${note?' — '+note:''}`, userId:DB.activeUserId, status:'pago', paidDate:date, accountId:null, costCenterKind, costCenterId, timeLogId:logId};
+  DB.transactions.push(tx);
+  DB.timeLogs.push({id:logId, employeeId, date, hours, costCenterKind, costCenterId, note, cost, transactionId:tx.id, userId:DB.activeUserId, createdAt:todayISO()});
+  saveDB(); closeModal(); renderFinancas();
+}
+function renderFinancasFluxoHTML(){
+  const today = todayISO();
+  const saldoAtual = totalAccountsBalance();
+  const pending = DB.transactions.filter(t=>t.status==='pendente');
+  const buckets = [7,30,60,90];
+  const bucketData = buckets.map(days=>{
+    const limit = addDays(today, days);
+    const inBucket = pending.filter(t=>{ const d=t.dueDate||t.date; return d>=today && d<=limit; });
+    const r = inBucket.filter(t=>t.type==='receita').reduce((s,t)=>s+t.amount,0);
+    const d = inBucket.filter(t=>t.type==='despesa').reduce((s,t)=>s+t.amount,0);
+    return {days, r, d, saldoProjetado: saldoAtual + r - d};
+  });
+  const overdue = pending.filter(t=>(t.dueDate||t.date) < today);
+  return `
+    <div class="card p-4 mb-4" style="border-left:4px solid var(--blue-600)">
+      <div class="text-xs mb-1" style="color:var(--ink-soft)">Saldo atual (todas as contas)</div>
+      <div class="text-3xl font-bold mono">${fmtMoney(saldoAtual)}</div>
+      ${!DB.accounts.length? `<p class="text-xs mt-2 mb-0" style="color:var(--ink-faint)">Ainda não tens contas registadas — cria uma em "Contas" para o saldo refletir a realidade.</p>` : ''}
+    </div>
+    ${overdue.length? `<div class="card p-4 mb-4" style="background:var(--red-100)">
+      <div class="text-sm font-semibold" style="color:var(--red-600)">⚠️ ${overdue.length} lançamento${overdue.length===1?'':'s'} pendente${overdue.length===1?'':'s'} já em atraso — não incluído${overdue.length===1?'':'s'} na projeção abaixo. Vê em "A Pagar/Receber".</div>
+    </div>` : ''}
+    <div class="card p-4">
+      ${secHead('blue','chart','Projeção de fluxo de caixa', null, 'Saldo atual + contas a pagar/receber já agendadas, por horizonte de tempo')}
+      <div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr class="text-xs text-left" style="color:var(--ink-faint)">
+        <th class="pb-2">Horizonte</th><th class="pb-2 text-right">A receber</th><th class="pb-2 text-right">A pagar</th><th class="pb-2 text-right">Saldo projetado</th>
+      </tr></thead><tbody>
+        ${bucketData.map(b=>`<tr style="border-top:1px solid var(--border)">
+          <td class="py-2">Próximos ${b.days} dias</td>
+          <td class="py-2 text-right mono" style="color:var(--green-700)">+${fmtMoney(b.r)}</td>
+          <td class="py-2 text-right mono" style="color:var(--red-600)">-${fmtMoney(b.d)}</td>
+          <td class="py-2 text-right mono font-semibold" style="color:${b.saldoProjetado>=0?'var(--green-700)':'var(--red-600)'}">${fmtMoney(b.saldoProjetado)}</td>
+        </tr>`).join('')}
+      </tbody></table></div>
+    </div>
+  `;
+}
+function renderFinancasContasHTML(){
+  return `
+    <div class="flex justify-end mb-4"><button class="btn btn-primary btn-sm" onclick="promptNewAccount()">+ Nova conta</button></div>
+    ${!DB.accounts.length? `<div class="empty-box">Ainda não tens contas registadas.<button class="btn btn-outline btn-sm" onclick="promptNewAccount()">+ Nova conta</button></div>` : `
+    <div class="grid-crops">
+      ${DB.accounts.map(a=>{
+        const bal = accountBalance(a.id);
+        const type = ACCOUNT_TYPES.find(t=>t.id===a.type)||ACCOUNT_TYPES[0];
+        return `<div class="card p-4">
+          <div class="flex items-center justify-between gap-2 mb-2">
+            <span class="font-semibold display" style="font-size:15px">${type.icon} ${a.name}</span>
+            <button class="text-xs" style="color:var(--red-600)" onclick="deleteAccount('${a.id}')">remover</button>
+          </div>
+          <div class="text-xs mb-2" style="color:var(--ink-faint)">${type.label}</div>
+          <div class="text-2xl font-bold mono" style="color:${bal>=0?'inherit':'var(--red-600)'}">${fmtMoney(bal)}</div>
+        </div>`;
+      }).join('')}
+    </div>`}
+  `;
+}
+function promptNewAccount(){
+  openModal(`
+    <h3 class="display font-semibold mb-3" style="font-size:17px">Nova conta</h3>
+    <label class="label">Nome</label><input class="field mb-2" id="accName" placeholder="Ex: Conta à ordem, Caixa da quinta...">
+    <label class="label">Tipo</label>
+    <select class="field mb-2" id="accType">${ACCOUNT_TYPES.map(t=>`<option value="${t.id}">${t.icon} ${t.label}</option>`).join('')}</select>
+    <label class="label">Saldo inicial (${CURRENCY_SYMBOLS[DB.currency]})</label>
+    <input type="number" step="0.01" class="field mb-3" id="accOpening" value="0">
+    <div class="flex gap-2 justify-end">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmNewAccount()">Criar</button>
+    </div>`);
+  setTimeout(()=>document.getElementById('accName')?.focus(),50);
+}
+function confirmNewAccount(){
+  const name = document.getElementById('accName').value.trim();
+  if(!name){ alert('Indica um nome para a conta.'); return; }
+  const type = document.getElementById('accType').value;
+  const openingBalance = parseFloat(document.getElementById('accOpening').value)||0;
+  DB.accounts.push({id:uid(), name, type, openingBalance, createdAt:todayISO()});
+  saveDB(); closeModal(); renderFinancas();
+}
+function deleteAccount(id){
+  if(!confirm('Remover esta conta? Os lançamentos já associados ficam sem conta atribuída.')) return;
+  DB.accounts = DB.accounts.filter(a=>a.id!==id);
+  DB.transactions.forEach(t=>{ if(t.accountId===id) t.accountId=null; });
   saveDB(); renderFinancas();
 }
 
@@ -7292,7 +7685,7 @@ const KNOWLEDGE = [
    anos civis) para que a comparação seja sempre justa, mesmo a meio do ano.
    ========================================================================= */
 function analisesFinanceWindow(startISO, endISO){
-  const txs = DB.transactions.filter(t=>t.date>=startISO && t.date<endISO);
+  const txs = DB.transactions.filter(t=>t.date>=startISO && t.date<endISO && txIsPago(t));
   const receitas = txs.filter(t=>t.type==='receita').reduce((s,t)=>s+t.amount,0);
   const despesas = txs.filter(t=>t.type==='despesa').reduce((s,t)=>s+t.amount,0);
   return {receitas, despesas, saldo: receitas-despesas, count: txs.length};
@@ -9321,24 +9714,27 @@ function exportFinanceCSV(){
   const year = +document.getElementById('csvYear').value;
   const inPeriod = date => +date.slice(0,4)===year && (month==='all' || +date.slice(5,7)===+month);
   const periodLabel = month==='all'? `${year}` : `${MONTHS_FULL[+month-1]}_${year}`;
-  const txs = DB.transactions.filter(t=>inPeriod(t.date)).sort((a,b)=>a.date.localeCompare(b.date));
+  const txs = DB.transactions.filter(t=>inPeriod(t.date) && txIsPago(t)).sort((a,b)=>a.date.localeCompare(b.date));
   const receitas = txs.filter(t=>t.type==='receita').reduce((s,t)=>s+t.amount,0);
   const despesas = txs.filter(t=>t.type==='despesa').reduce((s,t)=>s+t.amount,0);
 
-  const rows = [['Data','Tipo','Categoria','Nota','Valor']];
+  const rows = [['Data','Tipo','Categoria','Centro de Custo','Conta','Nota','Valor']];
   txs.forEach(t=>{
+    const acc = t.accountId? DB.accounts.find(a=>a.id===t.accountId) : null;
     rows.push([
       t.date.split('-').reverse().join('/'),
       t.type==='receita'?'Receita':'Despesa',
       t.category,
+      costCenterLabel(t),
+      acc? acc.name : '',
       t.note||'',
       csvNum(t.type==='receita'? t.amount : -t.amount)
     ]);
   });
-  rows.push(['','','','','']);
-  rows.push(['','','','Total Receitas', csvNum(receitas)]);
-  rows.push(['','','','Total Despesas', csvNum(despesas)]);
-  rows.push(['','','','Saldo', csvNum(receitas-despesas)]);
+  rows.push(['','','','','','','']);
+  rows.push(['','','','','','Total Receitas', csvNum(receitas)]);
+  rows.push(['','','','','','Total Despesas', csvNum(despesas)]);
+  rows.push(['','','','','','Saldo', csvNum(receitas-despesas)]);
 
   const csv = '﻿' + rows.map(r=>r.map(csvField).join(';')).join('\r\n');
   const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
@@ -9480,7 +9876,7 @@ function downloadTraceabilityQR(cropName, lotId){
   }
 }
 function buildFinanceReportHTML(periodLabel, inPeriod, month){
-  const txs = DB.transactions.filter(t=>inPeriod(t.date)).sort((a,b)=>a.date.localeCompare(b.date));
+  const txs = DB.transactions.filter(t=>inPeriod(t.date) && txIsPago(t)).sort((a,b)=>a.date.localeCompare(b.date));
   const receitas = txs.filter(t=>t.type==='receita').reduce((s,t)=>s+t.amount,0);
   const despesas = txs.filter(t=>t.type==='despesa').reduce((s,t)=>s+t.amount,0);
   const byCategory = type => {
