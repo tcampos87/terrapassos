@@ -6863,7 +6863,7 @@ function renderPecuariaGeralHTML(){
   `;
 }
 
-let pecuariaAnimalFilter = {species:'all', lot:'all', status:'ativo', sex:'all', age:'all', tag:'', weightMin:'', weightMax:''};
+let pecuariaAnimalFilter = {species:'all', breed:'all', lot:'all', status:'ativo', sex:'all', age:'all', tag:'', weightMin:'', weightMax:''};
 const PECUARIA_FILTER_FOCUS_IDS = {tag:'pecAnimalTagFilter', weightMin:'pecAnimalWeightMin', weightMax:'pecAnimalWeightMax'};
 function setPecuariaAnimalFilter(field, val){
   pecuariaAnimalFilter[field]=val;
@@ -6875,7 +6875,7 @@ function setPecuariaAnimalFilter(field, val){
   }
 }
 function clearPecuariaAnimalFilters(){
-  pecuariaAnimalFilter = {species:'all', lot:'all', status:'ativo', sex:'all', age:'all', tag:'', weightMin:'', weightMax:''};
+  pecuariaAnimalFilter = {species:'all', breed:'all', lot:'all', status:'ativo', sex:'all', age:'all', tag:'', weightMin:'', weightMax:''};
   renderPecuaria();
 }
 function animalAgeDays(a){ return daysBetween(a.birthDate, todayISO()); }
@@ -6883,6 +6883,7 @@ function renderPecuariaAnimaisHTML(){
   const f = pecuariaAnimalFilter;
   let list = DB.livestockAnimals.slice();
   if(f.species!=='all') list = list.filter(a=>a.species===f.species);
+  if(f.breed!=='all') list = list.filter(a=>a.breed===f.breed);
   if(f.lot!=='all') list = list.filter(a=>a.lotId===f.lot);
   if(f.status!=='all') list = list.filter(a=>a.status===f.status);
   if(f.sex!=='all') list = list.filter(a=>a.sex===f.sex);
@@ -6898,7 +6899,8 @@ function renderPecuariaAnimaisHTML(){
   if(f.weightMin!==''){ const min=parseFloat(f.weightMin); list = list.filter(a=>{ const w=animalCurrentWeight(a.id); return w!=null && w>=min; }); }
   if(f.weightMax!==''){ const max=parseFloat(f.weightMax); list = list.filter(a=>{ const w=animalCurrentWeight(a.id); return w!=null && w<=max; }); }
   list.sort((a,b)=>(a.tag||'').localeCompare(b.tag||''));
-  const anyFilterActive = f.species!=='all'||f.lot!=='all'||f.status!=='ativo'||f.sex!=='all'||f.age!=='all'||f.tag.trim()||f.weightMin!==''||f.weightMax!=='';
+  const anyFilterActive = f.species!=='all'||f.breed!=='all'||f.lot!=='all'||f.status!=='ativo'||f.sex!=='all'||f.age!=='all'||f.tag.trim()||f.weightMin!==''||f.weightMax!=='';
+  const breedOptions = [...new Set(DB.livestockAnimals.filter(a=>f.species==='all'||a.species===f.species).map(a=>a.breed).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt'));
   return `
     <div class="flex items-center justify-between gap-2 mb-4 flex-wrap">
       <div class="flex gap-2 flex-wrap items-center">
@@ -6906,6 +6908,10 @@ function renderPecuariaAnimaisHTML(){
         <select class="field" style="width:auto;font-size:12px" onchange="setPecuariaAnimalFilter('species', this.value)">
           <option value="all">Espécie: todas</option>
           ${LIVESTOCK_SPECIES.map(s=>`<option value="${s.id}" ${f.species===s.id?'selected':''}>${s.icon} ${s.label}</option>`).join('')}
+        </select>
+        <select class="field" style="width:auto;font-size:12px;max-width:170px" onchange="setPecuariaAnimalFilter('breed', this.value)">
+          <option value="all">Raça: todas</option>
+          ${breedOptions.map(b=>`<option value="${b}" ${f.breed===b?'selected':''}>${b}</option>`).join('')}
         </select>
         <select class="field" style="width:auto;font-size:12px" onchange="setPecuariaAnimalFilter('sex', this.value)">
           <option value="all" ${f.sex==='all'?'selected':''}>Sexo: todos</option>
